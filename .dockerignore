@@ -1,0 +1,15 @@
+# IDE
+.idea/
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+
+# Cache
+.pytest_cache
+.ruff_cache
+
+# Environment variables
+.env
