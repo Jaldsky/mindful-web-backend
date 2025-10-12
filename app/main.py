@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from .api.v1.endpoints import healthcheck
+from .api.v1.endpoints import healthcheck, events
 from .common.logging import setup_logging
 from .common.middleware import log_requests_middleware
 
@@ -15,3 +15,4 @@ app = FastAPI(
 app.middleware("http")(log_requests_middleware)
 
 app.include_router(healthcheck.router, prefix="/api/v1")
+app.include_router(events.router, prefix="/api/v1")
