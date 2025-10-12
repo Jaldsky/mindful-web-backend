@@ -20,6 +20,7 @@ class TestEventsService(TestCase):
         self.logger = Mock()
         self.database_url = "sqlite+aiosqlite:///:memory:"
         self.session = AsyncMock()
+        self.session.add = Mock()
         self.user_id: UUID = uuid4()
         self.valid_event_data = SendEventData(event="active", domain="example.com", timestamp="2025-04-05T10:00:00Z")
         self.valid_payload = SendEventsRequestSchema(data=[self.valid_event_data])
@@ -34,7 +35,7 @@ class TestEventsService(TestCase):
         self._run_async(EventsService(self.session).exec(self.valid_payload, self.user_id))
 
         self.session.execute.assert_called()
-        self.session.add_all.assert_called_once()
+        self.session.add.assert_called_once()
         self.session.commit.assert_awaited_once()
         mock_logger.info.assert_called_with(
             f"Successfully processed {len(self.valid_payload.data)} events for user {self.user_id}"
@@ -122,13 +123,11 @@ class TestEventsService(TestCase):
         """Метод _insert_events корректно создаёт объекты AttentionEvent."""
         self._run_async(EventsService(self.session)._insert_events([self.valid_event_data], self.user_id))
 
-        self.session.add_all.assert_called_once()
-        added_events = self.session.add_all.call_args[0][0]
-        self.assertEqual(len(added_events), 1)
-        event = added_events[0]
-        self.assertEqual(event.user_id, self.user_id)
-        self.assertEqual(event.domain, "example.com")
-        self.assertEqual(event.event_type, "active")
+        self.session.add.assert_called_once()
+        added_event = self.session.add.call_args[0][0]
+        self.assertEqual(added_event.user_id, self.user_id)
+        self.assertEqual(added_event.domain, "example.com")
+        self.assertEqual(added_event.event_type, "active")
 
     def test_events_service_real_db_flow(self):
         """Полный цикл: создание пользователя, сохранение событий, проверка в БД."""
