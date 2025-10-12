@@ -177,14 +177,14 @@ class Manager(ManagerBase, ManagerInterface):
         Raises:
             Если не удалось создать сессию.
         """
-        session: Session | None = None
+        session: AsyncSession | None = None
         try:
             session = self._sessionmaker()
             yield session
         except Exception as e:
             if session:
                 try:
-                    session.rollback()
+                    await session.rollback()
                 except Exception as rollback_err:
                     self._logger.warning(self.messages.ROLLBACK_FAILED_ERROR.format(error=str(rollback_err)))
             if isinstance(e, SQLAlchemyError):
@@ -197,7 +197,7 @@ class Manager(ManagerBase, ManagerInterface):
         finally:
             if session:
                 try:
-                    session.close()
+                    await session.close()
                 except Exception as close_err:
                     self._logger.warning(self.messages.CLOSE_FAILED_ERROR.format(error=str(close_err)))
 

@@ -1,6 +1,6 @@
 import asyncio
 from unittest import TestCase, mock
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, AsyncMock
 from urllib.parse import urlparse
 from logging import Logger
 
@@ -230,9 +230,9 @@ class TestManager(TestCase):
         mock_engine = Mock()
         mock_create_engine.return_value = mock_engine
 
-        mock_session = Mock()
-        mock_session.rollback = Mock(side_effect=Exception("Rollback crashed"))
-        mock_session.close = Mock()
+        mock_session = AsyncMock()
+        mock_session.rollback = AsyncMock(side_effect=Exception("Rollback crashed"))
+        mock_session.close = AsyncMock()
 
         mock_session_factory = Mock(return_value=mock_session)
         mock_sessionmaker.return_value = mock_session_factory
@@ -246,8 +246,8 @@ class TestManager(TestCase):
             except DatabaseManagerException as e:
                 expected_msg = DatabaseManagerMessages.UNEXPECTED_SESSION_ERROR.format(error="Main error")
                 self.assertEqual(str(e), expected_msg)
-                mock_session.rollback.assert_called_once()
-                mock_session.close.assert_called_once()
+                mock_session.rollback.assert_awaited_once()
+                mock_session.close.assert_awaited_once()
                 self.logger.warning.assert_called_with(
                     DatabaseManagerMessages.ROLLBACK_FAILED_ERROR.format(error="Rollback crashed")
                 )
@@ -264,8 +264,8 @@ class TestManager(TestCase):
         mock_engine = Mock()
         mock_create_engine.return_value = mock_engine
 
-        mock_session = Mock()
-        mock_session.close = Mock(side_effect=OSError("Close failed"))
+        mock_session = AsyncMock()
+        mock_session.close = AsyncMock(side_effect=OSError("Close failed"))
 
         mock_session_factory = Mock(return_value=mock_session)
         mock_sessionmaker.return_value = mock_session_factory

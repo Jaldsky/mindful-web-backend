@@ -64,17 +64,18 @@ class EventsService(EventsServiceBase):
                 )
                 for event in events
             ]
-            self.session.add_all(events)
+            for event in events:
+                self.session.add(event)
         except Exception as e:
             logger.error(f"Failed to prepare events for user {user_id}: {e}")
             raise self.exception(self.messages.ADD_EVENTS_ERROR)
 
-    async def exec(self, events: SendEventsRequestSchema, user_id: UUID) -> None:
-        """Метод выполнения основной логики.
+    async def create_events(self, events: SendEventsRequestSchema, user_id: UUID) -> None:
+        """Метод создания событий в базе данных.
 
         Args:
             events: Модель событий.
-            user_id: Идентификатор пользователоя.
+            user_id: Идентификатор пользователя.
         """
         try:
             await self._ensure_user_exists(user_id)
@@ -96,3 +97,12 @@ class EventsService(EventsServiceBase):
             await self.session.rollback()
             logger.error(f"Unexpected error while processing events for user {user_id}: {e}")
             raise self.exception(self.messages.UNEXPECTED_ERROR) from e
+
+    async def exec(self, events: SendEventsRequestSchema, user_id: UUID) -> None:
+        """Метод выполнения основной логики.
+
+        Args:
+            events: Модель событий.
+            user_id: Идентификатор пользователя.
+        """
+        await self.create_events(events, user_id)

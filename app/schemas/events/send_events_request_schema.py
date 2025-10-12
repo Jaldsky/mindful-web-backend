@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import re
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -26,6 +27,10 @@ class SendEventData(BaseModel):
     @staticmethod
     @field_validator("domain")
     def validate_and_normalize_domain(v: str) -> str:
+        """Валидация и нормализация домена."""
+        if not v or not isinstance(v, str):
+            raise ValueError("Domain must be a non-empty string")
+
         v = v.strip().lower()
         if not v or "." not in v:
             raise ValueError("Invalid domain format: must contain at least one dot")
@@ -38,11 +43,19 @@ class SendEventData(BaseModel):
             v = v[4:]
         if not v or len(v) > 255:
             raise ValueError("Domain is invalid or too long after normalization")
+
+        if not re.match(r"^[a-z0-9.-]+$", v):
+            raise ValueError("Domain contains invalid characters")
+
+        if v.startswith(".") or v.endswith(".") or v.startswith("-") or v.endswith("-"):
+            raise ValueError("Domain cannot start or end with dot or dash")
+
         return v
 
     @staticmethod
     @field_validator("timestamp")
     def validate_timestamp_not_in_future(v: datetime) -> datetime:
+        """Валидация что timestamp не в будущем."""
         now = datetime.now(timezone.utc)
         if v > now:
             raise ValueError("Timestamp cannot be in the future")
