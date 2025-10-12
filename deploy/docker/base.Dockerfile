@@ -25,6 +25,6 @@ ENV VIRTUAL_ENV=/app/.venv \
 
 RUN python -m venv $VIRTUAL_ENV \
     && poetry config virtualenvs.create false \
-    && poetry install --only=main --no-root
+    && poetry install --only=main --no-root --no-cache
 
 RUN chown -R appuser:appgroup /app
