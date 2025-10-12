@@ -16,7 +16,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 
-def init_db() -> None:
+async def init_db() -> None:
     from sqlalchemy import text
 
     from app.db.session.provider import manager  # noqa: F401
@@ -25,17 +25,22 @@ def init_db() -> None:
 
     engine = manager.get_engine()
 
-    with engine.connect() as conn:
-        conn.execute(text("SELECT 1"))
+    async with engine.begin() as conn:
+        await conn.execute(text("SELECT 1"))
+
     logger.info("✅ Подключение к базе данных успешно")
 
-    Base.metadata.create_all(bind=engine)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
     logger.info("✅ Таблицы успешно созданы")
 
 
 if __name__ == "__main__":
     try:
-        init_db()
+        import asyncio
+
+        asyncio.run(init_db())
     except Exception as e:
         logger.error(f"❌ Ошибка при инициализации базы данных: {e}")
         sys.exit(1)
