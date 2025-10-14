@@ -2,7 +2,7 @@ FROM python:3.11-alpine3.21
 LABEL maintainer="ryzhenkovartg@gmail.com"
 ENV TZ="Europe/Moscow"
 
-RUN apk add --no-cache gcc musl-dev postgresql-dev libpq
+RUN apk add --no-cache gcc musl-dev postgresql-dev libpq bash
 
 RUN addgroup -g 1001 -S appgroup \
     && adduser -u 1001 -S appuser -G appgroup
