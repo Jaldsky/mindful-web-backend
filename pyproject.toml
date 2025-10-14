@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "mindful-web"
+name = "app"
 version = "0.1.0"
 description = "Open-source tool for mindful internet usage tracking and digital wellbeing"
 authors = ["Artem Ryzhenkov <ryzhenkovartg@gmail.com>"]
@@ -26,11 +26,7 @@ greenlet = "^3.2.4"
 dotenv = "^0.9.9"
 pre-commit = "^4.2.0"
 ruff = "^0.9.1"
-
-[tool.poetry.scripts]
-dev-server = "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
-worker = "celery -A app.worker worker --loglevel=info"
-beat = "celery -A app.worker beat --loglevel=info"
+invoke = "^2.2.0"
 
 [tool.ruff]
 target-version = "py311"

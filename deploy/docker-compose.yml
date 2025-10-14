@@ -64,7 +64,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    command: [".venv/bin/python", "-m", "celery", "--config", "deploy.config.celery_conf", "-A", "app.celery", "worker", "--loglevel=info"]
+    command: [".venv/bin/python", "-m", "invoke", "worker"]
     restart: unless-stopped
     networks:
       - mindfulweb-net
@@ -80,7 +80,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    command: [".venv/bin/python", "-m", "celery", "--config", "deploy.config.celery_conf", "-A", "app.celery", "beat", "--loglevel=info"]
+    command: [".venv/bin/python", "-m", "invoke", "beat"]
     restart: unless-stopped
     networks:
       - mindfulweb-net
