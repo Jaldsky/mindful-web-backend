@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import get_user_id_from_header, get_db_session
+from app.db.session.provider import Provider
 
 
 class TestGetUserIdFromHeader(TestCase):
@@ -78,7 +79,7 @@ class TestGetDbSession(TestCase):
         """Вспомогательный метод для запуска асинхронного кода."""
         return asyncio.run(coro)
 
-    @patch("app.api.v1.dependencies.manager")
+    @patch.object(Provider, "async_manager")
     def test_valid_session_returned(self, mock_manager_class):
         """Успешное получение сессии из менеджера."""
         mock_session = AsyncMock(spec=AsyncSession)
@@ -100,7 +101,7 @@ class TestGetDbSession(TestCase):
 
         self._run_async(test_coro())
 
-    @patch("app.api.v1.dependencies.manager")
+    @patch.object(Provider, "async_manager")
     def test_manager_exception_raises_http_500(self, mock_manager):
         """Исключение при вызове manager.get_session() вызывает HTTP 500."""
         mock_manager.get_session.side_effect = Exception("Failed to create session factory")
@@ -116,7 +117,7 @@ class TestGetDbSession(TestCase):
 
         self._run_async(test_coro())
 
-    @patch("app.api.v1.dependencies.manager")
+    @patch.object(Provider, "async_manager")
     def test_get_session_exception_raises_http_500(self, mock_manager_class):
         """Исключение при входе в контекстный менеджер вызывает HTTP 500."""
         mock_session_context = AsyncMock()
@@ -134,7 +135,7 @@ class TestGetDbSession(TestCase):
 
         self._run_async(test_coro())
 
-    @patch("app.api.v1.dependencies.manager")
+    @patch.object(Provider, "async_manager")
     def test_session_is_yielded_only_once(self, mock_manager_class):
         """Генератор должен выдавать ровно одну сессию."""
         mock_session = AsyncMock(spec=AsyncSession)

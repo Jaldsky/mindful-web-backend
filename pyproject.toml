@@ -27,6 +27,7 @@ dotenv = "^0.9.9"
 pre-commit = "^4.2.0"
 ruff = "^0.9.1"
 invoke = "^2.2.0"
+psycopg2-binary = "^2.9.11"
 
 [tool.ruff]
 target-version = "py311"
