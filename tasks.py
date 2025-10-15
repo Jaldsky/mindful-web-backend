@@ -94,11 +94,11 @@ def start_beat(ctx, loglevel="info"):
     _run_safe_command(ctx, cmd)
 
 
-@task(name="test")
+@task(name="tests")
 def tests(ctx):
     """Запуск тестов."""
     logger.info("🧪 Запуск тестов...")
-    cmd = ["python", "-m", "unittest", "discover", "-s", "app/tests", "-v"]
+    cmd = ["python", "-m", "unittest", "discover", '--pattern="*test.py"']
     _run_safe_command(ctx, cmd)
 
 
