@@ -19,6 +19,7 @@ router = APIRouter(prefix="/events", tags=["events"])
 
 @router.post(
     "/send",
+    status_code=status.HTTP_201_CREATED,
     responses={
         status.HTTP_201_CREATED: {"description": "События успешно сохранены"},
         status.HTTP_400_BAD_REQUEST: {
