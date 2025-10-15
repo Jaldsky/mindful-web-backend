@@ -11,5 +11,8 @@ env/
 .pytest_cache
 .ruff_cache
 
+# Cache
+pyproject.lock
+
 # Environment variables
 .env
