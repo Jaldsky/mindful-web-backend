@@ -1,4 +1,19 @@
 services:
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: ./deploy/docker/service.Dockerfile
+    env_file:
+      - ../.env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: [".venv/bin/python", "-m", "invoke", "migrate-apply"]
+    restart: "no"
+    networks:
+      - mindfulweb-net
+
   app:
     build:
       context: ..
@@ -8,24 +23,13 @@ services:
     env_file:
       - ../.env
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis:
         condition: service_started
     restart: unless-stopped
-    networks:
-      - mindfulweb-net
-
-  init-db:
-    build:
-      context: ..
-      dockerfile: ./deploy/docker/service.Dockerfile
-    env_file:
-      - ../.env
-    depends_on:
-      db:
-        condition: service_healthy
-    command: [".venv/bin/python", "deploy/scripts/init_db.py"]
     networks:
       - mindfulweb-net
 
@@ -60,6 +64,8 @@ services:
     env_file:
       - ../.env
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis:
@@ -76,6 +82,8 @@ services:
     env_file:
       - ../.env
     depends_on:
+      migrate:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
       redis:

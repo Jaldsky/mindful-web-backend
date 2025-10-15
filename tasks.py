@@ -166,3 +166,140 @@ def docker_compose(ctx, command="up", detach=True, build=False, env_file=".env")
         logger.info("🔨 Сборка образов перед запуском...")
 
     _run_safe_command(ctx, cmd)
+
+
+@task(name="migrate-apply")
+def apply_migrations(ctx, local=False):
+    """Применение существующих миграций к базе данных.
+
+    Args:
+        local: Использовать localhost вместо db для подключения к БД (по умолчанию: False)
+    """
+    project_root = _get_project_root()
+    alembic_config_path = os.path.join(project_root, "deploy", "config", "alembic.ini")
+
+    env = os.environ.copy()
+    if local:
+        env["POSTGRES_HOST"] = "localhost"
+        logger.info("🏠 Используется localhost для подключения к БД")
+
+    logger.info("🔄 Применение миграций...")
+    cmd = ["alembic", "-c", alembic_config_path, "upgrade", "head"]
+    _run_safe_command(ctx, cmd, env=env)
+
+
+@task(name="migrate-create")
+def create_migration(ctx, message, local=False):
+    """Создание новой миграции.
+
+    Args:
+        message: Сообщение для миграции
+        local: Использовать localhost вместо db для подключения к БД (по умолчанию: False)
+    """
+    project_root = _get_project_root()
+    alembic_config_path = os.path.join(project_root, "deploy", "config", "alembic.ini")
+
+    env = os.environ.copy()
+    if local:
+        env["POSTGRES_HOST"] = "localhost"
+        logger.info("🏠 Используется localhost для подключения к БД")
+
+    logger.info(f"🔄 Создание новой миграции: {message}")
+    cmd = ["alembic", "-c", alembic_config_path, "revision", "--autogenerate", "-m", message]
+    _run_safe_command(ctx, cmd, env=env)
+
+
+@task(name="migrate-down")
+def downgrade_migrations(ctx, revision="-1", local=False):
+    """Откат миграций.
+
+    Args:
+        revision: Ревизия для отката (по умолчанию: -1)
+        local: Использовать localhost вместо db для подключения к БД (по умолчанию: False)
+    """
+    project_root = _get_project_root()
+    alembic_config_path = os.path.join(project_root, "deploy", "config", "alembic.ini")
+
+    env = os.environ.copy()
+    if local:
+        env["POSTGRES_HOST"] = "localhost"
+        logger.info("🏠 Используется localhost для подключения к БД")
+
+    logger.info(f"⬇️ Откат миграций до ревизии: {revision}")
+    cmd = ["alembic", "-c", alembic_config_path, "downgrade", revision]
+    _run_safe_command(ctx, cmd, env=env)
+
+
+@task(name="migrate-history")
+def migration_history(ctx, local=False):
+    """Показать историю миграций."""
+    project_root = _get_project_root()
+    alembic_config_path = os.path.join(project_root, "deploy", "config", "alembic.ini")
+
+    env = os.environ.copy()
+    if local:
+        env["POSTGRES_HOST"] = "localhost"
+        logger.info("🏠 Используется localhost для подключения к БД")
+
+    logger.info("📜 История миграций:")
+    cmd = ["alembic", "-c", alembic_config_path, "history", "--verbose"]
+    _run_safe_command(ctx, cmd, env=env)
+
+
+@task(name="migrate-current")
+def current_migration(ctx, local=False):
+    """Показать текущую ревизию."""
+    project_root = _get_project_root()
+    alembic_config_path = os.path.join(project_root, "deploy", "config", "alembic.ini")
+
+    env = os.environ.copy()
+    if local:
+        env["POSTGRES_HOST"] = "localhost"
+        logger.info("🏠 Используется localhost для подключения к БД")
+
+    logger.info("📍 Текущая ревизия:")
+    cmd = ["alembic", "-c", alembic_config_path, "current"]
+    _run_safe_command(ctx, cmd, env=env)
+
+
+@task(name="migrate-create-docker")
+def create_migration_docker(ctx, message):
+    """Создание новой миграции в Docker контейнере.
+
+    Args:
+        message: Сообщение для миграции
+    """
+    logger.info(f"🐳 Создание миграции в Docker: {message}")
+    cmd = [
+        "docker-compose",
+        "-f",
+        "deploy/docker-compose.yml",
+        "run",
+        "--rm",
+        "migrate",
+        ".venv/bin/python",
+        "-m",
+        "invoke",
+        "migrate-create",
+        message,
+    ]
+    _run_safe_command(ctx, cmd)
+
+
+@task(name="migrate-apply-docker")
+def apply_migrations_docker(ctx):
+    """Применение миграций в Docker контейнере."""
+    logger.info("🐳 Применение миграций в Docker...")
+    cmd = [
+        "docker-compose",
+        "-f",
+        "deploy/docker-compose.yml",
+        "run",
+        "--rm",
+        "migrate",
+        ".venv/bin/python",
+        "-m",
+        "invoke",
+        "migrate-apply",
+    ]
+    _run_safe_command(ctx, cmd)
