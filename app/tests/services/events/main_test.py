@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy import text
 
 from app.db.models.base import Base
-from app.db.session.manager import Manager
+from app.db.session.manager import ManagerAsync
 from app.services.events.main import EventsService
 from app.schemas.events.send_events_request_schema import SendEventsRequestSchema, SendEventData
 from app.services.events.exceptions import EventsServiceException, EventsServiceMessages
@@ -131,7 +131,7 @@ class TestEventsService(TestCase):
 
     def test_events_service_real_db_flow(self):
         """Полный цикл: создание пользователя, сохранение событий, проверка в БД."""
-        manager = Manager(logger=self.logger, database_url=self.database_url)
+        manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
 
         async def _test_session():
             engine = manager.get_engine()

@@ -1,23 +1,19 @@
 from abc import ABC, abstractmethod
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, contextmanager
 from logging import Logger
-from typing import Any, NoReturn
+from typing import Any, NoReturn, Callable
 from urllib.parse import urlparse
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker, AsyncEngine
+from sqlalchemy import create_engine, Engine
 from sqlalchemy.exc import ArgumentError, SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
-from app.db.types import DatabaseURL, DatabaseSession
+from ...db.types import DatabaseURL, DatabaseSession
 from ..exceptions import DatabaseManagerException, DatabaseManagerMessages
 
 
 class ManagerInterface(ABC):
     """Интерфейс для класса менеджера базы данных."""
-
-    @abstractmethod
-    @asynccontextmanager
-    async def get_session(self):
-        """Метод получения генератора сессии базы данных с автоматической очисткой."""
 
     @abstractmethod
     def get_engine(self):
@@ -27,7 +23,7 @@ class ManagerInterface(ABC):
 class ManagerValidator:
     """Класс валидирующий параметры."""
 
-    SUPPORTED_SCHEMES = {"sqlite+aiosqlite", "postgresql+asyncpg"}
+    SUPPORTED_SCHEMES = {"sqlite+aiosqlite", "postgresql+asyncpg", "postgresql", "sqlite", "postgresql+psycopg2"}
     exception = DatabaseManagerException
     messages = DatabaseManagerMessages
 
@@ -103,26 +99,16 @@ class ManagerBase(ManagerValidator):
         self._logger = logger
         self._database_url = database_url.strip()
 
-
-class Manager(ManagerBase, ManagerInterface):
-    """Класс менеджера базы данных."""
-
-    def __init__(self, logger: Logger, database_url: DatabaseURL, **kwargs) -> None:
-        """Магический метод инициализации класса.
-
-        Args:
-            database_url: URL базы данных в формате SQLAlchemy.
-
-        Raises:
-            DatabaseManagerException: При любом нарушении формата URL.
-        """
-        super().__init__(logger, database_url, **kwargs)
-
         self._engine = self._create_engine()
         self._sessionmaker = self._create_sessionmaker()
 
-    def _create_engine(self) -> AsyncEngine:
-        """Метод создания SQLAlchemy Engine.
+    @property
+    @abstractmethod
+    def _engine_creator(self):
+        """Абстрактное свойство получения функции создания движка."""
+
+    def _create_engine(self) -> Engine | AsyncEngine:
+        """Метод создания SQLAlchemy Engine с общей логикой обработки ошибок.
 
         Returns:
             Инициализированный движок SQLAlchemy.
@@ -131,7 +117,7 @@ class Manager(ManagerBase, ManagerInterface):
             DatabaseManagerException: При ошибках создания движка.
         """
         try:
-            return create_async_engine(
+            return self._engine_creator(
                 self._database_url,
                 pool_pre_ping=True,
                 echo=False,
@@ -145,8 +131,13 @@ class Manager(ManagerBase, ManagerInterface):
             self._logger.error(message)
             raise self.exception(message) from e
 
-    def _create_sessionmaker(self) -> async_sessionmaker:
-        """Метод создания sessionmaker.
+    @property
+    @abstractmethod
+    def _sessionmaker_creator(self) -> Callable[..., sessionmaker | async_sessionmaker]:
+        """Абстрактное свойство получения функции создания sessionmaker."""
+
+    def _create_sessionmaker(self) -> sessionmaker | async_sessionmaker:
+        """Метод создания sessionmaker с общей логикой обработки ошибок.
 
         Returns:
             Фабрика сессий SQLAlchemy.
@@ -155,9 +146,8 @@ class Manager(ManagerBase, ManagerInterface):
             DatabaseManagerException: При ошибках создания sessionmaker.
         """
         try:
-            return async_sessionmaker(
+            return self._sessionmaker_creator(
                 bind=self._engine,
-                class_=AsyncSession,
                 expire_on_commit=False,
                 autoflush=False,
                 autocommit=False,
@@ -166,6 +156,61 @@ class Manager(ManagerBase, ManagerInterface):
             message = self.messages.SESSIONMAKER_CREATION_FAILED_ERROR.format(error=str(e))
             self._logger.error(message)
             raise self.exception(message) from e
+
+    def _handle_session_exception(self, e):
+        """Общая логика обработки исключений сессии.
+
+        Args:
+            e: Исключение, которое произошло.
+        """
+        if isinstance(e, SQLAlchemyError):
+            message = self.messages.SESSION_ERROR.format(error=str(e))
+            self._logger.error(message)
+        else:
+            message = self.messages.UNEXPECTED_SESSION_ERROR.format(error=str(e))
+            self._logger.error(message)
+        raise self.exception(message) from e
+
+    def get_engine(self):
+        """Метод получения engine базы данных для прямого использования.
+
+        Returns:
+            SQLAlchemy Engine, привязанный к указанной базе данных.
+        """
+        return self._engine
+
+
+class ManagerAsync(ManagerBase, ManagerInterface):
+    """Асинхронный класс менеджера базы данных."""
+
+    def __init__(self, logger: Logger, database_url: DatabaseURL, **kwargs) -> None:
+        """Магический метод инициализации класса.
+
+        Args:
+            database_url: URL базы данных в формате SQLAlchemy.
+
+        Raises:
+            DatabaseManagerException: При любом нарушении формата URL.
+        """
+        super().__init__(logger, database_url, **kwargs)
+
+    @property
+    def _engine_creator(self) -> create_async_engine:
+        """Свойство получения функции создания асинхронного движка.
+
+        Returns:
+            Функция create_async_engine для создания асинхронного движка.
+        """
+        return create_async_engine
+
+    @property
+    def _sessionmaker_creator(self) -> Callable[..., async_sessionmaker]:
+        """Свойство получения функции создания асинхронного sessionmaker.
+
+        Returns:
+            Функция async_sessionmaker для создания асинхронного sessionmaker.
+        """
+        return lambda **kwargs: async_sessionmaker(class_=AsyncSession, **kwargs)
 
     @asynccontextmanager
     async def get_session(self) -> DatabaseSession:
@@ -187,13 +232,7 @@ class Manager(ManagerBase, ManagerInterface):
                     await session.rollback()
                 except Exception as rollback_err:
                     self._logger.warning(self.messages.ROLLBACK_FAILED_ERROR.format(error=str(rollback_err)))
-            if isinstance(e, SQLAlchemyError):
-                message = self.messages.SESSION_ERROR.format(error=str(e))
-                self._logger.error(message)
-            else:
-                message = self.messages.UNEXPECTED_SESSION_ERROR.format(error=str(e))
-                self._logger.error(message)
-            raise self.exception(message) from e
+            self._handle_session_exception(e)
         finally:
             if session:
                 try:
@@ -201,10 +240,63 @@ class Manager(ManagerBase, ManagerInterface):
                 except Exception as close_err:
                     self._logger.warning(self.messages.CLOSE_FAILED_ERROR.format(error=str(close_err)))
 
-    def get_engine(self) -> AsyncEngine:
-        """Метод получения engine базы данных для прямого использования.
+
+class ManagerSync(ManagerBase, ManagerInterface):
+    """Синхронный класс менеджера базы данных."""
+
+    def __init__(self, logger: Logger, database_url: DatabaseURL, **kwargs) -> None:
+        """Магический метод инициализации класса.
+
+        Args:
+            database_url: URL базы данных в формате SQLAlchemy.
+
+        Raises:
+            DatabaseManagerException: При любом нарушении формата URL.
+        """
+        super().__init__(logger, database_url, **kwargs)
+
+    @property
+    def _engine_creator(self) -> create_engine:
+        """Свойство получения функции создания синхронного движка.
 
         Returns:
-            SQLAlchemy Engine, привязанный к указанной базе данных.
+            Функция create_engine для создания синхронного движка.
         """
-        return self._engine
+        return create_engine
+
+    @property
+    def _sessionmaker_creator(self) -> Callable[..., sessionmaker]:
+        """Свойство получения функции создания синхронного sessionmaker.
+
+        Returns:
+            Функция sessionmaker для создания синхронного sessionmaker.
+        """
+        return lambda **kwargs: sessionmaker(class_=Session, **kwargs)
+
+    @contextmanager
+    def get_session(self) -> DatabaseSession:
+        """Метод получения генератора сессии базы данных с автоматической очисткой.
+
+        Yields:
+            Сессия SQLAlchemy для выполнения запросов.
+
+        Raises:
+            Если не удалось создать сессию.
+        """
+        session: Session | None = None
+        try:
+            session = self._sessionmaker()
+            yield session
+        except Exception as e:
+            if session:
+                try:
+                    session.rollback()
+                except Exception as rollback_err:
+                    self._logger.warning(self.messages.ROLLBACK_FAILED_ERROR.format(error=str(rollback_err)))
+            self._handle_session_exception(e)
+        finally:
+            if session:
+                try:
+                    session.close()
+                except Exception as close_err:
+                    self._logger.warning(self.messages.CLOSE_FAILED_ERROR.format(error=str(close_err)))
