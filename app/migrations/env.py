@@ -1,14 +1,9 @@
 from logging.config import fileConfig
 from alembic import context
-from pathlib import Path
-import sys
 
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
-from ..config import DATABASE_SYNC_URL  # noqa: E402
-from ..db.models.tables import *  # noqa: E402
-from ..db.session.provider import Provider  # noqa: E402
+from app.config import DATABASE_SYNC_URL
+from app.db.models.tables import Base
+from app.db.session.provider import Provider
 
 config = context.config
 config.set_main_option("sqlalchemy.url", DATABASE_SYNC_URL)
