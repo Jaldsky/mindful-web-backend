@@ -98,7 +98,7 @@ def start_beat(ctx, loglevel="info"):
 def tests(ctx):
     """Запуск тестов."""
     logger.info("🧪 Запуск тестов...")
-    cmd = ["python", "-m", "unittest", "discover", '--pattern="*test.py"']
+    cmd = ["python", "-m", "unittest", "discover", '--pattern="*test*.py"']
     _run_safe_command(ctx, cmd)
 
 
