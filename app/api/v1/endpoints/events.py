@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from starlette import status
 
-from ..dependencies import get_user_id_from_header, get_db_session
-from ....schemas.errors import CommonErrorSchema, ErrorCode
+from ...dependencies import get_user_id_from_header, get_db_session
+from ....schemas import ErrorResponseSchema, ErrorCode
 from ....schemas.events.send_events_request_schema import SendEventsRequestSchema
 from ....services.events.main import EventsService
 from ....services.events.exceptions import EventsServiceException
@@ -23,15 +23,15 @@ router = APIRouter(prefix="/events", tags=["events"])
     responses={
         status.HTTP_201_CREATED: {"description": "События успешно сохранены"},
         status.HTTP_400_BAD_REQUEST: {
-            "model": CommonErrorSchema,
+            "model": ErrorResponseSchema,
             "description": "Некорректный X-User-ID или недопустимые данные",
         },
         status.HTTP_422_UNPROCESSABLE_ENTITY: {
-            "model": CommonErrorSchema,
+            "model": ErrorResponseSchema,
             "description": "Ошибка валидации входных событий",
         },
         status.HTTP_500_INTERNAL_SERVER_ERROR: {
-            "model": CommonErrorSchema,
+            "model": ErrorResponseSchema,
             "description": "Внутренняя ошибка сервера",
         },
     },
@@ -68,7 +68,7 @@ async def receive_events(
         logger.error(f"Validation error for user {user_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=CommonErrorSchema(
+            detail=ErrorResponseSchema(
                 code=ErrorCode.VALIDATION_ERROR,
                 message=f"Validation error: {str(e)}",
             ).model_dump(),
@@ -77,7 +77,7 @@ async def receive_events(
         logger.error(f"Events service error for user {user_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=CommonErrorSchema(
+            detail=ErrorResponseSchema(
                 code=ErrorCode.DATABASE_ERROR,
                 message="Failed to store events",
             ).model_dump(),
@@ -86,7 +86,7 @@ async def receive_events(
         logger.error(f"Unexpected error saving events for user {user_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=CommonErrorSchema(
+            detail=ErrorResponseSchema(
                 code=ErrorCode.INTERNAL_ERROR,
                 message="Internal server error",
             ).model_dump(),

@@ -5,7 +5,7 @@ from uuid import uuid4, uuid3, uuid5, uuid1, NAMESPACE_DNS
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.v1.dependencies import get_user_id_from_header, get_db_session
+from app.api.dependencies import get_user_id_from_header, get_db_session
 from app.db.session.provider import Provider
 
 

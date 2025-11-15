@@ -4,8 +4,8 @@ from uuid import UUID, uuid4
 
 from fastapi import Header, HTTPException, status
 
-from ...db.session.provider import Provider
-from ...db.types import DatabaseSession
+from ..db.session.provider import Provider
+from ..db.types import DatabaseSession
 
 logger = logging.getLogger(__name__)
 

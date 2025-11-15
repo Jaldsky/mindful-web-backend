@@ -1,11 +1,16 @@
 from fastapi import APIRouter, HTTPException
 from starlette.status import (
     HTTP_200_OK,
+    HTTP_405_METHOD_NOT_ALLOWED,
     HTTP_503_SERVICE_UNAVAILABLE,
 )
 
-from ....schemas.errors import CommonErrorSchema, ErrorCode
-from ....schemas.healthcheck.healthcheck_response_schema import HealthcheckResponseSchema
+from ....schemas import ErrorCode
+from ....schemas.healthcheck import (
+    HealthcheckMethodNotAllowedSchema,
+    HealthcheckResponseSchema,
+    HealthcheckServiceUnavailableSchema,
+)
 
 router = APIRouter(prefix="/healthcheck", tags=["healthcheck"])
 
@@ -14,8 +19,17 @@ router = APIRouter(prefix="/healthcheck", tags=["healthcheck"])
     "",
     response_model=HealthcheckResponseSchema,
     responses={
-        HTTP_200_OK: {"description": "Сервис работает корректно"},
-        HTTP_503_SERVICE_UNAVAILABLE: {"model": CommonErrorSchema, "description": "Сервис не доступен"},
+        HTTP_200_OK: {
+            "description": "Сервис работает корректно",
+        },
+        HTTP_405_METHOD_NOT_ALLOWED: {  # обработку см. в handlers.py
+            "model": HealthcheckMethodNotAllowedSchema,
+            "description": "Поддерживается только GET метод",
+        },
+        HTTP_503_SERVICE_UNAVAILABLE: {
+            "model": HealthcheckServiceUnavailableSchema,
+            "description": "Сервис не доступен",
+        },
     },
     summary="Работоспособность сервиса",
     description="Проверка работоспособности сервиса",
@@ -23,14 +37,14 @@ router = APIRouter(prefix="/healthcheck", tags=["healthcheck"])
 async def check_service_health():
     try:
         return HealthcheckResponseSchema(
-            status_code=HTTP_200_OK,
-            description="Service is available",
+            code="OK",
+            message="Service is available",
         )
     except Exception:
         raise HTTPException(
             status_code=HTTP_503_SERVICE_UNAVAILABLE,
-            detail=CommonErrorSchema(
+            detail=HealthcheckServiceUnavailableSchema(
                 code=ErrorCode.SERVICE_UNAVAILABLE,
                 message="Service is not available",
-            ).model_dump(),
+            ).model_dump(mode="json"),
         )
