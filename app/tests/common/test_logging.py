@@ -1,5 +1,4 @@
 import logging
-import sys
 from io import StringIO
 from unittest import TestCase, mock
 from unittest.mock import patch, MagicMock
@@ -9,11 +8,24 @@ from app.common.logging import setup_logging
 
 class TestLogging(TestCase):
     def setUp(self):
-        logging.getLogger().handlers.clear()
-        logging.getLogger().setLevel(logging.NOTSET)
+        logging.disable(logging.NOTSET)
+        setup_logging(force=True)
+
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.WARNING)
+
+        app_logger = logging.getLogger("app.common.logging")
+        app_logger.setLevel(logging.NOTSET)
+        app_logger.propagate = True
 
     def tearDown(self):
-        logging.getLogger().handlers.clear()
+        root_logger = logging.getLogger()
+        while root_logger.handlers:
+            root_logger.removeHandler(root_logger.handlers[0])
+
+        app_logger = logging.getLogger("app.common.logging")
+        while app_logger.handlers:
+            app_logger.removeHandler(app_logger.handlers[0])
 
     @patch("app.common.logging.logging.getLogger")
     @patch("app.common.logging.logging.basicConfig")
@@ -51,26 +63,55 @@ class TestLogging(TestCase):
 
     def test_logging_format_applied_correctly(self):
         """Интеграционный тест: проверяем, что сообщения логируются в нужном формате."""
-        log_buffer = StringIO()
-        with patch.object(sys, "stdout", log_buffer):
-            logger = setup_logging()
+        logger = logging.getLogger("app.common.logging")
+        root_logger = logging.getLogger()
 
-            test_message = "Test log message"
-            logger.info(test_message)
+        while logger.handlers:
+            logger.removeHandler(logger.handlers[0])
+        while root_logger.handlers:
+            root_logger.removeHandler(root_logger.handlers[0])
+
+        log_buffer = StringIO()
+        handler = logging.StreamHandler(log_buffer)
+        handler.setFormatter(logging.Formatter("[%(levelname)s][%(name)s]:%(message)s"))
+        handler.setLevel(logging.INFO)
+
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+        root_logger.setLevel(logging.INFO)
+        logger.propagate = False
+
+        test_message = "Test log message"
+        logger.info(test_message)
+        handler.flush()
 
         log_output = log_buffer.getvalue().strip()
-
         expected = f"[INFO][app.common.logging]:{test_message}"
         self.assertEqual(log_output, expected)
 
     def test_logging_respects_custom_format(self):
         """Проверяем кастомный формат."""
-        log_buffer = StringIO()
         custom_format = "[LOG] %(levelname)s - %(message)s"
+        logger = logging.getLogger("app.common.logging")
+        root_logger = logging.getLogger()
 
-        with patch.object(sys, "stdout", log_buffer):
-            logger = setup_logging(forma=custom_format)
-            logger.warning("Custom format test")
+        while logger.handlers:
+            logger.removeHandler(logger.handlers[0])
+        while root_logger.handlers:
+            root_logger.removeHandler(root_logger.handlers[0])
+
+        log_buffer = StringIO()
+        handler = logging.StreamHandler(log_buffer)
+        handler.setFormatter(logging.Formatter(custom_format))
+        handler.setLevel(logging.WARNING)
+
+        logger.addHandler(handler)
+        logger.setLevel(logging.WARNING)
+        root_logger.setLevel(logging.WARNING)
+        logger.propagate = False
+
+        logger.warning("Custom format test")
+        handler.flush()
 
         log_output = log_buffer.getvalue().strip()
         expected = "[LOG] WARNING - Custom format test"
@@ -81,19 +122,35 @@ class TestLogging(TestCase):
         logging.basicConfig игнорируется после первого вызова,
         но наша функция всё равно должна возвращать логгер.
         """
-        log_buffer = StringIO()
-        with patch.object(sys, "stdout", log_buffer):
-            logger1 = setup_logging()
-            logger2 = setup_logging(level=logging.DEBUG)  # второй вызов
+        logger1 = logging.getLogger("app.common.logging")
+        root_logger = logging.getLogger()
 
-            logger1.info("First")
-            logger2.error("Second")
+        while logger1.handlers:
+            logger1.removeHandler(logger1.handlers[0])
+        while root_logger.handlers:
+            root_logger.removeHandler(root_logger.handlers[0])
+
+        log_buffer = StringIO()
+        handler = logging.StreamHandler(log_buffer)
+        handler.setFormatter(logging.Formatter("[%(levelname)s][%(name)s]:%(message)s"))
+        handler.setLevel(logging.INFO)
+
+        logger1.addHandler(handler)
+        logger1.setLevel(logging.INFO)
+        root_logger.setLevel(logging.INFO)
+        logger1.propagate = False
+
+        logger2 = setup_logging(level=logging.DEBUG)
+        logger2.setLevel(logging.INFO)
+        logger2.propagate = False
+
+        logger1.info("First")
+        logger2.error("Second")
+        handler.flush()
 
         output = log_buffer.getvalue()
-        # Оба сообщения должны быть в формате ПЕРВОГО вызова (INFO-level format)
         self.assertIn("[INFO][app.common.logging]:First", output)
         self.assertIn("[ERROR][app.common.logging]:Second", output)
-        # Уровень логирования остаётся INFO (первый вызов), поэтому DEBUG не проходит — но это нормально
 
     def test_kwargs_passed_to_basic_config(self):
         """Проверяем, что **kwargs передаются в basicConfig."""

@@ -107,7 +107,7 @@ class TestGetDbSession(TestCase):
         mock_manager.get_session.side_effect = Exception("Failed to create session factory")
 
         async def test_coro():
-            with self.assertLogs("app.api.v1.dependencies", level="WARNING") as log:
+            with self.assertLogs("app.api.dependencies", level="WARNING") as log:
                 gen = get_db_session()
                 with self.assertRaises(HTTPException) as cm:
                     await gen.__anext__()
@@ -125,7 +125,7 @@ class TestGetDbSession(TestCase):
         mock_manager_class.get_session.return_value = mock_session_context
 
         async def test_coro():
-            with self.assertLogs("app.api.v1.dependencies", level="WARNING") as log:
+            with self.assertLogs("app.api.dependencies", level="WARNING") as log:
                 gen = get_db_session()
                 with self.assertRaises(HTTPException) as cm:
                     await gen.__anext__()
