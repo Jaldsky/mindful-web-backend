@@ -1,27 +1,31 @@
-from datetime import datetime, timezone
 import re
-
+from datetime import datetime, timezone
 from pydantic import BaseModel, Field, field_validator
+
+from ...services.events.exceptions import (
+    InvalidDomainFormatException,
+    InvalidDomainLengthException,
+    InvalidEventTypeException,
+    TimestampInFutureException,
+)
 
 
 class SendEventData(BaseModel):
+    """Схема данных одного события."""
+
     event: str = Field(
         ...,
-        examples=["active", "inactive"],
         description="Тип события внимания: active - пользователь перешёл на вкладку, inactive - покинул вкладку",
     )
-    domain: str = Field(
-        ..., min_length=1, max_length=255, examples=["instagram.com", "youtube.com"], description="Домен"
-    )
-    timestamp: datetime = Field(
-        ..., examples=["2025-04-05T18:30:00Z"], description="Временная метка события в формате ISO 8601 UTC."
-    )
+    domain: str = Field(..., min_length=1, max_length=255, description="Домен")
+    timestamp: datetime = Field(..., description="Временная метка события в формате ISO 8601 UTC.")
 
     @staticmethod
     @field_validator("event")
     def validate_event_type(v: str) -> str:
+        """Валидация event."""
         if v not in ("active", "inactive"):
-            raise ValueError("Event must be either active or inactive")
+            raise InvalidEventTypeException("Event must be either active or inactive")
         return v
 
     @staticmethod
@@ -29,11 +33,11 @@ class SendEventData(BaseModel):
     def validate_and_normalize_domain(v: str) -> str:
         """Валидация и нормализация домена."""
         if not v or not isinstance(v, str):
-            raise ValueError("Domain must be a non-empty string")
+            raise InvalidDomainFormatException("Domain must be a non-empty string")
 
         v = v.strip().lower()
         if not v or "." not in v:
-            raise ValueError("Invalid domain format: must contain at least one dot")
+            raise InvalidDomainFormatException("Invalid domain format: must contain at least one dot")
         if v.startswith("http://"):
             v = v[7:]
         elif v.startswith("https://"):
@@ -42,36 +46,50 @@ class SendEventData(BaseModel):
         if v.startswith("www."):
             v = v[4:]
         if not v or len(v) > 255:
-            raise ValueError("Domain is invalid or too long after normalization")
+            raise InvalidDomainLengthException("Domain is invalid or too long after normalization")
 
         if not re.match(r"^[a-z0-9.-]+$", v):
-            raise ValueError("Domain contains invalid characters")
+            raise InvalidDomainFormatException("Domain contains invalid characters")
 
         if v.startswith(".") or v.endswith(".") or v.startswith("-") or v.endswith("-"):
-            raise ValueError("Domain cannot start or end with dot or dash")
+            raise InvalidDomainFormatException("Domain cannot start or end with dot or dash")
 
         return v
 
     @staticmethod
     @field_validator("timestamp")
     def validate_timestamp_not_in_future(v: datetime) -> datetime:
-        """Валидация что timestamp не в будущем."""
+        """Валидация timestamp."""
         now = datetime.now(timezone.utc)
         if v > now:
-            raise ValueError("Timestamp cannot be in the future")
+            raise TimestampInFutureException("Timestamp cannot be in the future")
         return v
 
 
 class SendEventsRequestSchema(BaseModel):
+    """Схема запроса для отправки событий."""
+
     data: list[SendEventData] = Field(
         ...,
         min_length=1,
         max_length=100,
         description="Список событий внимания",
-        examples=[
-            [
-                {"event": "active", "domain": "reddit.com", "timestamp": "2025-04-05T09:00:00Z"},
-                {"event": "inactive", "domain": "reddit.com", "timestamp": "2025-04-05T09:05:22Z"},
-            ]
-        ],
     )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "data": [
+                    {
+                        "event": "active",
+                        "domain": "reddit.com",
+                        "timestamp": "2025-04-05T09:00:00Z",
+                    },
+                    {
+                        "event": "inactive",
+                        "domain": "reddit.com",
+                        "timestamp": "2025-04-05T09:05:22Z",
+                    },
+                ]
+            }
+        }
