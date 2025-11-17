@@ -119,7 +119,7 @@ def format_code(ctx):
 
 
 @task(name="build-base")
-def build_base_image(ctx, no_cache=False, image_name="mindfulweb-base", tag="latest"):
+def build_base_image(ctx, no_cache=False, image_name="wmb-base", tag="latest"):
     """Сборка базового Docker образа.
 
     Args:
