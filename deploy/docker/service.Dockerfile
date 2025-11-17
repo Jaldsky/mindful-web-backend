@@ -1,12 +1,13 @@
-FROM mindfulweb-base:latest
+FROM wmb-base:latest
 LABEL maintainer="ryzhenkovartg@gmail.com"
 
-COPY --chown=appuser:appgroup . /app/
-COPY --chown=appuser:appgroup deploy/config/celery_conf.py /app/app/celery_conf.py
+COPY --chown=appuser:appgroup pyproject.toml /service/
 
-RUN poetry install --no-root --no-cache
+RUN poetry install \
+    && poetry cache clear --all . \
+    && rm poetry.lock
+
+COPY --chown=appuser:appgroup deploy/config/ /service/deploy/config/
+COPY --chown=appuser:appgroup /app/ /service/app
 
 USER appuser
-WORKDIR /app
-
-CMD [".venv/bin/python", "-m", "gunicorn", "-c", "deploy/config/gunicorn_conf.py", "app.main:app"]
