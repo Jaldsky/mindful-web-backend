@@ -6,6 +6,46 @@ class EventsServiceException(FormException):
     """Базовое исключение приложения."""
 
 
+class UserCreationFailedException(EventsServiceException):
+    """Исключение при ошибке создания/получения пользователя."""
+
+
+class EventsInsertFailedException(EventsServiceException):
+    """Исключение при ошибке вставки событий."""
+
+
+class DataIntegrityViolationException(EventsServiceException):
+    """Исключение при нарушении целостности данных."""
+
+
+class TransactionFailedException(EventsServiceException):
+    """Исключение при ошибке транзакции базы данных."""
+
+
+class UnexpectedEventsException(EventsServiceException):
+    """Исключение при неожиданной ошибке обработки событий."""
+
+
+class InvalidEventTypeException(EventsServiceException):
+    """Исключение при неверном типе события."""
+
+
+class InvalidDomainFormatException(EventsServiceException):
+    """Исключение при неверном формате домена."""
+
+
+class InvalidDomainLengthException(EventsServiceException):
+    """Исключение при неверной длине домена."""
+
+
+class TimestampInFutureException(EventsServiceException):
+    """Исключение когда timestamp в будущем."""
+
+
+class InvalidUserIdException(EventsServiceException):
+    """Исключение при неверном формате User ID."""
+
+
 class EventsServiceMessages(StringEnum):
     """Перечисление сообщений об ошибках."""
 
