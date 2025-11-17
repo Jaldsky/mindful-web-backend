@@ -1,46 +1,13 @@
 services:
 
-  migrate:
-    build:
-      context: ..
-      dockerfile: ./deploy/docker/service.Dockerfile
-    env_file:
-      - ../.env
-    depends_on:
-      db:
-        condition: service_healthy
-    command: [".venv/bin/python", "-m", "invoke", "migrate-apply"]
-    restart: "no"
-    networks:
-      - mindfulweb-net
-
-  app:
-    build:
-      context: ..
-      dockerfile: ./deploy/docker/service.Dockerfile
-    ports:
-      - "8000:8000"
-    env_file:
-      - ../.env
-    depends_on:
-      migrate:
-        condition: service_completed_successfully
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    restart: unless-stopped
-    networks:
-      - mindfulweb-net
-
-  db:
+  mwb-db:
     image: postgres:16-alpine
     env_file:
       - ../.env
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mwb-pgdata:/var/lib/postgresql/data
     healthcheck:
       test: >
         /bin/sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
@@ -49,53 +16,90 @@ services:
       retries: 10
     restart: unless-stopped
     networks:
-      - mindfulweb-net
+      - mwb-net
 
-  redis:
+  mwb-redis:
     image: redis:7-alpine
+    env_file:
+      - ../.env
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     restart: unless-stopped
     networks:
-      - mindfulweb-net
+      - mwb-net
 
-  worker:
+  mwb-build-image:
     build:
       context: ..
-      dockerfile: ./deploy/docker/service.Dockerfile
+      dockerfile: deploy/docker/service.Dockerfile
+    image: mwb-service:latest
+    restart: "no"
+
+  mwb-migrate:
+    image: mwb-service:latest
     env_file:
       - ../.env
     depends_on:
-      migrate:
-        condition: service_completed_successfully
-      db:
+      mwb-db:
         condition: service_healthy
-      redis:
-        condition: service_started
-    command: [".venv/bin/python", "-m", "invoke", "worker"]
-    restart: unless-stopped
+      mwb-build-image:
+        condition: service_completed_successfully
+    command: ["python", "-m", "invoke", "migrate-apply"]
+    restart: "no"
     networks:
-      - mindfulweb-net
+      - mwb-net
 
-  beat:
-    build:
-      context: ..
-      dockerfile: ./deploy/docker/service.Dockerfile
+  mwb-worker:
+    image: mwb-service:latest
     env_file:
       - ../.env
     depends_on:
-      migrate:
-        condition: service_completed_successfully
-      db:
+      mwb-redis:
         condition: service_healthy
-      redis:
-        condition: service_started
+      mwb-build-image:
+        condition: service_completed_successfully
+    command: ["python", "-m", "invoke", "worker"]
+    restart: unless-stopped
+    networks:
+      - mwb-net
+
+  mwb-beat:
+    image: mwb-service:latest
+    env_file:
+      - ../.env
+    depends_on:
+      mwb-redis:
+        condition: service_healthy
+      mwb-build-image:
+        condition: service_completed_successfully
     command: [".venv/bin/python", "-m", "invoke", "beat"]
     restart: unless-stopped
     networks:
-      - mindfulweb-net
+      - mwb-net
+
+  mwb-app:
+    image: mwb-service:latest
+    ports:
+      - "8000:8000"
+    env_file:
+      - ../.env
+    depends_on:
+      mwb-migrate:
+        condition: service_completed_successfully
+      mwb-build-image:
+        condition: service_completed_successfully
+    command: ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-c", "deploy/config/gunicorn_conf.py", "app.main:app"]
+    restart: unless-stopped
+    networks:
+      - mwb-net
 
 volumes:
-  pgdata:
+  mwb-pgdata:
 
 networks:
-  mindfulweb-net:
+  mwb-net:
     driver: bridge
