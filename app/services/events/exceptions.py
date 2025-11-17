@@ -46,6 +46,14 @@ class InvalidUserIdException(EventsServiceException):
     """Исключение при неверном формате User ID."""
 
 
+class EmptyEventsListException(EventsServiceException):
+    """Исключение при пустом списке событий."""
+
+
+class TooManyEventsException(EventsServiceException):
+    """Исключение при превышении максимального количества событий."""
+
+
 class EventsServiceMessages(StringEnum):
     """Перечисление сообщений об ошибках."""
 

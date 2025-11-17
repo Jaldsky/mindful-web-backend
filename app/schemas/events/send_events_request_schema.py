@@ -3,10 +3,12 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, Field, field_validator
 
 from ...services.events.exceptions import (
+    EmptyEventsListException,
     InvalidDomainFormatException,
     InvalidDomainLengthException,
     InvalidEventTypeException,
     TimestampInFutureException,
+    TooManyEventsException,
 )
 
 
@@ -17,20 +19,20 @@ class SendEventData(BaseModel):
         ...,
         description="Тип события внимания: active - пользователь перешёл на вкладку, inactive - покинул вкладку",
     )
-    domain: str = Field(..., min_length=1, max_length=255, description="Домен")
+    domain: str = Field(..., min_length=1, description="Домен")
     timestamp: datetime = Field(..., description="Временная метка события в формате ISO 8601 UTC.")
 
-    @staticmethod
     @field_validator("event")
-    def validate_event_type(v: str) -> str:
+    @classmethod
+    def validate_event_type(cls, v: str) -> str:
         """Валидация event."""
         if v not in ("active", "inactive"):
             raise InvalidEventTypeException("Event must be either active or inactive")
         return v
 
-    @staticmethod
     @field_validator("domain")
-    def validate_and_normalize_domain(v: str) -> str:
+    @classmethod
+    def validate_and_normalize_domain(cls, v: str) -> str:
         """Валидация и нормализация домена."""
         if not v or not isinstance(v, str):
             raise InvalidDomainFormatException("Domain must be a non-empty string")
@@ -56,9 +58,9 @@ class SendEventData(BaseModel):
 
         return v
 
-    @staticmethod
     @field_validator("timestamp")
-    def validate_timestamp_not_in_future(v: datetime) -> datetime:
+    @classmethod
+    def validate_timestamp_not_in_future(cls, v: datetime) -> datetime:
         """Валидация timestamp."""
         now = datetime.now(timezone.utc)
         if v > now:
@@ -71,10 +73,18 @@ class SendEventsRequestSchema(BaseModel):
 
     data: list[SendEventData] = Field(
         ...,
-        min_length=1,
-        max_length=100,
         description="Список событий внимания",
     )
+
+    @field_validator("data")
+    @classmethod
+    def validate_data_list(cls, v: list[SendEventData]) -> list[SendEventData]:
+        """Валидация списка событий."""
+        if not v or len(v) == 0:
+            raise EmptyEventsListException("Events list cannot be empty")
+        if len(v) > 100:
+            raise TooManyEventsException("Events list cannot contain more than 100 events")
+        return v
 
     class Config:
         json_schema_extra = {
