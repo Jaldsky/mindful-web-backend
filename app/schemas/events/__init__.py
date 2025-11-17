@@ -4,6 +4,7 @@ from .send_events_internal_server_error_schema import SendEventsInternalServerEr
 from .send_events_method_not_allowed_schema import SendEventsMethodNotAllowedSchema
 from .send_events_request_schema import SendEventsRequestSchema
 from .send_events_response_schema import SendEventsResponseSchema
+from .send_events_user_id_header_schema import SendEventsUserIdHeaderSchema
 
 __all__ = (
     "EventsErrorCode",
@@ -12,4 +13,5 @@ __all__ = (
     "SendEventsMethodNotAllowedSchema",
     "SendEventsRequestSchema",
     "SendEventsResponseSchema",
+    "SendEventsUserIdHeaderSchema",
 )
