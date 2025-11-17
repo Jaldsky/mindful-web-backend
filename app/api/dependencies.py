@@ -1,16 +1,16 @@
 import logging
 from typing import Annotated
-from uuid import UUID, uuid4
-
+from uuid import UUID
 from fastapi import Header, HTTPException, status
 
 from ..db.session.provider import Provider
 from ..db.types import DatabaseSession
+from ..schemas.events import SendEventsUserIdHeaderSchema
 
 logger = logging.getLogger(__name__)
 
 
-def get_user_id_from_header(
+async def get_user_id_from_header(
     x_user_id: Annotated[
         str | None,
         Header(
@@ -21,7 +21,8 @@ def get_user_id_from_header(
         ),
     ] = None,
 ) -> UUID:
-    """Функция Dependency Injection для извлечения X-User-ID из HTTP-заголовка
+    """Функция Dependency Injection для извлечения X-User-ID из HTTP-заголовка.
+
     Зависимость извлекает X-User-ID из HTTP-заголовка.
     - Если заголовок отсутствует -> генерируется новый временный UUID4 (анонимный режим).
     - Если заголовок присутствует, но не является валидным UUID4 -> ошибка 400.
@@ -34,23 +35,10 @@ def get_user_id_from_header(
         Валидный идентификатор пользователя UUID4.
 
     Raises:
-        HTTPException: HTTP 400 Bad Request с соответствующим сообщением.
+        InvalidUserIdException: При неверном формате User ID (обрабатывается в events.py).
     """
-    if x_user_id is None:
-        return uuid4()
-
-    try:
-        user_uuid = UUID(x_user_id)
-        if user_uuid.version != 4:
-            raise ValueError("Not a UUID4")
-        return user_uuid
-    except (ValueError, AttributeError):
-        message = "Invalid X-User-ID: must be a valid UUID4 string"
-        logger.warning(message)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=message,
-        )
+    header = SendEventsUserIdHeaderSchema(**({} if x_user_id is None else {"x_user_id": x_user_id}))
+    return UUID(header.x_user_id)
 
 
 async def get_db_session() -> DatabaseSession:
