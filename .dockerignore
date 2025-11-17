@@ -1,5 +1,12 @@
-# IDE
+# IDE and git
+.editorconfig
 .idea/
+.github/
+.pre-commit-config.yaml
+
+# Ignors
+.dockerignore
+.gitignore
 
 # Virtual environments
 venv/
@@ -10,9 +17,8 @@ env/
 # Cache
 .pytest_cache
 .ruff_cache
-
-# Cache
 pyproject.lock
+__pycache__/
 
 # Environment variables
 .env
