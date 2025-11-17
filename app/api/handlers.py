@@ -2,8 +2,9 @@ from fastapi import Request, status
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from .routes import HEALTHCHECK_PATH
+from .routes import SEND_EVENTS_PATH, HEALTHCHECK_PATH
 from ..schemas import ErrorCode
+from ..schemas.events import SendEventsMethodNotAllowedSchema
 from ..schemas.healthcheck import HealthcheckMethodNotAllowedSchema
 
 
@@ -21,6 +22,16 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
         error_schema = HealthcheckMethodNotAllowedSchema(
             code=ErrorCode.METHOD_NOT_ALLOWED,
             message="Method not allowed. Only GET method is supported for this endpoint.",
+        )
+        return JSONResponse(
+            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+            content={"detail": error_schema.model_dump(mode="json")},
+        )
+
+    if str(request.url.path) == SEND_EVENTS_PATH:
+        error_schema = SendEventsMethodNotAllowedSchema(
+            code=ErrorCode.METHOD_NOT_ALLOWED,
+            message="Method not allowed. Only POST method is supported for this endpoint.",
         )
         return JSONResponse(
             status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
