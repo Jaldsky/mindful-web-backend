@@ -3,7 +3,7 @@ from uuid import UUID, uuid1, uuid3, uuid4, uuid5, NAMESPACE_DNS
 from pydantic import ValidationError
 
 from app.schemas.events.send_events_user_id_header_schema import SendEventsUserIdHeaderSchema
-from app.services.events.exceptions import InvalidUserIdException
+from app.services.events.send_events.exceptions import InvalidUserIdException
 
 
 class TestSendEventsUserIdHeaderSchema(TestCase):

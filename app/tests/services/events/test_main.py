@@ -8,9 +8,9 @@ from sqlalchemy import text
 
 from app.db.models.base import Base
 from app.db.session.manager import ManagerAsync
-from app.services.events.send_events import SendEventsService
+from app.services.events.send_events.main import SendEventsService
 from app.schemas.events.send_events_request_schema import SendEventsRequestSchema, SendEventData
-from app.services.events.exceptions import EventsServiceException, EventsServiceMessages
+from app.services.events.send_events.exceptions import EventsServiceException, EventsServiceMessages
 
 
 class TestEventsService(TestCase):
@@ -29,7 +29,7 @@ class TestEventsService(TestCase):
         """Вспомогательный метод для запуска асинхронного кода."""
         return asyncio.run(coro)
 
-    @patch("app.services.events.send_events.logger")
+    @patch("app.services.events.send_events.main.logger")
     def test_exec_success(self, mock_logger):
         """Успешная обработка событий на моках."""
         self._run_async(SendEventsService(self.session).exec(self.valid_data, self.user_id))
@@ -41,7 +41,7 @@ class TestEventsService(TestCase):
             f"Successfully processed {len(self.valid_data)} events for user {self.user_id}"
         )
 
-    @patch("app.services.events.send_events.logger")
+    @patch("app.services.events.send_events.main.logger")
     def test_exec_user_creation_fails(self, mock_logger):
         """Ошибка при создании/получении пользователя."""
         self.session.execute.side_effect = Exception("DB down")
@@ -55,7 +55,7 @@ class TestEventsService(TestCase):
             EventsServiceMessages.GET_OR_CREATE_USER_ERROR.format(user_id=str(self.user_id)), cm.exception.message
         )
 
-    @patch("app.services.events.send_events.logger")
+    @patch("app.services.events.send_events.main.logger")
     def test_exec_events_insert_fails(self, _):
         """Ошибка при подготовке/добавлении событий."""
         with patch.object(
@@ -69,7 +69,7 @@ class TestEventsService(TestCase):
             self.session.rollback.assert_awaited_once()
             self.assertEqual(EventsServiceMessages.ADD_EVENTS_ERROR, cm.exception.message)
 
-    @patch("app.services.events.send_events.logger")
+    @patch("app.services.events.send_events.main.logger")
     def test_exec_integrity_error(self, mock_logger):
         """Обработка IntegrityError."""
         self.session.commit.side_effect = IntegrityError(
@@ -82,7 +82,7 @@ class TestEventsService(TestCase):
         mock_logger.error.assert_called()
         self.assertEqual(EventsServiceMessages.DATA_INTEGRITY_ERROR, cm.exception.message)
 
-    @patch("app.services.events.send_events.logger")
+    @patch("app.services.events.send_events.main.logger")
     def test_exec_sqlalchemy_error(self, mock_logger):
         """Обработка общей ошибки SQLAlchemy."""
         self.session.commit.side_effect = SQLAlchemyError("Connection lost")
@@ -94,7 +94,7 @@ class TestEventsService(TestCase):
         mock_logger.error.assert_called()
         self.assertEqual(EventsServiceMessages.DATA_SAVE_ERROR, cm.exception.message)
 
-    @patch("app.services.events.send_events.logger")
+    @patch("app.services.events.send_events.main.logger")
     def test_exec_unexpected_error22(self, mock_logger):
         """Обработка неожиданного исключения (не SQLAlchemy)."""
         self.session.commit.side_effect = ValueError("Something weird")
@@ -106,7 +106,7 @@ class TestEventsService(TestCase):
         mock_logger.error.assert_called()
         self.assertEqual(EventsServiceMessages.UNEXPECTED_ERROR, cm.exception.message)
 
-    @patch("app.services.events.send_events.logger")
+    @patch("app.services.events.send_events.main.logger")
     def test_ensure_user_exists_success(self, _):
         """Метод _ensure_user_exists работает без ошибок."""
         self._run_async(SendEventsService(self.session)._ensure_user_exists(self.user_id))
@@ -120,7 +120,7 @@ class TestEventsService(TestCase):
 
         self.assertEqual("INSERT INTO users (id) VALUES (%(id)s::UUID) ON CONFLICT (id) DO NOTHING", sql_text)
 
-    @patch("app.services.events.send_events.logger")
+    @patch("app.services.events.send_events.main.logger")
     def test_insert_events_success(self, mock_logger):
         """Метод _insert_events корректно создаёт объекты AttentionEvent."""
         self._run_async(SendEventsService(self.session)._insert_events([self.valid_event_data], self.user_id))

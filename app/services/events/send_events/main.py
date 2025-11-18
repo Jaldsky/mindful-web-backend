@@ -1,13 +1,13 @@
 from __future__ import annotations
 import logging
-from typing import NoReturn, TYPE_CHECKING
+from typing import NoReturn
 from abc import ABC, abstractmethod
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
-from .exceptions import (
+from ....services.events.send_events.exceptions import (
     DataIntegrityViolationException,
     EventsInsertFailedException,
     EventsServiceException,
@@ -16,8 +16,8 @@ from .exceptions import (
     UnexpectedEventsException,
     UserCreationFailedException,
 )
-from ...db.models.tables import AttentionEvent, User
-from ...schemas.events import SendEventData
+from ....db.models.tables import AttentionEvent, User
+from ....schemas.events import SendEventData
 
 logger = logging.getLogger(__name__)
 

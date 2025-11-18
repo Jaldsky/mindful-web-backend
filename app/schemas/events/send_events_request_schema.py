@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from pydantic import BaseModel, Field, field_validator
 
 from .. import CommonMetaSchema
-from ...services.events.exceptions import (
+from app.services.events.send_events.exceptions import (
     EmptyEventsListException,
     InvalidDomainFormatException,
     InvalidDomainLengthException,
