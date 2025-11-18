@@ -2,6 +2,7 @@ import re
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field, field_validator
 
+from .. import CommonMetaSchema
 from ...services.events.exceptions import (
     EmptyEventsListException,
     InvalidDomainFormatException,
@@ -75,6 +76,7 @@ class SendEventsRequestSchema(BaseModel):
         ...,
         description="Список событий внимания",
     )
+    meta: CommonMetaSchema | None = Field(default_factory=CommonMetaSchema, description="Метаданные запроса")
 
     @field_validator("data")
     @classmethod
