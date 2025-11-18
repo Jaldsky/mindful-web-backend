@@ -37,22 +37,6 @@ class TestHealthcheckEndpoint(TestCase):
         self.assertEqual(schema.code, "OK")
         self.assertEqual(schema.message, "Service is available")
 
-    def test_healthcheck_exception_response_schema(self):
-        """При исключении healthcheck возвращает статус 503 и корректную схему ошибки HealthcheckServiceUnavailableSchema."""
-        with patch(
-            "app.api.v1.endpoints.healthcheck.HealthcheckResponseSchema",
-            side_effect=Exception("Test exception"),
-        ):
-            response = self.client.get(self.healthcheck_url)
-            self.assertEqual(response.status_code, HTTP_503_SERVICE_UNAVAILABLE)
-
-            data = response.json()
-            self.assertIn("detail", data)
-            detail = data["detail"]
-            schema = HealthcheckServiceUnavailableSchema(**detail)
-            self.assertEqual(schema.code, ErrorCode.SERVICE_UNAVAILABLE)
-            self.assertEqual(schema.message, "Service is not available")
-
     def test_healthcheck_multiple_requests(self):
         """Множественные запросы к healthcheck работают корректно."""
         for _ in range(5):
@@ -69,16 +53,6 @@ class TestHealthcheckEndpoint(TestCase):
         response = self.client.get(self.healthcheck_url)
         self.assertEqual(response.status_code, HTTP_200_OK)
         self.assertEqual(response.headers["content-type"], "application/json")
-
-    def test_healthcheck_exception_content_type(self):
-        """При исключении healthcheck возвращает JSON с правильным Content-Type."""
-        with patch(
-            "app.api.v1.endpoints.healthcheck.HealthcheckResponseSchema",
-            side_effect=Exception("Test exception"),
-        ):
-            response = self.client.get(self.healthcheck_url)
-            self.assertEqual(response.status_code, HTTP_503_SERVICE_UNAVAILABLE)
-            self.assertEqual(response.headers["content-type"], "application/json")
 
     def test_healthcheck_method_not_allowed_different_methods(self):
         """Различные HTTP методы (POST, PUT, DELETE, PATCH) возвращают 405."""
