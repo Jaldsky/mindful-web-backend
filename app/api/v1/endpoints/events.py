@@ -16,8 +16,8 @@ from ....schemas.events import (
     SendEventsResponseSchema,
     SendEventsUnprocessableEntitySchema,
 )
-from ....services.events.send_events import SendEventsService
-from ....services.events.exceptions import (
+from ....services.events.send_events.main import SendEventsService
+from ....services.events.send_events.exceptions import (
     DataIntegrityViolationException,
     EventsInsertFailedException,
     EventsServiceException,

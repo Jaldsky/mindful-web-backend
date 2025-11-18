@@ -41,10 +41,7 @@ class TestMethodNotAllowedHandler(TestCase):
         import json
 
         data = json.loads(content)
-        self.assertIn("detail", data)
-        detail = data["detail"]
-
-        schema = HealthcheckMethodNotAllowedSchema(**detail)
+        schema = HealthcheckMethodNotAllowedSchema(**data)
         self.assertEqual(schema.code, ErrorCode.METHOD_NOT_ALLOWED)
         self.assertEqual(schema.message, "Method not allowed. Only GET method is supported for this endpoint.")
 
@@ -62,10 +59,7 @@ class TestMethodNotAllowedHandler(TestCase):
         import json
 
         data = json.loads(content)
-        self.assertIn("detail", data)
-        detail = data["detail"]
-
-        schema = SendEventsMethodNotAllowedSchema(**detail)
+        schema = SendEventsMethodNotAllowedSchema(**data)
         self.assertEqual(schema.code, ErrorCode.METHOD_NOT_ALLOWED)
         self.assertEqual(schema.message, "Method not allowed. Only POST method is supported for this endpoint.")
 

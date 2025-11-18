@@ -90,9 +90,7 @@ class TestHealthcheckEndpoint(TestCase):
                 self.assertEqual(response.status_code, HTTP_405_METHOD_NOT_ALLOWED)
 
                 data = response.json()
-                self.assertIn("detail", data)
-                detail = data["detail"]
-                schema = HealthcheckMethodNotAllowedSchema(**detail)
+                schema = HealthcheckMethodNotAllowedSchema(**data)
                 self.assertEqual(schema.code, ErrorCode.METHOD_NOT_ALLOWED)
 
     def test_healthcheck_method_not_allowed_content_type(self):
