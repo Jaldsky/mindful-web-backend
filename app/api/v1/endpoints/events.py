@@ -14,6 +14,7 @@ from ....schemas.events import (
     SendEventsMethodNotAllowedSchema,
     SendEventsRequestSchema,
     SendEventsResponseSchema,
+    SendEventsUnprocessableEntitySchema,
 )
 from ....services.events.send_events import SendEventsService
 from ....services.events.exceptions import (
@@ -46,11 +47,15 @@ router = APIRouter(prefix="/events", tags=["events"])
         },
         status.HTTP_400_BAD_REQUEST: {
             "model": SendEventsBadRequestSchema,
-            "description": "Некорректный формат запроса или отсутствуют обязательные поля",
+            "description": "Сырые данные не соответствуют схеме",
         },
         status.HTTP_405_METHOD_NOT_ALLOWED: {  # обработку см. в handlers.py
             "model": SendEventsMethodNotAllowedSchema,
             "description": "Поддерживается только POST метод",
+        },
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {
+            "model": SendEventsUnprocessableEntitySchema,
+            "description": "Бизнес-валидация",
         },
         status.HTTP_500_INTERNAL_SERVER_ERROR: {
             "model": SendEventsInternalServerErrorSchema,
@@ -98,9 +103,8 @@ async def send_events(
         InvalidDomainFormatException,
         InvalidDomainLengthException,
         TimestampInFutureException,
-        ValidationError,
     ) as e:
-        logger.error(f"[{request_id}] Validation error: {e}", exc_info=True)
+        logger.error(f"[{request_id}] Business validation error: {e}", exc_info=True)
 
         match type(e).__name__:
             case "InvalidUserIdException":
@@ -167,16 +171,6 @@ async def send_events(
                         value=problematic_value,
                     )
                 ]
-            case "ValidationError":
-                error_code = ErrorCode.VALIDATION_ERROR
-                error_details = [
-                    ErrorDetailData(
-                        field=".".join(str(loc) for loc in err.get("loc", ())),
-                        message=err.get("msg", ""),
-                        value=err.get("input"),
-                    )
-                    for err in e.errors()
-                ] or None
             case _:
                 error_code = ErrorCode.VALIDATION_ERROR
                 error_details = [
@@ -188,10 +182,31 @@ async def send_events(
                 ]
 
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=SendEventsBadRequestSchema(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=SendEventsUnprocessableEntitySchema(
                 code=error_code,
                 message=str(e),
+                details=error_details,
+                meta=meta,
+            ).model_dump(mode="json"),
+        )
+    except ValidationError as e:
+        logger.error(f"[{request_id}] Payload validation error: {e}", exc_info=True)
+
+        error_details = [
+            ErrorDetailData(
+                field=".".join(str(loc) for loc in err.get("loc", ())),
+                message=err.get("msg", ""),
+                value=err.get("input"),
+            )
+            for err in e.errors()
+        ] or None
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=SendEventsBadRequestSchema(
+                code=ErrorCode.VALIDATION_ERROR,
+                message="Payload validation failed",
                 details=error_details,
                 meta=meta,
             ).model_dump(mode="json"),
