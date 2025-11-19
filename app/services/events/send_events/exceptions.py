@@ -1,3 +1,5 @@
+from pydantic import ValidationError
+
 from ....db.types import ExceptionMessage
 from ....common.common import FormException, StringEnum
 
@@ -6,52 +8,70 @@ class EventsServiceException(FormException):
     """Базовое исключение приложения."""
 
 
-class UserCreationFailedException(EventsServiceException):
-    """Исключение при ошибке создания/получения пользователя."""
+class EventsBadRequestException(EventsServiceException, ValidationError):
+    """Базовое исключение для ошибок формата запроса (400 Bad Request)."""
 
 
-class EventsInsertFailedException(EventsServiceException):
-    """Исключение при ошибке вставки событий."""
+class EventsValidationException(EventsServiceException):
+    """Базовое исключение для ошибок валидации (422 Unprocessable Entity)."""
 
 
-class DataIntegrityViolationException(EventsServiceException):
-    """Исключение при нарушении целостности данных."""
+class EventsServerException(EventsServiceException):
+    """Базовое исключение для серверных ошибок (500 Internal Server Error)."""
 
 
-class TransactionFailedException(EventsServiceException):
-    """Исключение при ошибке транзакции базы данных."""
+# 422 Unprocessable Entity
 
 
-class UnexpectedEventsException(EventsServiceException):
-    """Исключение при неожиданной ошибке обработки событий."""
-
-
-class InvalidEventTypeException(EventsServiceException):
-    """Исключение при неверном типе события."""
-
-
-class InvalidDomainFormatException(EventsServiceException):
-    """Исключение при неверном формате домена."""
-
-
-class InvalidDomainLengthException(EventsServiceException):
-    """Исключение при неверной длине домена."""
-
-
-class TimestampInFutureException(EventsServiceException):
-    """Исключение когда timestamp в будущем."""
-
-
-class InvalidUserIdException(EventsServiceException):
+class InvalidUserIdException(EventsValidationException):
     """Исключение при неверном формате User ID."""
 
 
-class EmptyEventsListException(EventsServiceException):
+class InvalidEventTypeException(EventsValidationException):
+    """Исключение при неверном типе события."""
+
+
+class InvalidDomainFormatException(EventsValidationException):
+    """Исключение при неверном формате домена."""
+
+
+class InvalidDomainLengthException(EventsValidationException):
+    """Исключение при неверной длине домена."""
+
+
+class TimestampInFutureException(EventsValidationException):
+    """Исключение когда timestamp в будущем."""
+
+
+class EmptyEventsListException(EventsValidationException):
     """Исключение при пустом списке событий."""
 
 
-class TooManyEventsException(EventsServiceException):
+class TooManyEventsException(EventsValidationException):
     """Исключение при превышении максимального количества событий."""
+
+
+# 500 Internal Server Error
+
+
+class UserCreationFailedException(EventsServerException):
+    """Исключение при ошибке создания/получения пользователя."""
+
+
+class EventsInsertFailedException(EventsServerException):
+    """Исключение при ошибке вставки событий."""
+
+
+class DataIntegrityViolationException(EventsServerException):
+    """Исключение при нарушении целостности данных."""
+
+
+class TransactionFailedException(EventsServerException):
+    """Исключение при ошибке транзакции базы данных."""
+
+
+class UnexpectedEventsException(EventsServerException):
+    """Исключение при неожиданной ошибке обработки событий."""
 
 
 class EventsServiceMessages(StringEnum):
