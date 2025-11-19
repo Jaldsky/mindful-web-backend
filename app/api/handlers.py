@@ -7,7 +7,10 @@ from ..services.healthcheck import (
     healthcheck_method_not_allowed_response,
     healthcheck_service_unavailable_response,
 )
-from ..services.events.send_events.http_handler import send_events_method_not_allowed_response
+from ..services.events.send_events.http_handler import (
+    send_events_method_not_allowed_response,
+    send_events_service_unavailable_response,
+)
 
 
 async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -48,6 +51,9 @@ async def service_unavailable_handler(request: Request, exc: Exception) -> JSONR
     """
     if str(request.url.path) == HEALTHCHECK_PATH:
         return healthcheck_service_unavailable_response()
+
+    if str(request.url.path) == SEND_EVENTS_PATH:
+        return send_events_service_unavailable_response()
 
     detail = "Service unavailable"
     if isinstance(exc, StarletteHTTPException) and exc.detail:
