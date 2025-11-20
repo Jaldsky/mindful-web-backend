@@ -1,8 +1,13 @@
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 from .api.v1.endpoints import events, healthcheck
-from .api.handlers import method_not_allowed_handler, service_unavailable_handler
+from .api.handlers import (
+    method_not_allowed_handler,
+    service_unavailable_handler,
+    bad_request_error_handler,
+)
 from .common.logging import setup_logging
 from .common.middleware import log_requests_middleware
 from .config import CORS_ALLOW_ORIGINS
@@ -27,6 +32,7 @@ app.add_middleware(
 app.middleware("http")(log_requests_middleware)
 
 # General exceptions
+app.add_exception_handler(RequestValidationError, bad_request_error_handler)  # Error 400
 app.add_exception_handler(405, method_not_allowed_handler)
 app.add_exception_handler(503, service_unavailable_handler)
 

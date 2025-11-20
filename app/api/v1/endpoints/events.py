@@ -1,7 +1,6 @@
 import logging
 from uuid import UUID
 from fastapi import APIRouter, Depends, Body, HTTPException
-from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -9,14 +8,13 @@ from ...dependencies import get_user_id_from_header, get_db_session
 from ....schemas import ErrorCode, ErrorDetailData
 from ....schemas.events import (
     EventsErrorCode,
-    SendEventsBadRequestSchema,
     SendEventsInternalServerErrorSchema,
     SendEventsMethodNotAllowedSchema,
     SendEventsRequestSchema,
     SendEventsResponseSchema,
     SendEventsUnprocessableEntitySchema,
 )
-from ....schemas.general import ServiceUnavailableSchema
+from ....schemas.general import ServiceUnavailableSchema, BadRequestSchema
 from ....services.events.send_events.main import SendEventsService
 from ....services.events.send_events.exceptions import (
     DataIntegrityViolationException,
@@ -47,7 +45,7 @@ router = APIRouter(prefix="/events", tags=["events"])
             "description": "События успешно сохранены",
         },
         status.HTTP_400_BAD_REQUEST: {
-            "model": SendEventsBadRequestSchema,
+            "model": BadRequestSchema,
             "description": "Сырые данные не соответствуют схеме",
         },
         status.HTTP_405_METHOD_NOT_ALLOWED: {
@@ -191,27 +189,6 @@ async def send_events(
             detail=SendEventsUnprocessableEntitySchema(
                 code=error_code,
                 message=str(e),
-                details=error_details,
-                meta=meta,
-            ).model_dump(mode="json"),
-        )
-    except ValidationError as e:
-        logger.error(f"[{request_id}] Payload validation error: {e}", exc_info=True)
-
-        error_details = [
-            ErrorDetailData(
-                field=".".join(str(loc) for loc in err.get("loc", ())),
-                message=err.get("msg", ""),
-                value=err.get("input"),
-            )
-            for err in e.errors()
-        ] or None
-
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=SendEventsBadRequestSchema(
-                code=ErrorCode.VALIDATION_ERROR,
-                message="Payload validation failed",
                 details=error_details,
                 meta=meta,
             ).model_dump(mode="json"),

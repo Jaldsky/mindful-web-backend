@@ -1,14 +1,8 @@
-from typing import Union
-from pydantic import Field
-
-from ..error_response_schema import ErrorResponseSchema, ErrorCode
-from .event_error_code import EventsErrorCode
+from ..error_response_schema import ErrorResponseSchema
 
 
-class SendEventsBadRequestSchema(ErrorResponseSchema):
-    """Схема ошибки 400 Bad Request для events endpoint."""
-
-    code: Union[ErrorCode | EventsErrorCode] = Field(..., description="Код ошибки")
+class BadRequestSchema(ErrorResponseSchema):
+    """Схема ошибки 400 Bad Request."""
 
     class Config:
         json_schema_extra = {

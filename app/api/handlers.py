@@ -1,14 +1,49 @@
 import logging
 
 from fastapi import Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .routes import SEND_EVENTS_PATH, HEALTHCHECK_PATH
-from ..schemas import ErrorCode
-from ..schemas.general.service_unavailable_schema import ServiceUnavailableSchema
+from ..schemas import ErrorCode, ErrorDetailData
 
 logger = logging.getLogger(__name__)
+
+
+async def bad_request_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Обработчик для ошибки 400 Bad Request.
+
+    Args:
+        request: Объект HTTP запроса.
+        exc: Исключение.
+
+    Returns:
+        JSONResponse.
+    """
+    from ..schemas.general import BadRequestSchema
+
+    error_details = None
+    if isinstance(exc, RequestValidationError):
+        error_details = [
+            ErrorDetailData(
+                field=".".join(str(loc) for loc in err.get("loc", ())),
+                message=err.get("msg", ""),
+                value=err.get("input"),
+            )
+            for err in exc.errors()
+        ] or None
+
+    error_schema = BadRequestSchema(
+        code=ErrorCode.VALIDATION_ERROR, message="Payload validation failed", details=error_details
+    )
+
+    logger.warning(f"Validation error: {error_schema.message}")
+
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content=error_schema.model_dump(mode="json"),
+    )
 
 
 async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONResponse:
@@ -50,6 +85,8 @@ async def service_unavailable_handler(request: Request, exc: Exception) -> JSONR
     Returns:
         JSONResponse.
     """
+    from ..schemas.general.service_unavailable_schema import ServiceUnavailableSchema
+
     message = "Service is not available"
     if isinstance(exc, StarletteHTTPException) and exc.detail:
         message = str(exc.detail)
