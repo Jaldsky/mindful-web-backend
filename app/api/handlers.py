@@ -75,6 +75,44 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
     )
 
 
+async def internal_server_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Обработчик для ошибки 500 Internal Server Error.
+
+    Args:
+        request: Объект HTTP запроса.
+        exc: Исключение.
+
+    Returns:
+        JSONResponse.
+    """
+    from sqlalchemy.exc import ArgumentError, SQLAlchemyError
+    from ..db.exceptions import DatabaseManagerException
+    from ..schemas.general import InternalServerErrorSchema
+
+    message = "Internal server error"
+    error_code = ErrorCode.INTERNAL_ERROR
+
+    if isinstance(exc, (DatabaseManagerException, ArgumentError, SQLAlchemyError)):
+        error_code = ErrorCode.DATABASE_ERROR
+        message = "Database error"
+
+    if isinstance(exc, StarletteHTTPException) and exc.detail:
+        message = str(exc.detail)
+    elif hasattr(exc, "__str__"):
+        message = str(exc)
+
+    logger.error(f"Internal server error: {message}", exc_info=True)
+
+    error_schema = InternalServerErrorSchema(
+        code=error_code,
+        message=message,
+    )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content=error_schema.model_dump(mode="json"),
+    )
+
+
 async def service_unavailable_handler(request: Request, exc: Exception) -> JSONResponse:
     """Обработчик для ошибки 503 Service Unavailable.
 
