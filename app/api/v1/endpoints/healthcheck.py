@@ -5,10 +5,10 @@ from starlette.status import (
     HTTP_503_SERVICE_UNAVAILABLE,
 )
 
+from ....schemas.general import ServiceUnavailableSchema
 from ....schemas.healthcheck import (
     HealthcheckMethodNotAllowedSchema,
     HealthcheckResponseSchema,
-    HealthcheckServiceUnavailableSchema,
 )
 
 router = APIRouter(prefix="/healthcheck", tags=["healthcheck"])
@@ -26,7 +26,7 @@ router = APIRouter(prefix="/healthcheck", tags=["healthcheck"])
             "description": "Поддерживается только GET метод",
         },
         HTTP_503_SERVICE_UNAVAILABLE: {
-            "model": HealthcheckServiceUnavailableSchema,
+            "model": ServiceUnavailableSchema,
             "description": "Сервис не доступен",
         },
     },
