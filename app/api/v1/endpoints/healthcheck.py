@@ -21,7 +21,7 @@ router = APIRouter(prefix="/healthcheck", tags=["healthcheck"])
         HTTP_200_OK: {
             "description": "Сервис работает корректно",
         },
-        HTTP_405_METHOD_NOT_ALLOWED: {  # обработку см. в handlers.py
+        HTTP_405_METHOD_NOT_ALLOWED: {
             "model": HealthcheckMethodNotAllowedSchema,
             "description": "Поддерживается только GET метод",
         },

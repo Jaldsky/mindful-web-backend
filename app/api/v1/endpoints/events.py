@@ -50,7 +50,7 @@ router = APIRouter(prefix="/events", tags=["events"])
             "model": SendEventsBadRequestSchema,
             "description": "Сырые данные не соответствуют схеме",
         },
-        status.HTTP_405_METHOD_NOT_ALLOWED: {  # обработку см. в handlers.py
+        status.HTTP_405_METHOD_NOT_ALLOWED: {
             "model": SendEventsMethodNotAllowedSchema,
             "description": "Поддерживается только POST метод",
         },
