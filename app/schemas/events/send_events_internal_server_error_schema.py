@@ -1,11 +1,12 @@
 from typing import Union
 from pydantic import Field
 
-from ..error_response_schema import ErrorResponseSchema, ErrorCode
+from ..error_response_schema import ErrorCode
 from .event_error_code import EventsErrorCode
+from ..general import InternalServerErrorSchema
 
 
-class SendEventsInternalServerErrorSchema(ErrorResponseSchema):
+class SendEventsInternalServerErrorSchema(InternalServerErrorSchema):
     """Схема ошибки 500 Internal Server Error для events endpoint."""
 
     code: Union[ErrorCode | EventsErrorCode] = Field(..., description="Код ошибки")
