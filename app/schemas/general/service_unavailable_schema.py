@@ -1,8 +1,8 @@
-from ..error_response_schema import ErrorResponseSchema
+from app.schemas.error_response_schema import ErrorResponseSchema
 
 
-class HealthcheckServiceUnavailableSchema(ErrorResponseSchema):
-    """Схема ошибки 503 Service Unavailable для healthcheck endpoint."""
+class ServiceUnavailableSchema(ErrorResponseSchema):
+    """Схема ошибки 503 Service Unavailable."""
 
     class Config:
         json_schema_extra = {

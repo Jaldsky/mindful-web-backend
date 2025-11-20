@@ -14,9 +14,9 @@ from ....schemas.events import (
     SendEventsMethodNotAllowedSchema,
     SendEventsRequestSchema,
     SendEventsResponseSchema,
-    SendEventsServiceUnavailableSchema,
     SendEventsUnprocessableEntitySchema,
 )
+from ....schemas.general import ServiceUnavailableSchema
 from ....services.events.send_events.main import SendEventsService
 from ....services.events.send_events.exceptions import (
     DataIntegrityViolationException,
@@ -62,8 +62,8 @@ router = APIRouter(prefix="/events", tags=["events"])
             "model": SendEventsInternalServerErrorSchema,
             "description": "Внутренняя ошибка сервера",
         },
-        status.HTTP_503_SERVICE_UNAVAILABLE: {  # обработку см. в handlers.py
-            "model": SendEventsServiceUnavailableSchema,
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "model": ServiceUnavailableSchema,
             "description": "Сервис не доступен",
         },
     },

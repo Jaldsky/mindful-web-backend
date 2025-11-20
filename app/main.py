@@ -26,6 +26,7 @@ app.add_middleware(
 
 app.middleware("http")(log_requests_middleware)
 
+# General exceptions
 app.add_exception_handler(405, method_not_allowed_handler)
 app.add_exception_handler(503, service_unavailable_handler)
 

@@ -1,20 +1,14 @@
 import logging
 from unittest import TestCase
-from unittest.mock import patch
 from fastapi.testclient import TestClient
 from starlette.status import (
     HTTP_200_OK,
     HTTP_405_METHOD_NOT_ALLOWED,
-    HTTP_503_SERVICE_UNAVAILABLE,
 )
 
 from app.main import app
 from app.schemas import ErrorCode
-from app.schemas.healthcheck import (
-    HealthcheckMethodNotAllowedSchema,
-    HealthcheckResponseSchema,
-    HealthcheckServiceUnavailableSchema,
-)
+from app.schemas.healthcheck import HealthcheckMethodNotAllowedSchema, HealthcheckResponseSchema
 
 
 class TestHealthcheckEndpoint(TestCase):
