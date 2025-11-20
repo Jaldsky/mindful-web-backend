@@ -4,7 +4,7 @@ from ...common.common import StringEnum
 class EventsErrorCode(StringEnum):
     """Коды ошибок events."""
 
-    # Ошибки валидации 400
+    # Ошибки валидации 422
     INVALID_USER_ID = "INVALID_USER_ID"
     INVALID_EVENT_TYPE = "INVALID_EVENT_TYPE"
     INVALID_DOMAIN_FORMAT = "INVALID_DOMAIN_FORMAT"
