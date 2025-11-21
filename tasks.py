@@ -4,6 +4,7 @@ Invoke tasks for the mindful-web application.
 """
 
 import os
+import shlex
 import uvicorn
 from invoke import task
 from pathlib import Path
@@ -205,7 +206,7 @@ def create_migration(ctx, message, local=False):
         logger.info("🏠 Используется localhost для подключения к БД")
 
     logger.info(f"🔄 Создание новой миграции: {message}")
-    cmd = ["alembic", "-c", alembic_config_path, "revision", "--autogenerate", "-m", message]
+    cmd = ["alembic", "-c", alembic_config_path, "revision", "--autogenerate", "-m", shlex.quote(message)]
     _run_safe_command(ctx, cmd, env=env)
 
 
