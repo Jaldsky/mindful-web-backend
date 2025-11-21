@@ -169,7 +169,7 @@ class ManagerBase(ManagerValidator):
         else:
             message = self.messages.UNEXPECTED_SESSION_ERROR.format(error=str(e))
             self._logger.error(message)
-        raise self.exception(message) from e
+        raise
 
     def get_engine(self):
         """Метод получения engine базы данных для прямого использования.

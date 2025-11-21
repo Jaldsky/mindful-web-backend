@@ -11,6 +11,53 @@ from ..schemas import ErrorCode, ErrorDetailData
 logger = logging.getLogger(__name__)
 
 
+async def events_service_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Обработчик для всех исключений сервиса событий.
+
+    Args:
+        request: Объект HTTP запроса.
+        exc: Исключение EventsServiceException или его подкласс.
+
+    Returns:
+        JSONResponse.
+    """
+    from ..services.events.send_events.exceptions import (
+        EventsBusinessValidationException,
+        EventsServerException,
+    )
+    from ..services.events.send_events.http_handler import (
+        send_events_business_validation_exception_response,
+        send_events_server_exception_response,
+    )
+    from ..schemas.general import UnprocessableEntitySchema, InternalServerErrorSchema
+    from .routes import SEND_EVENTS_PATH
+
+    if str(request.url.path) == SEND_EVENTS_PATH:
+        if isinstance(exc, EventsBusinessValidationException):
+            return send_events_business_validation_exception_response(request, exc)
+        elif isinstance(exc, EventsServerException):
+            return send_events_server_exception_response(request, exc)
+
+    if isinstance(exc, EventsBusinessValidationException):
+        error_schema = UnprocessableEntitySchema(
+            code=ErrorCode.BUSINESS_VALIDATION_ERROR,
+            message=str(exc),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=error_schema.model_dump(mode="json"),
+        )
+    else:
+        error_schema = InternalServerErrorSchema(
+            code=ErrorCode.INTERNAL_ERROR,
+            message=str(exc),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content=error_schema.model_dump(mode="json"),
+        )
+
+
 async def bad_request_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Обработчик для ошибки 400 Bad Request.
 
