@@ -9,10 +9,12 @@ from .api.handlers import (
     bad_request_error_handler,
     internal_server_error_handler,
     unprocessable_entity_handler,
+    events_service_exception_handler,
 )
 from .common.logging import setup_logging
 from .common.middleware import log_requests_middleware
 from .config import CORS_ALLOW_ORIGINS
+from .services.events.send_events.exceptions import EventsServiceException
 
 setup_logging()
 
@@ -32,6 +34,9 @@ app.add_middleware(
 )
 
 app.middleware("http")(log_requests_middleware)
+
+# Custom exceptions
+app.add_exception_handler(EventsServiceException, events_service_exception_handler)  # Error 400
 
 # General exceptions
 app.add_exception_handler(RequestValidationError, bad_request_error_handler)  # Error 400

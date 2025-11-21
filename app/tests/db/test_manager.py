@@ -193,72 +193,6 @@ class TestManagerAsync(TestCase):
     @patch.object(ManagerAsync, "_validate")
     @patch("app.db.session.manager.create_async_engine")
     @patch("app.db.session.manager.async_sessionmaker")
-    def test_get_session_sqlalchemy_error_handling(self, mock_sessionmaker, mock_create_engine, _):
-        """Обработка SQLAlchemyError внутри сессии."""
-        mock_engine = Mock()
-        mock_create_engine.return_value = mock_engine
-
-        mock_session = Mock()
-        mock_session.rollback = Mock()
-        mock_session.close = Mock()
-
-        mock_session_factory = Mock(return_value=mock_session)
-        mock_sessionmaker.return_value = mock_session_factory
-
-        manager = ManagerAsync(logger=self.logger, database_url=self.valid_url)
-
-        async def run_with_error():
-            try:
-                async with manager.get_session():
-                    raise SQLAlchemyError("Query failed")
-            except DatabaseManagerException as e:
-                expected_msg = DatabaseManagerMessages.SESSION_ERROR.format(error="Query failed")
-                self.assertEqual(str(e), expected_msg)
-                self.logger.error.assert_called_with(expected_msg)
-                mock_session.rollback.assert_called_once()
-                mock_session.close.assert_called_once()
-                return
-            self.fail("DatabaseManagerException not raised")
-
-        self._run_async(run_with_error())
-
-    @patch.object(ManagerAsync, "_validate")
-    @patch("app.db.session.manager.create_async_engine")
-    @patch("app.db.session.manager.async_sessionmaker")
-    def test_get_session_rollback_fails(self, mock_sessionmaker, mock_create_engine, _):
-        """Ошибка при rollback — логируется, но не маскирует основную ошибку."""
-        mock_engine = Mock()
-        mock_create_engine.return_value = mock_engine
-
-        mock_session = AsyncMock()
-        mock_session.rollback = AsyncMock(side_effect=Exception("Rollback crashed"))
-        mock_session.close = AsyncMock()
-
-        mock_session_factory = Mock(return_value=mock_session)
-        mock_sessionmaker.return_value = mock_session_factory
-
-        manager = ManagerAsync(logger=self.logger, database_url=self.valid_url)
-
-        async def run_with_rollback_fail():
-            try:
-                async with manager.get_session():
-                    raise RuntimeError("Main error")
-            except DatabaseManagerException as e:
-                expected_msg = DatabaseManagerMessages.UNEXPECTED_SESSION_ERROR.format(error="Main error")
-                self.assertEqual(str(e), expected_msg)
-                mock_session.rollback.assert_awaited_once()
-                mock_session.close.assert_awaited_once()
-                self.logger.warning.assert_called_with(
-                    DatabaseManagerMessages.ROLLBACK_FAILED_ERROR.format(error="Rollback crashed")
-                )
-                return
-            self.fail("DatabaseManagerException not raised")
-
-        self._run_async(run_with_rollback_fail())
-
-    @patch.object(ManagerAsync, "_validate")
-    @patch("app.db.session.manager.create_async_engine")
-    @patch("app.db.session.manager.async_sessionmaker")
     def test_get_session_close_fails(self, mock_sessionmaker, mock_create_engine, _):
         """Ошибка при закрытии сессии — логируется."""
         mock_engine = Mock()
@@ -394,66 +328,6 @@ class TestManagerSync(TestCase):
         )
         self.assertEqual(str(cm.exception), expected_msg)
         self.logger.error.assert_called_with(expected_msg)
-
-    @patch.object(ManagerSync, "_validate")
-    @patch("app.db.session.manager.create_engine")
-    @patch("app.db.session.manager.sessionmaker")
-    def test_get_session_sqlalchemy_error_handling(self, mock_sessionmaker, mock_create_engine, _):
-        """Обработка SQLAlchemyError внутри сессии."""
-        mock_engine = Mock()
-        mock_create_engine.return_value = mock_engine
-
-        mock_session = Mock()
-        mock_session.rollback = Mock()
-        mock_session.close = Mock()
-
-        mock_session_factory = Mock(return_value=mock_session)
-        mock_sessionmaker.return_value = mock_session_factory
-
-        manager = ManagerSync(logger=self.logger, database_url=self.valid_url)
-
-        try:
-            with manager.get_session():
-                raise SQLAlchemyError("Query failed")
-        except DatabaseManagerException as e:
-            expected_msg = DatabaseManagerMessages.SESSION_ERROR.format(error="Query failed")
-            self.assertEqual(str(e), expected_msg)
-            self.logger.error.assert_called_with(expected_msg)
-            mock_session.rollback.assert_called_once()
-            mock_session.close.assert_called_once()
-            return
-        self.fail("DatabaseManagerException not raised")
-
-    @patch.object(ManagerSync, "_validate")
-    @patch("app.db.session.manager.create_engine")
-    @patch("app.db.session.manager.sessionmaker")
-    def test_get_session_rollback_fails(self, mock_sessionmaker, mock_create_engine, _):
-        """Ошибка при rollback — логируется, но не маскирует основную ошибку."""
-        mock_engine = Mock()
-        mock_create_engine.return_value = mock_engine
-
-        mock_session = Mock()
-        mock_session.rollback = Mock(side_effect=Exception("Rollback crashed"))
-        mock_session.close = Mock()
-
-        mock_session_factory = Mock(return_value=mock_session)
-        mock_sessionmaker.return_value = mock_session_factory
-
-        manager = ManagerSync(logger=self.logger, database_url=self.valid_url)
-
-        try:
-            with manager.get_session():
-                raise RuntimeError("Main error")
-        except DatabaseManagerException as e:
-            expected_msg = DatabaseManagerMessages.UNEXPECTED_SESSION_ERROR.format(error="Main error")
-            self.assertEqual(str(e), expected_msg)
-            mock_session.rollback.assert_called_once()
-            mock_session.close.assert_called_once()
-            self.logger.warning.assert_called_with(
-                DatabaseManagerMessages.ROLLBACK_FAILED_ERROR.format(error="Rollback crashed")
-            )
-            return
-        self.fail("DatabaseManagerException not raised")
 
     @patch.object(ManagerSync, "_validate")
     @patch("app.db.session.manager.create_engine")

@@ -12,7 +12,7 @@ class EventsBadRequestException(EventsServiceException, ValidationError):
     """Базовое исключение для ошибок формата запроса (400 Bad Request)."""
 
 
-class EventsValidationException(EventsServiceException):
+class EventsBusinessValidationException(EventsServiceException):
     """Базовое исключение для ошибок валидации (422 Unprocessable Entity)."""
 
 
@@ -23,31 +23,31 @@ class EventsServerException(EventsServiceException):
 # 422 Unprocessable Entity
 
 
-class InvalidUserIdException(EventsValidationException):
+class InvalidUserIdException(EventsBusinessValidationException):
     """Исключение при неверном формате User ID."""
 
 
-class InvalidEventTypeException(EventsValidationException):
+class InvalidEventTypeException(EventsBusinessValidationException):
     """Исключение при неверном типе события."""
 
 
-class InvalidDomainFormatException(EventsValidationException):
+class InvalidDomainFormatException(EventsBusinessValidationException):
     """Исключение при неверном формате домена."""
 
 
-class InvalidDomainLengthException(EventsValidationException):
+class InvalidDomainLengthException(EventsBusinessValidationException):
     """Исключение при неверной длине домена."""
 
 
-class TimestampInFutureException(EventsValidationException):
+class TimestampInFutureException(EventsBusinessValidationException):
     """Исключение когда timestamp в будущем."""
 
 
-class EmptyEventsListException(EventsValidationException):
+class EmptyEventsListException(EventsBusinessValidationException):
     """Исключение при пустом списке событий."""
 
 
-class TooManyEventsException(EventsValidationException):
+class TooManyEventsException(EventsBusinessValidationException):
     """Исключение при превышении максимального количества событий."""
 
 

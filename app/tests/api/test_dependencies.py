@@ -106,40 +106,6 @@ class TestGetDbSession(TestCase):
         self._run_async(test_coro())
 
     @patch.object(Provider, "async_manager")
-    def test_manager_exception_raises_http_500(self, mock_manager):
-        """Исключение при вызове manager.get_session() вызывает HTTP 500."""
-        mock_manager.get_session.side_effect = Exception("Failed to create session factory")
-
-        async def test_coro():
-            with self.assertLogs("app.api.dependencies", level="WARNING") as log:
-                gen = get_db_session()
-                with self.assertRaises(HTTPException) as cm:
-                    await gen.__anext__()
-                self.assertEqual(cm.exception.status_code, 500)
-                self.assertEqual(cm.exception.detail, "Failed to create database session")
-                self.assertTrue(any("Failed to create database session" in record for record in log.output))
-
-        self._run_async(test_coro())
-
-    @patch.object(Provider, "async_manager")
-    def test_get_session_exception_raises_http_500(self, mock_manager_class):
-        """Исключение при входе в контекстный менеджер вызывает HTTP 500."""
-        mock_session_context = AsyncMock()
-        mock_session_context.__aenter__ = AsyncMock(side_effect=Exception("Connection failed"))
-        mock_manager_class.get_session.return_value = mock_session_context
-
-        async def test_coro():
-            with self.assertLogs("app.api.dependencies", level="WARNING") as log:
-                gen = get_db_session()
-                with self.assertRaises(HTTPException) as cm:
-                    await gen.__anext__()
-                self.assertEqual(cm.exception.status_code, 500)
-                self.assertEqual(cm.exception.detail, "Failed to create database session")
-                self.assertTrue(any("Failed to create database session" in record for record in log.output))
-
-        self._run_async(test_coro())
-
-    @patch.object(Provider, "async_manager")
     def test_session_is_yielded_only_once(self, mock_manager_class):
         """Генератор должен выдавать ровно одну сессию."""
         mock_session = AsyncMock(spec=AsyncSession)

@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 from uuid import UUID
-from fastapi import Header, HTTPException, status
+from fastapi import Header
 
 from ..db.session.provider import Provider
 from ..db.types import DatabaseSession
@@ -50,10 +50,5 @@ async def get_db_session() -> DatabaseSession:
     Raises:
         HTTPException: HTTP 500 Internal Server Error в случае сбоя при создании сессии.
     """
-    try:
-        async with Provider().async_manager.get_session() as session:
-            yield session
-    except Exception as e:
-        logger.warning(f"Failed to create database session: {e}")
-        message = "Failed to create database session"
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=message)
+    async with Provider().async_manager.get_session() as session:
+        yield session
