@@ -14,6 +14,12 @@ DATABASE_SYNC_URL: str = os.getenv(
     "DATABASE_SYNC_URL",
     f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}",
 )
-REDIS_URL: str = os.getenv("REDIS_URL", "redis://redis:6379/0")
+
+REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD", "root")
+REDIS_HOST: str = os.getenv("REDIS_HOST", "mwb-redis")
+REDIS_PORT: str = os.getenv("REDIS_PORT", 6379)
+REDIS_DB: str = os.getenv("REDIS_DB", 0)
+
+REDIS_URL: str = os.getenv("REDIS_URL", f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}")
 
 CORS_ALLOW_ORIGINS: list[str] = os.getenv("CORS_ALLOW_ORIGINS", "chrome-extension://*").split(",")
