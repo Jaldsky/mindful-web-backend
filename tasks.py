@@ -73,7 +73,7 @@ def start_worker(ctx, concurrency=4, loglevel="info"):
         loglevel: Уровень логирования.
     """
     logger.info(f"🔄 Запуск Celery worker с {concurrency} процессами...")
-    cmd = ["celery", "-A", "app.celery", "worker", f"--loglevel={loglevel}", f"--concurrency={concurrency}"]
+    cmd = ["celery", "-A", "app.celery_app", "worker", f"--loglevel={loglevel}", f"--concurrency={concurrency}"]
     _run_safe_command(ctx, cmd)
 
 
@@ -86,7 +86,7 @@ def start_beat(ctx, loglevel="info"):
         loglevel: Уровень логирования.
     """
     logger.info("⏰ Запуск Celery beat планировщика...")
-    cmd = ["celery", "-A", "app.celery", "beat", f"--loglevel={loglevel}"]
+    cmd = ["celery", "-A", "app.celery_app", "beat", f"--loglevel={loglevel}"]
     _run_safe_command(ctx, cmd)
 
 
