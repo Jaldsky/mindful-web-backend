@@ -75,6 +75,44 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
     )
 
 
+async def unprocessable_entity_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Обработчик для ошибки 422 Unprocessable Entity.
+
+    Args:
+        request: Объект HTTP запроса.
+        exc: Исключение.
+
+    Returns:
+        JSONResponse.
+    """
+    from ..schemas.general import UnprocessableEntitySchema
+
+    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    message = "Business validation failed"
+    error_code = ErrorCode.BUSINESS_VALIDATION_ERROR
+    error_details = None
+
+    if isinstance(exc, StarletteHTTPException) and exc.status_code == status_code:
+        if isinstance(exc.detail, dict):
+            return JSONResponse(status_code=status_code, content=exc.detail)
+        if exc.detail:
+            message = str(exc.detail)
+    elif hasattr(exc, "__str__"):
+        message = str(exc)
+
+    logger.warning(f"Unprocessable entity: {message}")
+
+    error_schema = UnprocessableEntitySchema(
+        code=error_code,
+        message=message,
+        details=error_details,
+    )
+    return JSONResponse(
+        status_code=status_code,
+        content=error_schema.model_dump(mode="json"),
+    )
+
+
 async def internal_server_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Обработчик для ошибки 500 Internal Server Error.
 
