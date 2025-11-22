@@ -9,7 +9,7 @@ from sqlalchemy import text
 from app.db.models.base import Base
 from app.db.session.manager import ManagerAsync
 from app.services.events.send_events.main import SendEventsService
-from app.schemas.events.send_events_request_schema import SendEventsRequestSchema, SendEventData
+from app.schemas.events import SendEventsRequestSchema, SendEventData
 from app.services.events.send_events.exceptions import EventsServiceException, EventsServiceMessages
 
 

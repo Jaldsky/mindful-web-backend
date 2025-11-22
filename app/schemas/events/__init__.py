@@ -1,18 +1,23 @@
 from .event_error_code import EventsErrorCode
-from .send_events_internal_server_error_schema import SendEventsInternalServerErrorSchema
-from .send_events_method_not_allowed_schema import SendEventsMethodNotAllowedSchema
-from .send_events_request_schema import SendEventsRequestSchema, SendEventData
-from .send_events_response_schema import SendEventsResponseSchema
-from .send_events_unprocessable_entity_schema import SendEventsUnprocessableEntitySchema
-from .send_events_user_id_header_schema import SendEventsUserIdHeaderSchema
+from .send import (
+    SendEventsRequestSchema,
+    SendEventsResponseSchema,
+    SendEventsUserIdHeaderSchema,
+    SendEventsUnprocessableEntitySchema,
+    SendEventsMethodNotAllowedSchema,
+    SendEventsInternalServerErrorSchema,
+)
+from .send.request_schema import SendEventData
 
 __all__ = (
+    # Common
     "EventsErrorCode",
-    "SendEventsInternalServerErrorSchema",
-    "SendEventsMethodNotAllowedSchema",
-    "SendEventsRequestSchema",
+    # Send events
     "SendEventData",
+    "SendEventsRequestSchema",
     "SendEventsResponseSchema",
-    "SendEventsUnprocessableEntitySchema",
     "SendEventsUserIdHeaderSchema",
+    "SendEventsUnprocessableEntitySchema",
+    "SendEventsMethodNotAllowedSchema",
+    "SendEventsInternalServerErrorSchema",
 )

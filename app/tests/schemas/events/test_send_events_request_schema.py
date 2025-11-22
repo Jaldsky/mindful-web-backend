@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from unittest import TestCase
 
-from app.schemas.events.send_events_request_schema import SendEventData, SendEventsRequestSchema
+from app.schemas.events import SendEventData, SendEventsRequestSchema
 from app.services.events.send_events.exceptions import (
     EmptyEventsListException,
     InvalidDomainFormatException,

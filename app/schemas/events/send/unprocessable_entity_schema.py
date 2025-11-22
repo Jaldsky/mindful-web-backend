@@ -1,8 +1,8 @@
 from typing import Union
 from pydantic import Field
 
-from ..error_response_schema import ErrorResponseSchema, ErrorCode
-from .event_error_code import EventsErrorCode
+from ...error_response_schema import ErrorResponseSchema, ErrorCode
+from ..event_error_code import EventsErrorCode
 
 
 class SendEventsUnprocessableEntitySchema(ErrorResponseSchema):
