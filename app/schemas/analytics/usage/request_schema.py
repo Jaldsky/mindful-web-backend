@@ -1,5 +1,7 @@
+from datetime import date, datetime
 from pydantic import BaseModel, Field, field_validator
 
+from ....config import DATE_FORMATS
 from ....services.analytics.usage.exceptions import (
     InvalidDateFormatException,
     InvalidPageException,
@@ -9,22 +11,34 @@ from ....services.analytics.usage.exceptions import (
 class AnalyticsUsageRequestSchema(BaseModel):
     """Схема запроса для получения статистики использования доменов."""
 
-    from_date: str = Field(..., description="Начало интервала")
-    to_date: str = Field(..., description="Конец интервала")
+    from_date: date = Field(..., description="Начало интервала")
+    to_date: date = Field(..., description="Конец интервала")
     page: int = Field(default=1, description="Номер страницы")
 
-    @field_validator("from_date", "to_date")
+    @field_validator("from_date", "to_date", mode="before")
     @classmethod
-    def validate_date_string(cls, v) -> str:
-        """Валидирует строку даты в формате DD-MM-YYYY."""
+    def parse_date_string(cls, v) -> date:
+        """Парсит строку даты, пробуя разные форматы.
+
+        Args:
+            v: Значение для парсинга (строка или date).
+
+        Returns:
+            Объект date.
+
+        Raises:
+            InvalidDateFormatException: Если ни один формат не подошел.
+        """
+        if isinstance(v, date):
+            return v
+
         v = v.strip()
-        parts = v.split("-")
-        if len(parts) != 3:
-            raise InvalidDateFormatException("Invalid date format")
-        for part in parts:
-            if not part.isdigit():
-                raise InvalidDateFormatException("Date components must be numbers")
-        return v
+        for date_format in DATE_FORMATS:
+            try:
+                return datetime.strptime(v, date_format).date()
+            except ValueError:
+                continue
+        raise InvalidDateFormatException("Invalid date format")
 
     @field_validator("page")
     @classmethod
