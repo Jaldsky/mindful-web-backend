@@ -1,5 +1,10 @@
 import os
 
+DATE_FORMATS = [
+    "%d-%m-%Y",  # DD-MM-YYYY
+    "%Y-%m-%d",  # YYYY-MM-DD
+]
+
 POSTGRES_USER: str = os.getenv("POSTGRES_USER", "root")
 POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "root")
 POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "mwb-db")
