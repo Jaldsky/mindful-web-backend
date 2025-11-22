@@ -1,15 +1,9 @@
-from pydantic import ValidationError
-
 from ....db.types import ExceptionMessage
 from ....common.common import FormException, StringEnum
 
 
 class EventsServiceException(FormException):
     """Базовое исключение приложения."""
-
-
-class EventsBadRequestException(EventsServiceException, ValidationError):
-    """Базовое исключение для ошибок формата запроса (400 Bad Request)."""
 
 
 class EventsBusinessValidationException(EventsServiceException):
