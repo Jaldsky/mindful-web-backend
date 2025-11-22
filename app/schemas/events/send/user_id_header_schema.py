@@ -1,7 +1,7 @@
 from uuid import UUID, uuid4
 from pydantic import BaseModel, Field, field_validator
 
-from ...services.events.send_events.exceptions import InvalidUserIdException
+from ....services.events.send_events.exceptions import InvalidUserIdException
 
 
 class SendEventsUserIdHeaderSchema(BaseModel):
