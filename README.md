@@ -53,7 +53,7 @@ Create `.env` file in the project root:
 # Database
 POSTGRES_USER=root
 POSTGRES_PASSWORD=root
-POSTGRES_DB=mindfulweb
+POSTGRES_DB=wmb
 ```
 
 ### 3. Build and start all services
@@ -143,7 +143,7 @@ poetry run invoke compose                        # Docker Compose commands
 |---------------------|----------------------|----------------------|
 | `POSTGRES_USER`     | root                 | Database user        |
 | `POSTGRES_PASSWORD` | root                 | Database password    |
-| `POSTGRES_DB`       | mindfulweb           | Database name        |
+| `POSTGRES_DB`       | wmb                  | Database name        |
 | `POSTGRES_HOST`     | db                   | Database host        |
 | `POSTGRES_PORT`     | 5432                 | Database port        |
 | `REDIS_URL`         | redis://redis:6379/0 | Redis connection URL |

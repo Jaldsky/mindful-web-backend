@@ -33,6 +33,10 @@ class InvalidPageSizeException(UsageBusinessValidationException):
     """Исключение при неверном размере страницы."""
 
 
+class InvalidEventTypeException(UsageBusinessValidationException):
+    """Исключение при неверном типе события."""
+
+
 # 500 Internal Server Error
 
 

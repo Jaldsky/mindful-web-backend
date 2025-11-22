@@ -39,3 +39,17 @@ class FormException(Exception):
             Сообщение исключения.
         """
         return self.message
+
+
+def read_text_file(file_path: str, encoding: str = "utf-8") -> str:
+    """Безопасно читает текстовый файл целиком.
+
+    Args:
+        file_path: Абсолютный путь к файлу.
+        encoding: Кодировка файла.
+
+    Returns:
+        Содержимое файла как строка.
+    """
+    with open(file_path, "r", encoding=encoding) as f:
+        return f.read()
