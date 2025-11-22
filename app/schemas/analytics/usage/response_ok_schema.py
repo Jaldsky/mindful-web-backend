@@ -10,8 +10,8 @@ class PaginationMeta(BaseModel):
     per_page: int = Field(..., ge=1, description="Количество элементов на странице")
     total_items: int = Field(..., ge=0, description="Общее количество записей")
     total_pages: int = Field(..., ge=0, description="Общее количество страниц")
-    next: int | None = Field(None, description="Номер следующей страницы, null если следующей страницы нет")
-    prev: int | None = Field(None, description="Номер предыдущей страницы, null если предыдущей страницы нет")
+    next: str | None = Field(None, description="Ссылка на следующую страницу, null если её нет")
+    prev: str | None = Field(None, description="Ссылка на предыдущую страницу, null если её нет")
 
 
 class DomainUsageData(BaseModel):

@@ -5,11 +5,13 @@ DATE_FORMATS = [
     "%Y-%m-%d",  # YYYY-MM-DD
 ]
 
+DEFAULT_PAGE_SIZE: int = 20
+
 POSTGRES_USER: str = os.getenv("POSTGRES_USER", "root")
 POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "root")
 POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "mwb-db")
 POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", 5432)
-POSTGRES_DB: str = os.getenv("POSTGRES_DB", "mindfulweb")
+POSTGRES_DB: str = os.getenv("POSTGRES_DB", "mwb")
 
 DATABASE_ASYNC_URL: str = os.getenv(
     "DATABASE_ASYNC_URL",
