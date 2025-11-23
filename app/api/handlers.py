@@ -58,6 +58,52 @@ async def events_service_exception_handler(request: Request, exc: Exception) -> 
         )
 
 
+async def usage_service_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Обработчик для всех исключений сервиса аналитики использования.
+
+    Args:
+        request: Объект HTTP запроса.
+        exc: Исключение UsageServiceException или его подкласс.
+
+    Returns:
+        JSONResponse.
+    """
+    from ..services.analytics.usage.exceptions import (
+        UsageBusinessValidationException,
+        UsageServerException,
+    )
+    from ..services.analytics.usage.http_handler import (
+        usage_business_validation_exception_response,
+        usage_server_exception_response,
+    )
+    from ..schemas.general import UnprocessableEntitySchema, InternalServerErrorSchema
+
+    if "/analytics/usage" in str(request.url.path):
+        if isinstance(exc, UsageBusinessValidationException):
+            return usage_business_validation_exception_response(request, exc)
+        elif isinstance(exc, UsageServerException):
+            return usage_server_exception_response(request, exc)
+
+    if isinstance(exc, UsageBusinessValidationException):
+        error_schema = UnprocessableEntitySchema(
+            code=ErrorCode.BUSINESS_VALIDATION_ERROR,
+            message=str(exc),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            content=error_schema.model_dump(mode="json"),
+        )
+    else:
+        error_schema = InternalServerErrorSchema(
+            code=ErrorCode.INTERNAL_ERROR,
+            message=str(exc),
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content=error_schema.model_dump(mode="json"),
+        )
+
+
 async def bad_request_error_handler(request: Request, exc: Exception) -> JSONResponse:
     """Обработчик для ошибки 400 Bad Request.
 
@@ -194,6 +240,66 @@ async def internal_server_error_handler(request: Request, exc: Exception) -> JSO
     )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content=error_schema.model_dump(mode="json"),
+    )
+
+
+async def celery_task_timeout_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Обработчик для таймаута выполнения Celery задачи (202 Accepted).
+
+    Args:
+        request: Объект HTTP запроса.
+        exc: Исключение OrchestratorTimeoutException.
+
+    Returns:
+        JSONResponse с кодом 202 Accepted.
+    """
+    from app.services.scheduler.exceptions import OrchestratorTimeoutException
+    from ..schemas.analytics import AnalyticsUsageResponseAcceptedSchema
+
+    if isinstance(exc, OrchestratorTimeoutException):
+        accepted = AnalyticsUsageResponseAcceptedSchema(task_id=exc.task_id)
+        logger.info(f"Celery task timeout, returning 202 Accepted for task {exc.task_id}")
+        return JSONResponse(
+            status_code=status.HTTP_202_ACCEPTED,
+            content=accepted.model_dump(mode="json"),
+        )
+
+    # Fallback
+    from ..schemas.analytics import AnalyticsUsageResponseAcceptedSchema
+
+    accepted = AnalyticsUsageResponseAcceptedSchema(task_id="unknown")
+    return JSONResponse(
+        status_code=status.HTTP_202_ACCEPTED,
+        content=accepted.model_dump(mode="json"),
+    )
+
+
+async def celery_broker_unavailable_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Обработчик для недоступности Celery брокера (503 Service Unavailable).
+
+    Args:
+        request: Объект HTTP запроса.
+        exc: Исключение OrchestratorBrokerUnavailableException.
+
+    Returns:
+        JSONResponse с кодом 503 Service Unavailable.
+    """
+    from app.services.scheduler.exceptions import OrchestratorBrokerUnavailableException
+    from ..schemas.general.service_unavailable_schema import ServiceUnavailableSchema
+
+    message = "Analytics broker is not available"
+    if isinstance(exc, OrchestratorBrokerUnavailableException):
+        message = exc.message
+
+    logger.error(f"Celery broker unavailable: {message}")
+
+    error_schema = ServiceUnavailableSchema(
+        code=ErrorCode.SERVICE_UNAVAILABLE,
+        message=message,
+    )
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         content=error_schema.model_dump(mode="json"),
     )
 
