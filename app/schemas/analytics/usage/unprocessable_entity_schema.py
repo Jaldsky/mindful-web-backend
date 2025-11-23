@@ -2,13 +2,13 @@ from typing import Union
 from pydantic import Field
 
 from ...error_response_schema import ErrorResponseSchema, ErrorCode
-from ..usage_error_code import UsageErrorCode
+from ..analytics_error_code import AnalyticsErrorCode
 
 
 class AnalyticsUsageUnprocessableEntitySchema(ErrorResponseSchema):
     """Схема ошибки 422 Unprocessable Entity для analytics usage endpoint."""
 
-    code: Union[ErrorCode | UsageErrorCode] = Field(..., description="Код ошибки")
+    code: Union[ErrorCode | AnalyticsErrorCode] = Field(..., description="Код ошибки")
 
     class Config:
         json_schema_extra = {
