@@ -5,13 +5,30 @@ from fastapi.responses import JSONResponse
 
 from ....schemas import ErrorCode, ErrorDetailData
 from ....schemas.analytics import (
-    UsageErrorCode,
+    AnalyticsErrorCode,
     AnalyticsUsageUnprocessableEntitySchema,
     AnalyticsUsageInternalServerErrorSchema,
+    AnalyticsUsageMethodNotAllowedSchema,
 )
 from .exceptions import UsageServerException, UsageBusinessValidationException
 
 logger = logging.getLogger(__name__)
+
+
+def usage_method_not_allowed_response() -> JSONResponse:
+    """Возвращает ответ для ошибки 405 Method Not Allowed для эндпоинта usage.
+
+    Returns:
+        JSONResponse с ошибкой 405 Method Not Allowed.
+    """
+    error_schema = AnalyticsUsageMethodNotAllowedSchema(
+        code=ErrorCode.METHOD_NOT_ALLOWED,
+        message="Method not allowed. Only GET method is supported for this endpoint.",
+    )
+    return JSONResponse(
+        status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+        content=error_schema.model_dump(mode="json"),
+    )
 
 
 def usage_business_validation_exception_response(
@@ -32,8 +49,7 @@ def usage_business_validation_exception_response(
 
     match type(exc).__name__:
         case "InvalidDateFormatException":
-            error_code = UsageErrorCode.INVALID_DATE_FORMAT
-            # Определяем, какое поле вызвало ошибку, на основе сообщения
+            error_code = AnalyticsErrorCode.INVALID_DATE_FORMAT
             field_name = "from/to"
             if "'from' date" in message.lower():
                 field_name = "from"
@@ -47,7 +63,7 @@ def usage_business_validation_exception_response(
                 )
             ]
         case "InvalidTimeRangeException":
-            error_code = UsageErrorCode.INVALID_TIME_RANGE
+            error_code = AnalyticsErrorCode.INVALID_TIME_RANGE
             error_details = [
                 ErrorDetailData(
                     field="from/to",
@@ -56,7 +72,7 @@ def usage_business_validation_exception_response(
                 )
             ]
         case "InvalidPageException":
-            error_code = UsageErrorCode.INVALID_PAGE
+            error_code = AnalyticsErrorCode.INVALID_PAGE
             error_details = [
                 ErrorDetailData(
                     field="page",
@@ -65,7 +81,7 @@ def usage_business_validation_exception_response(
                 )
             ]
         case "InvalidPageSizeException":
-            error_code = UsageErrorCode.INVALID_PAGE_SIZE
+            error_code = AnalyticsErrorCode.INVALID_PAGE_SIZE
             error_details = [
                 ErrorDetailData(
                     field="page_size",
@@ -74,7 +90,7 @@ def usage_business_validation_exception_response(
                 )
             ]
         case "InvalidEventTypeException":
-            error_code = UsageErrorCode.INVALID_EVENT_TYPE
+            error_code = AnalyticsErrorCode.INVALID_EVENT_TYPE
             error_details = [
                 ErrorDetailData(
                     field="event_type",
@@ -107,7 +123,7 @@ def usage_server_exception_response(request: Request, exc: UsageServerException)
         JSONResponse с ошибкой 500 Internal Server Error.
     """
     message = str(exc)
-    error_code = UsageErrorCode.UNEXPECTED_ERROR
+    error_code = ErrorCode.INTERNAL_ERROR
 
     logger.error(f"Usage server error: {message}", exc_info=True)
 

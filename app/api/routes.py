@@ -6,3 +6,4 @@ HEALTHCHECK_PATH = f"{API_V1_PREFIX}/healthcheck"
 EVENTS_PATH = f"{API_V1_PREFIX}/events"
 
 SEND_EVENTS_PATH = f"{EVENTS_PATH}/send"
+ANALYTICS_USAGE_PATH = f"{API_V1_PREFIX}/analytics/usage"

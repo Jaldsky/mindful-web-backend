@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ..exceptions import AppException
-from .routes import SEND_EVENTS_PATH, HEALTHCHECK_PATH
+from .routes import SEND_EVENTS_PATH, HEALTHCHECK_PATH, ANALYTICS_USAGE_PATH
 from ..schemas import ErrorCode, ErrorDetailData
 from ..schemas.general import UnprocessableEntitySchema, InternalServerErrorSchema, BadRequestSchema
 from ..schemas.general.service_unavailable_schema import ServiceUnavailableSchema
@@ -66,12 +66,16 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
     """Обработчик для ошибки 405 Method Not Allowed."""
     from ..services.healthcheck import healthcheck_method_not_allowed_response
     from ..services.events.send_events.http_handler import send_events_method_not_allowed_response
+    from ..services.analytics.usage.http_handler import usage_method_not_allowed_response
 
     if str(request.url.path) == HEALTHCHECK_PATH:
         return healthcheck_method_not_allowed_response()
 
     if str(request.url.path) == SEND_EVENTS_PATH:
         return send_events_method_not_allowed_response()
+
+    if str(request.url.path) == ANALYTICS_USAGE_PATH:
+        return usage_method_not_allowed_response()
 
     detail = "Method not allowed"
     if isinstance(exc, StarletteHTTPException) and exc.detail:

@@ -1,11 +1,12 @@
 import logging
 from typing import Annotated
 from uuid import UUID
-from fastapi import Header
+from fastapi import Header, Query
 
 from ..db.session.provider import Provider
 from ..db.types import DatabaseSession
 from ..schemas.events import SendEventsUserIdHeaderSchema
+from ..schemas.analytics import AnalyticsUsageRequestSchema
 
 logger = logging.getLogger(__name__)
 
@@ -52,3 +53,22 @@ async def get_db_session() -> DatabaseSession:
     """
     async with Provider().async_manager.get_session() as session:
         yield session
+
+
+def validate_usage_request_params(
+    from_date: Annotated[
+        str,
+        Query(alias="from", description="Начало интервала (дата в формате DD-MM-YYYY)", example="05-04-2025"),
+    ],
+    to_date: Annotated[
+        str,
+        Query(alias="to", description="Конец интервала (дата в формате DD-MM-YYYY)", example="05-04-2025"),
+    ],
+    page: Annotated[int, Query(ge=1, description="Номер страницы", example=1)] = 1,
+) -> AnalyticsUsageRequestSchema:
+    """Dependency для валидации параметров запроса analytics usage."""
+    return AnalyticsUsageRequestSchema(
+        from_date=from_date,
+        to_date=to_date,
+        page=page,
+    )
