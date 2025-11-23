@@ -1,24 +1,20 @@
 from fastapi import status
-from app.exceptions import AppException
+from ..exceptions import AnalyticsServiceException
 from ....db.types import ExceptionMessage
 from ....common.common import StringEnum
 from ....schemas.analytics.analytics_error_code import AnalyticsErrorCode
-from ....schemas import ErrorCode as GlobalErrorCode
+from ....schemas import ErrorCode
 from ....schemas import ErrorDetailData
 
 
-class UsageServiceException(AppException):
-    """Базовое исключение сервиса аналитики использования."""
-
-
-class UsageBusinessValidationException(UsageServiceException):
+class UsageBusinessValidationException(AnalyticsServiceException):
     """Базовое исключение для ошибок валидации (422 Unprocessable Entity)."""
 
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     error_code = "BUSINESS_VALIDATION_ERROR"
 
 
-class UsageServerException(UsageServiceException):
+class UsageServerException(AnalyticsServiceException):
     """Базовое исключение для серверных ошибок (500 Internal Server Error)."""
 
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -120,19 +116,13 @@ class InvalidEventTypeException(UsageBusinessValidationException):
 class DatabaseQueryFailedException(UsageServerException):
     """Исключение при ошибке запроса к базе данных."""
 
-    error_code = GlobalErrorCode.INTERNAL_ERROR  # Используем глобальный INTERNAL_ERROR
-
-
-class DataProcessingFailedException(UsageServerException):
-    """Исключение при ошибке обработки данных."""
-
-    error_code = GlobalErrorCode.INTERNAL_ERROR  # Используем глобальный INTERNAL_ERROR
+    error_code = ErrorCode.DATABASE_ERROR
 
 
 class UnexpectedUsageException(UsageServerException):
     """Исключение при неожиданной ошибке обработки аналитики."""
 
-    error_code = GlobalErrorCode.INTERNAL_ERROR  # Используем глобальный INTERNAL_ERROR
+    error_code = ErrorCode.INTERNAL_ERROR
 
 
 class UsageServiceMessages(StringEnum):
