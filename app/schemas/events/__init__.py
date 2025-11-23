@@ -1,4 +1,4 @@
-from .event_error_code import EventsErrorCode
+from .events_error_code import EventsErrorCode
 from .send import (
     SendEventsRequestSchema,
     SendEventsResponseSchema,

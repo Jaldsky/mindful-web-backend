@@ -2,7 +2,7 @@ from typing import Union
 from pydantic import Field
 
 from ...error_response_schema import ErrorCode
-from ..event_error_code import EventsErrorCode
+from ..events_error_code import EventsErrorCode
 from ...general import InternalServerErrorSchema
 
 

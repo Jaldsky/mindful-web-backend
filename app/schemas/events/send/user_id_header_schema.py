@@ -20,10 +20,10 @@ class SendEventsUserIdHeaderSchema(BaseModel):
         try:
             user_uuid = UUID(v)
             if user_uuid.version != 4:
-                raise InvalidUserIdException("X-User-ID must be a valid UUID4 string")
+                raise InvalidUserIdException("X-User-ID must be a valid UUID4 string", v)
             return v
         except (ValueError, AttributeError, TypeError):
-            raise InvalidUserIdException("X-User-ID must be a valid UUID4 string")
+            raise InvalidUserIdException("X-User-ID must be a valid UUID4 string", v)
 
     class Config:
         json_schema_extra = {

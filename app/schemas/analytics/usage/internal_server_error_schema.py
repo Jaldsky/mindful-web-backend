@@ -2,14 +2,14 @@ from typing import Union
 from pydantic import Field
 
 from ...error_response_schema import ErrorCode
-from ..usage_error_code import UsageErrorCode
+from ..analytics_error_code import AnalyticsErrorCode
 from ...general import InternalServerErrorSchema
 
 
 class AnalyticsUsageInternalServerErrorSchema(InternalServerErrorSchema):
     """Схема ошибки 500 Internal Server Error для analytics usage endpoint."""
 
-    code: Union[ErrorCode | UsageErrorCode] = Field(..., description="Код ошибки")
+    code: Union[ErrorCode | AnalyticsErrorCode] = Field(..., description="Код ошибки")
 
     class Config:
         json_schema_extra = {

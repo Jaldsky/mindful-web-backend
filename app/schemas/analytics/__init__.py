@@ -1,4 +1,4 @@
-from .usage_error_code import UsageErrorCode
+from .analytics_error_code import AnalyticsErrorCode
 from .usage import (
     AnalyticsUsageRequestSchema,
     AnalyticsUsageResponseAcceptedSchema,
@@ -10,7 +10,7 @@ from .usage import (
 
 __all__ = (
     # Common
-    "UsageErrorCode",
+    "AnalyticsErrorCode",
     # Analytics Usage
     "AnalyticsUsageRequestSchema",
     "AnalyticsUsageResponseAcceptedSchema",
