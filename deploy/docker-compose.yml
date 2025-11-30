@@ -1,5 +1,14 @@
 services:
 
+  mwb-mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"  # Для дебага, web ui для просмотра писем
+    restart: unless-stopped
+    networks:
+      - mwb-net
+
   mwb-db:
     image: postgres:16-alpine
     env_file:
