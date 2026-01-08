@@ -22,6 +22,8 @@ httpx = "^0.28.1"
 bcrypt = "^4.0.0"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 email-validator = "^2.1.0"
+jinja2 = "^3.1.4"
+aiosmtplib = "^3.0.0"
 
 [tool.poetry.group.dev.dependencies]
 aiosqlite = "^0.21.0"

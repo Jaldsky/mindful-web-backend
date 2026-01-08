@@ -35,10 +35,13 @@ REDIS_URL: str = os.getenv("REDIS_URL", f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}
 
 # Email Configuration
 SMTP_HOST: str = os.getenv("SMTP_HOST", "mwb-mailhog")
-SMTP_PORT: int = os.getenv("SMTP_PORT", 1025)
+SMTP_PORT: int = int(os.getenv("SMTP_PORT", "1025"))
 SMTP_USER: str = os.getenv("SMTP_USER", "root")
 SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "root")
 
 SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL", "noreply@mindful-web.com")
 SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "Mindful-Web")
 SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "false").lower() == "true"
+
+# Verification Code
+VERIFICATION_CODE_EXPIRE_MINUTES: int = int(os.getenv("VERIFICATION_CODE_EXPIRE_MINUTES", "15"))
