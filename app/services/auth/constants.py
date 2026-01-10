@@ -1,0 +1,5 @@
+# Константы валидации
+MIN_USERNAME_LENGTH: int = 3
+MAX_USERNAME_LENGTH: int = 50
+MIN_PASSWORD_LENGTH: int = 8
+MAX_PASSWORD_LENGTH: int = 128

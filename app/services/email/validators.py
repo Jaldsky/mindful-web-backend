@@ -1,6 +1,6 @@
 from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar, NoReturn
-from email_validator import EmailNotValidError, validate_email
+from email_validator import EmailNotValidError
 
 from .smtp import EmailServiceSettings
 from .constants import VERIFICATION_CODE_LENGTH
@@ -12,6 +12,7 @@ from .exceptions import (
 )
 from .types import FromName, SMTPHost, SMTPPassword, SMTPPort, SMTPTimeout, SMTPUser
 from ..types import Email, VerificationCode
+from ..validators import validate_email_format
 
 if TYPE_CHECKING:
     from .renderer import TemplateRendererSettings
@@ -35,7 +36,7 @@ class EmailServiceValidators:
         if not email:
             raise InvalidEmailFormatException(cls.messages.EMAIL_CANNOT_BE_EMPTY)
         try:
-            validate_email(email, check_deliverability=False)
+            validate_email_format(email)
         except EmailNotValidError:
             raise InvalidEmailFormatException(cls.messages.INVALID_EMAIL_FORMAT)
 

@@ -1,4 +1,5 @@
 from ..types import Email, VerificationCode
+from ..normalizers import normalize_email
 
 
 class EmailServiceNormalizers:
@@ -14,7 +15,7 @@ class EmailServiceNormalizers:
         Returns:
             Нормализованный email.
         """
-        return (email or "").strip().lower()
+        return normalize_email(email)
 
     @staticmethod
     def normalize_verification_code(code: VerificationCode) -> VerificationCode:
