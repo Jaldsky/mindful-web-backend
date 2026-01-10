@@ -3,10 +3,10 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, NoReturn
 
-from sqlalchemy import and_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..common import generate_verification_code, to_utc_datetime
+from ..common import get_unverified_user_by_email
 from ..exceptions import (
     AuthMessages,
     AuthServiceException,
@@ -18,6 +18,7 @@ from ..exceptions import (
 )
 from ..normalizers import AuthServiceNormalizers
 from ..validators import AuthServiceValidators
+from ..queries import fetch_active_verification_code_row, update_verification_code_last_sent_at
 from ...types import Email, UserId, VerificationCode
 from ....config import VERIFICATION_CODE_EXPIRE_MINUTES, VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS
 from ....db.models.tables import User, VerificationCode as VerificationCodeModel
@@ -89,38 +90,6 @@ class ResendVerificationCodeServiceBase:
 class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
     """Сервис повторной отправки кода подтверждения email."""
 
-    async def _get_user_by_email(self, email: Email) -> User | None:
-        """Приватный метод получения пользователя по email.
-
-        Args:
-            email: Email адрес пользователя.
-
-        Returns:
-            Пользователь или None, если не найден.
-        """
-        result = await self.session.execute(select(User).where(and_(User.email == email, User.deleted_at.is_(None))))
-        return result.scalar_one_or_none()
-
-    async def _get_user_for_resend(self, email: Email) -> User | NoReturn:
-        """Приватный метод получения пользователя для повторной отправки кода.
-
-        Args:
-            email: Email адрес пользователя.
-
-        Returns:
-            Найденный пользователь с неподтверждённым email.
-
-        Raises:
-            UserNotFoundException: Если пользователь не найден.
-            EmailAlreadyVerifiedException: Если email уже подтверждён.
-        """
-        user = await self._get_user_by_email(email)
-        if not user:
-            raise UserNotFoundException(self.messages.USER_NOT_FOUND)
-        if user.is_verified:
-            raise EmailAlreadyVerifiedException(self.messages.EMAIL_ALREADY_VERIFIED)
-        return user
-
     async def _get_active_verification_code(self, user_id: UserId) -> VerificationCodeModel | None:
         """Приватный метод получения активного кода подтверждения пользователя.
 
@@ -131,19 +100,7 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
             Объект VerificationCodeModel или None, если активного кода нет.
         """
         now = datetime.now(timezone.utc)
-        result = await self.session.execute(
-            select(VerificationCodeModel)
-            .where(
-                and_(
-                    VerificationCodeModel.user_id == user_id,
-                    VerificationCodeModel.used_at.is_(None),
-                    VerificationCodeModel.expires_at > now,
-                )
-            )
-            .order_by(VerificationCodeModel.created_at.desc())
-            .limit(1)
-        )
-        return result.scalar_one_or_none()
+        return await fetch_active_verification_code_row(self.session, user_id, now)
 
     def _ensure_resend_not_rate_limited(
         self, code_row: VerificationCodeModel, current_datetime: datetime
@@ -223,11 +180,7 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
             verification_code_id: ID записи verification_codes.
             at: Время последней отправки (UTC).
         """
-        await self.session.execute(
-            update(VerificationCodeModel)
-            .where(VerificationCodeModel.id == verification_code_id)
-            .values(last_sent_at=at)
-        )
+        await update_verification_code_last_sent_at(self.session, verification_code_id, at)
 
     async def _send_verification_email(self, email: Email, code: VerificationCode) -> None | NoReturn:
         """Приватный метод отправки кода подтверждения на email.
@@ -242,7 +195,6 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
         try:
             await EmailService().send_verification_code(to_email=email, code=code)
         except Exception:
-            logger.error("Failed to send verification email to %s", email, exc_info=True)
             raise EmailSendFailedException(self.messages.EMAIL_SEND_FAILED)
 
     async def exec(self) -> bool | NoReturn:
@@ -279,7 +231,7 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
         try:
             async with self.session.begin():
                 now = datetime.now(timezone.utc)
-                user = await self._get_user_for_resend(self.email)
+                user = await get_unverified_user_by_email(self.session, self.email, messages=self.messages)
                 code, code_row_id = await self._pick_or_create_code(user.id, now)
         except (
             InvalidEmailFormatException,
@@ -289,7 +241,6 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
         ):
             raise
         except Exception:
-            logger.error("Resend code DB stage error", exc_info=True)
             raise AuthServiceException(self.messages.RESEND_CODE_DB_STAGE_ERROR)
 
         if code is None:
@@ -300,7 +251,6 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
         except EmailSendFailedException:
             raise
         except Exception:
-            logger.error("Resend code email stage error", exc_info=True)
             raise AuthServiceException(self.messages.RESEND_CODE_EMAIL_STAGE_ERROR)
 
         if code_row_id is not None:
@@ -309,8 +259,7 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
                     now = datetime.now(timezone.utc)
                     await self._touch_last_sent_at(code_row_id, now)
             except Exception:
-                logger.error("Resend code last_sent_at update error", exc_info=True)
                 pass
 
-        logger.info("Verification code resent to: %s", self.email)
+        logger.info(f"Verification code resent to: {self.email}")
         return True

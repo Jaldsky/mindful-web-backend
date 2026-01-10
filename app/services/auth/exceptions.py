@@ -116,6 +116,24 @@ class TooManyAttemptsException(AuthUnprocessableEntityException):
     error_code = AuthErrorCode.TOO_MANY_ATTEMPTS
 
 
+class InvalidVerificationCodeFormatException(AuthUnprocessableEntityException):
+    """Неверный формат кода подтверждения (422)."""
+
+    error_code = AuthErrorCode.INVALID_VERIFICATION_CODE
+
+
+class VerificationCodeExpiredException(AuthUnprocessableEntityException):
+    """Код подтверждения истёк (422)."""
+
+    error_code = AuthErrorCode.VERIFICATION_CODE_EXPIRED
+
+
+class VerificationCodeInvalidException(AuthUnprocessableEntityException):
+    """Код подтверждения неверный (422)."""
+
+    error_code = AuthErrorCode.VERIFICATION_CODE_INVALID
+
+
 class AuthMessages:
     """Сообщения сервиса авторизации."""
 
@@ -128,6 +146,9 @@ class AuthMessages:
     USER_NOT_FOUND = "User not found"
     EMAIL_ALREADY_VERIFIED = "Email is already verified"
     TOO_MANY_ATTEMPTS = "Too many attempts. Please try again later"
+    CODE_INVALID = "Verification code is invalid"
+    CODE_EXPIRED = "Verification code has expired"
+    VERIFICATION_CODE_FORMAT_INVALID = "Verification code must be exactly 6 digits"
     EMAIL_CANNOT_BE_EMPTY = "Email cannot be empty"
     INVALID_EMAIL_FORMAT = "Invalid email format"
     USERNAME_LENGTH_INVALID = "Username length is invalid"
