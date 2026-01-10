@@ -92,6 +92,11 @@ class VerificationCode(Base, CreatedMixin):
         nullable=True,
         comment="Время использования кода (UTC)",
     )
+    last_sent_at: Mapped[datetime | None] = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Время последней отправки кода (UTC)",
+    )
 
     user: Mapped["User"] = relationship("User", back_populates="verification_codes")
 

@@ -45,3 +45,4 @@ SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "false").lower() == "true"
 
 # Verification Code
 VERIFICATION_CODE_EXPIRE_MINUTES: int = int(os.getenv("VERIFICATION_CODE_EXPIRE_MINUTES", "15"))
+VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS: int = int(os.getenv("VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS", "60"))
