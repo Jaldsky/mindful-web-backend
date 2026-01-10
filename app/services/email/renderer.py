@@ -21,6 +21,7 @@ class TemplateRendererSettings:
 
     def validate(self) -> None | NoReturn:
         """Метод валидации настроек рендерера шаблонов.
+
         Raises:
             InvalidSMTPConfigException: При невалидном пути к директории шаблонов.
         """
@@ -32,6 +33,7 @@ class TemplateRenderer:
 
     def __init__(self, settings: TemplateRendererSettings) -> None:
         """Магический метод инициализации рендерера шаблонов.
+
         Args:
             settings: Настройки рендерера шаблонов.
         """
@@ -42,6 +44,7 @@ class TemplateRenderer:
     @property
     def env(self) -> Environment:
         """Свойство ленивой инициализации окружения Jinja2.
+
         Returns:
             Настроенное окружение Jinja2 для рендеринга шаблонов.
         """
@@ -54,11 +57,14 @@ class TemplateRenderer:
 
     def render(self, template_name: TemplateName, context: Mapping[str, Any]) -> str:
         """Метод рендеринга шаблона Jinja2.
+
         Args:
             template_name: Имя шаблона для рендеринга.
             context: Переменные для передачи в шаблон.
+
         Returns:
             HTML контент.
+
         Raises:
             EmailSendFailedException: При отсутствии шаблона или ошибке рендеринга.
         """

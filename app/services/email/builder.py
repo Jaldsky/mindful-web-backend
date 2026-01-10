@@ -12,9 +12,11 @@ class EmailMessageBuilder:
     @staticmethod
     def _format_from_header(from_email: Email, from_name: FromName) -> str:
         """Форматирование заголовка From для MIME сообщения.
+
         Args:
             from_email: Email адрес отправителя.
             from_name: Имя отправителя.
+
         Returns:
             Отформатированная строка заголовка From.
         """
@@ -35,6 +37,7 @@ class EmailMessageBuilder:
         charset: str = MIME_ENCODING_UTF8,
     ) -> MIMEMultipart:
         """Метод построения HTML MIME сообщения.
+
         Args:
             to_email: Email адрес получателя.
             subject: Тема письма.
@@ -44,6 +47,7 @@ class EmailMessageBuilder:
             subtype: Подтип MIME сообщения.
             html_subtype: Подтип HTML контента.
             charset: Кодировка сообщения.
+
         Returns:
             Построенное MIME сообщение.
         """

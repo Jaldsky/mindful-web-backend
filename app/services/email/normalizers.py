@@ -7,8 +7,10 @@ class EmailServiceNormalizers:
     @staticmethod
     def normalize_email(email: Email) -> Email:
         """Метод нормализации email адреса.
+
         Args:
             email: Email адрес для нормализации.
+
         Returns:
             Нормализованный email.
         """
@@ -17,8 +19,10 @@ class EmailServiceNormalizers:
     @staticmethod
     def normalize_verification_code(code: VerificationCode) -> VerificationCode:
         """Метод нормализации кода подтверждения.
+
         Args:
             code: Код подтверждения для нормализации.
+
         Returns:
             Нормализованный код (без пробелов).
         """
