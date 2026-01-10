@@ -15,6 +15,12 @@ class AuthBadRequestException(AuthException):
     status_code = status.HTTP_400_BAD_REQUEST
 
 
+class AuthNotFoundException(AuthException):
+    """Ресурс не найден (404)."""
+
+    status_code = status.HTTP_404_NOT_FOUND
+
+
 class AuthUnauthorizedException(AuthException):
     """Ошибка авторизации (401)."""
 
@@ -90,6 +96,26 @@ class EmailSendFailedException(AuthInternalServerErrorException):
     error_code = AuthErrorCode.EMAIL_SEND_FAILED
 
 
+# Исключения для 404
+class UserNotFoundException(AuthNotFoundException):
+    """Пользователь не найден (404)."""
+
+    error_code = AuthErrorCode.USER_NOT_FOUND
+
+
+# Исключения для 422
+class EmailAlreadyVerifiedException(AuthUnprocessableEntityException):
+    """Email уже подтверждён (422)."""
+
+    error_code = AuthErrorCode.EMAIL_ALREADY_VERIFIED
+
+
+class TooManyAttemptsException(AuthUnprocessableEntityException):
+    """Слишком много попыток (422)."""
+
+    error_code = AuthErrorCode.TOO_MANY_ATTEMPTS
+
+
 class AuthMessages:
     """Сообщения сервиса авторизации."""
 
@@ -97,6 +123,11 @@ class AuthMessages:
     EMAIL_EXISTS = "User with this email already exists"
     EMAIL_SEND_FAILED = "Failed to send verification email"
     AUTH_SERVICE_ERROR = "Authentication service error"
+    RESEND_CODE_DB_STAGE_ERROR = "Resend code failed due to a database error"
+    RESEND_CODE_EMAIL_STAGE_ERROR = "Resend code failed while sending verification email"
+    USER_NOT_FOUND = "User not found"
+    EMAIL_ALREADY_VERIFIED = "Email is already verified"
+    TOO_MANY_ATTEMPTS = "Too many attempts. Please try again later"
     EMAIL_CANNOT_BE_EMPTY = "Email cannot be empty"
     INVALID_EMAIL_FORMAT = "Invalid email format"
     USERNAME_LENGTH_INVALID = "Username length is invalid"
