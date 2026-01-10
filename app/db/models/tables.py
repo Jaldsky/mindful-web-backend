@@ -1,4 +1,6 @@
 import uuid
+from datetime import datetime
+from sqlalchemy.orm import Mapped
 from sqlalchemy import (
     Column,
     String,
@@ -7,113 +9,142 @@ from sqlalchemy import (
     ForeignKey,
     CheckConstraint,
     Index,
+    Boolean,
     text,
 )
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
 from .base import Base
+from .mixins import CreatedMixin, UpdatedMixin, DeletedMixin
 
 
-class User(Base):
+class User(Base, CreatedMixin, UpdatedMixin, DeletedMixin):
     """Таблица пользователей системы."""
 
     __tablename__ = "users"
 
-    id = Column(
+    id: Mapped[uuid.UUID] = Column(
         PG_UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4,
         comment="Уникальный идентификатор пользователя (UUID4)",
     )
-    email = Column(
+    username: Mapped[str | None] = Column(
+        String(50),
+        unique=True,
+        nullable=True,
+        index=True,
+        comment="Логин пользователя",
+    )
+    email: Mapped[str | None] = Column(
         String(255),
         unique=True,
         nullable=True,
         index=True,
         comment="Email для авторизации",
     )
-    password = Column(String(255), nullable=True, comment="Хэш пароля")
-    created_at = Column(
-        DateTime(timezone=True), nullable=False, server_default="now()", comment="Время регистрации (UTC)"
+    password: Mapped[str | None] = Column(String(255), nullable=True, comment="Хэш пароля")
+    is_verified: Mapped[bool] = Column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        comment="Подтверждён ли email пользователя",
     )
-    updated_at = Column(
+
+    attention_events: Mapped[list["AttentionEvent"]] = relationship(
+        "AttentionEvent", back_populates="user", cascade="all, delete-orphan"
+    )
+    verification_codes: Mapped[list["VerificationCode"]] = relationship(
+        "VerificationCode", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    def __repr__(self) -> str:
+        return f"<User(id={self.id}, email={self.email}, username={self.username})>"
+
+
+class VerificationCode(Base, CreatedMixin):
+    """Таблица кодов подтверждения email."""
+
+    __tablename__ = "verification_codes"
+
+    id: Mapped[int] = Column(Integer, primary_key=True, comment="Автоинкрементный ID кода")
+    user_id: Mapped[uuid.UUID] = Column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+        index=True,
+        comment="ID пользователя",
+    )
+    code: Mapped[str] = Column(
+        String(6),
+        nullable=False,
+        comment="Код подтверждения",
+    )
+    expires_at: Mapped[datetime] = Column(
         DateTime(timezone=True),
         nullable=False,
-        server_default="now()",
-        onupdate="now()",
-        comment="Время последнего обновления записи (UTC)",
+        comment="Время истечения кода (UTC)",
     )
-    deleted_at = Column(
+    used_at: Mapped[datetime | None] = Column(
         DateTime(timezone=True),
         nullable=True,
-        index=True,
-        comment="Время soft-delete",
+        comment="Время использования кода (UTC)",
     )
 
-    attention_events = relationship("AttentionEvent", back_populates="user", cascade="all, delete-orphan")
+    user: Mapped["User"] = relationship("User", back_populates="verification_codes")
+
+    __table_args__ = (Index("idx_verification_codes_user_code", "user_id", "code"),)
+
+    def __repr__(self) -> str:
+        return f"<VerificationCode(id={self.id}, user_id={self.user_id}, code={self.code[:2]}**)>"
 
 
-class DomainCategory(Base):
+class DomainCategory(Base, CreatedMixin, UpdatedMixin):
     """Таблица категорий цифровой активности."""
 
     __tablename__ = "domain_categories"
 
-    id = Column(Integer, primary_key=True, comment="Автоинкрементный ID категории")
-    name = Column(
+    id: Mapped[int] = Column(Integer, primary_key=True, comment="Автоинкрементный ID категории")
+    name: Mapped[str] = Column(
         String(50),
         unique=True,
         nullable=False,
         index=True,
         comment="Уникальное имя категории",
     )
-    created_at = Column(
-        DateTime(timezone=True), nullable=False, server_default="now()", comment="Время создания категории (UTC)"
-    )
-    updated_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default="now()",
-        onupdate="now()",
-        comment="Время последнего обновления категории",
+
+    domain_to_category: Mapped[list["DomainToCategory"]] = relationship(
+        "DomainToCategory", back_populates="category", cascade="all, delete-orphan"
     )
 
-    domain_to_category = relationship("DomainToCategory", back_populates="category", cascade="all, delete-orphan")
+    def __repr__(self) -> str:
+        return f"<DomainCategory(id={self.id}, name={self.name})>"
 
 
-class DomainToCategory(Base):
+class DomainToCategory(Base, CreatedMixin, UpdatedMixin):
     """Таблица связи домена с цифровой активностью."""
 
     __tablename__ = "domain_to_category"
 
-    domain = Column(
+    domain: Mapped[str] = Column(
         String(255),
         primary_key=True,
-        index=True,
         comment="Домен в нижнем регистре (например: 'instagram.com')",
     )
-    category_id = Column(
+    category_id: Mapped[int] = Column(
         Integer,
         ForeignKey("domain_categories.id", ondelete="CASCADE", onupdate="CASCADE"),
         nullable=False,
         index=True,
         comment="Ссылка на категорию из таблицы domain_categories",
     )
-    created_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default="now()",
-        comment="Время создания связи (UTC)",
-    )
-    updated_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default="now()",
-        onupdate="now()",
-        comment="Время последнего обновления связи (UTC)",
-    )
 
-    category = relationship("DomainCategory", back_populates="domain_to_category")
+    category: Mapped["DomainCategory"] = relationship("DomainCategory", back_populates="domain_to_category")
+
+    def __repr__(self) -> str:
+        return f"<DomainToCategory(domain={self.domain}, category_id={self.category_id})>"
 
 
 class AttentionEvent(Base):
@@ -121,33 +152,33 @@ class AttentionEvent(Base):
 
     __tablename__ = "attention_events"
 
-    id = Column(Integer, primary_key=True, comment="Автоинкрементный ID события")
-    user_id = Column(
+    id: Mapped[int] = Column(Integer, primary_key=True, comment="Автоинкрементный ID события")
+    user_id: Mapped[uuid.UUID] = Column(
         PG_UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"),
         nullable=False,
         index=True,
         comment="ID пользователя",
     )
-    domain = Column(
+    domain: Mapped[str] = Column(
         String(255),
         nullable=False,
         index=True,
         comment="Домен",
     )
-    event_type = Column(
+    event_type: Mapped[str] = Column(
         String(10),
         nullable=False,
         comment="Тип события внимания: active (пользователь перешёл на вкладку) или inactive (покинул вкладку)",
     )
-    timestamp = Column(
+    timestamp: Mapped[datetime] = Column(
         DateTime(timezone=True),
         nullable=False,
         index=True,
         comment="Точное время события в UTC",
     )
 
-    user = relationship("User", back_populates="attention_events")
+    user: Mapped["User"] = relationship("User", back_populates="attention_events")
 
     __table_args__ = (
         CheckConstraint(
@@ -156,3 +187,9 @@ class AttentionEvent(Base):
         ),
         Index("idx_attention_events_user_domain_timestamp", "user_id", "domain", "timestamp"),
     )
+
+    def __repr__(self) -> str:
+        return (
+            f"<AttentionEvent(id={self.id}, user_id={self.user_id}, "
+            f"domain={self.domain}, event_type={self.event_type})>"
+        )
