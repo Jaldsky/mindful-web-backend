@@ -4,6 +4,7 @@ from app.services.auth.exceptions import (
     InvalidEmailFormatException,
     InvalidPasswordFormatException,
     InvalidUsernameFormatException,
+    InvalidVerificationCodeFormatException,
 )
 from app.services.auth.validators import AuthServiceValidators
 
@@ -101,3 +102,27 @@ class TestAuthServiceValidators(TestCase):
             AuthServiceValidators.validate_password("password123")
         except InvalidPasswordFormatException:
             self.fail("validate() raised InvalidPasswordFormatException unexpectedly!")
+
+    def test_validate_verification_code_valid(self):
+        """Тест валидации валидного кода подтверждения."""
+        try:
+            AuthServiceValidators.validate_verification_code("123456")
+        except InvalidVerificationCodeFormatException:
+            self.fail("validate_verification_code() raised InvalidVerificationCodeFormatException unexpectedly!")
+
+    def test_validate_verification_code_trims_spaces(self):
+        """Код может содержать пробелы по краям — валидатор должен их игнорировать."""
+        try:
+            AuthServiceValidators.validate_verification_code("  123456  ")
+        except InvalidVerificationCodeFormatException:
+            self.fail("validate_verification_code() raised InvalidVerificationCodeFormatException unexpectedly!")
+
+    def test_validate_verification_code_invalid_length(self):
+        """Тест валидации кода неверной длины."""
+        with self.assertRaises(InvalidVerificationCodeFormatException):
+            AuthServiceValidators.validate_verification_code("12345")
+
+    def test_validate_verification_code_non_digits(self):
+        """Тест валидации кода с нецифровыми символами."""
+        with self.assertRaises(InvalidVerificationCodeFormatException):
+            AuthServiceValidators.validate_verification_code("12ab56")

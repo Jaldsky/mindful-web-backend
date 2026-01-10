@@ -13,9 +13,10 @@ from .exceptions import (
     InvalidEmailFormatException,
     InvalidPasswordFormatException,
     InvalidUsernameFormatException,
+    InvalidVerificationCodeFormatException,
 )
 from .types import Password, Username
-from ..types import Email
+from ..types import Email, VerificationCode
 from ..validators import validate_email_format
 
 
@@ -74,3 +75,17 @@ class AuthServiceValidators:
             raise InvalidPasswordFormatException(cls.messages.PASSWORD_MUST_CONTAIN_LETTER)
         if not any(ch.isdigit() for ch in password):
             raise InvalidPasswordFormatException(cls.messages.PASSWORD_MUST_CONTAIN_DIGIT)
+
+    @classmethod
+    def validate_verification_code(cls, code: VerificationCode) -> None | NoReturn:
+        """Метод валидации формата кода подтверждения.
+
+        Args:
+            code: Код подтверждения.
+
+        Raises:
+            InvalidVerificationCodeFormatException: Если code не валидный.
+        """
+        code = (code or "").strip()
+        if len(code) != 6 or not code.isdigit():
+            raise InvalidVerificationCodeFormatException(cls.messages.VERIFICATION_CODE_FORMAT_INVALID)

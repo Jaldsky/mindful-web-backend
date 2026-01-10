@@ -4,6 +4,7 @@ from .use_cases.resend_code import (
     ResendVerificationCodeService,
     ResendVerificationCodeServiceBase,
 )
+from .use_cases.verify import VerifyEmail, VerifyEmailService, VerifyEmailServiceBase
 from .exceptions import (
     AuthException,
     AuthBadRequestException,
@@ -23,6 +24,9 @@ from .exceptions import (
     InvalidUsernameFormatException,
     InvalidEmailFormatException,
     InvalidPasswordFormatException,
+    InvalidVerificationCodeFormatException,
+    VerificationCodeInvalidException,
+    VerificationCodeExpiredException,
     AuthMessages,
 )
 
@@ -33,6 +37,9 @@ __all__ = [
     "ResendVerificationCode",
     "ResendVerificationCodeService",
     "ResendVerificationCodeServiceBase",
+    "VerifyEmail",
+    "VerifyEmailService",
+    "VerifyEmailServiceBase",
     "AuthException",
     "AuthBadRequestException",
     "AuthNotFoundException",
@@ -51,5 +58,8 @@ __all__ = [
     "InvalidUsernameFormatException",
     "InvalidEmailFormatException",
     "InvalidPasswordFormatException",
+    "InvalidVerificationCodeFormatException",
+    "VerificationCodeInvalidException",
+    "VerificationCodeExpiredException",
     "AuthMessages",
 ]

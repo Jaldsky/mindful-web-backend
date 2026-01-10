@@ -3,12 +3,12 @@ from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from datetime import datetime, timedelta, timezone
-from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..common import generate_verification_code, hash_password
 from ..normalizers import AuthServiceNormalizers
 from ..validators import AuthServiceValidators
+from ..queries import fetch_users_by_username_or_email
 from ..exceptions import (
     AuthMessages,
     AuthServiceException,
@@ -156,15 +156,7 @@ class RegisterService(RegisterServiceBase):
             UsernameAlreadyExistsException: Если username уже существует.
             EmailAlreadyExistsException: Если email уже существует.
         """
-        result = await self.session.execute(
-            select(User).where(
-                and_(
-                    User.deleted_at.is_(None),
-                    or_(User.username == self.username, User.email == self.email),
-                )
-            )
-        )
-        existing_users = result.scalars().all()
+        existing_users = await fetch_users_by_username_or_email(self.session, self.username, self.email)
 
         for user in existing_users:
             if user.username == self.username:
