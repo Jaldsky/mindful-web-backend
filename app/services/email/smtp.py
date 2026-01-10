@@ -53,8 +53,10 @@ class EmailServiceSettings:
     @classmethod
     def from_defaults(cls, **overrides: Any) -> "EmailServiceSettings":
         """Фабричный метод создания настроек.
+
         Args:
             **overrides: Переопределения значений.
+
         Returns:
             Экземпляр EmailServiceSettings.
         """
@@ -73,6 +75,7 @@ class EmailServiceSettings:
     @property
     def templates_dir(self) -> Path:
         """Свойство получения пути до директории с HTML-шаблонами email.
+
         Returns:
             Путь к директории с шаблонами.
         """
@@ -86,6 +89,7 @@ class EmailServiceSettings:
 
     def validate(self) -> None | NoReturn:
         """Метод валидации настроек email-сервиса.
+
         Raises:
             InvalidSMTPConfigException: При невалидных параметрах SMTP.
             InvalidEmailFormatException: При неверном формате from_email.
@@ -102,6 +106,7 @@ class SMTPTransport:
 
     def __init__(self, settings: EmailServiceSettings) -> None:
         """Магический метод инициализации транспорта SMTP.
+
         Args:
             settings: Настройки SMTP для подключения.
         """
@@ -109,10 +114,12 @@ class SMTPTransport:
 
     async def send(self, message: MIMEMultipart, *, sender: Email, recipient: Email) -> None:
         """Метод отправки письма через SMTP сервер.
+
         Args:
             message: MIME сообщение для отправки.
             sender: Email адрес отправителя.
             recipient: Email адрес получателя.
+
         Raises:
             EmailSendFailedException: При ошибке подключения, аутентификации или отправки email.
         """

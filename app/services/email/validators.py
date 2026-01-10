@@ -25,8 +25,10 @@ class EmailServiceValidators:
     @classmethod
     def validate_email(cls, email: Email) -> None | NoReturn:
         """Метод валидации формата email адреса.
+
         Args:
             email: Email адрес для валидации.
+
         Raises:
             InvalidEmailFormatException: Если email имеет неверный формат или пустой.
         """
@@ -40,8 +42,10 @@ class EmailServiceValidators:
     @classmethod
     def validate_verification_code(cls, code: VerificationCode) -> None | NoReturn:
         """Метод валидации формата кода подтверждения.
+
         Args:
             code: Код подтверждения для валидации.
+
         Raises:
             InvalidVerificationCodeException: Если code имеет неверный формат или пустой.
         """
@@ -61,8 +65,10 @@ class EmailServiceSettingsValidator:
     @classmethod
     def validate(cls, settings: EmailServiceSettings) -> None | NoReturn:
         """Метод валидации настроек email-сервиса.
+
         Args:
             settings: Настройки email-сервиса для валидации.
+
         Raises:
             InvalidSMTPConfigException: При невалидных параметрах SMTP.
             InvalidEmailFormatException: При неверном формате from_email.
@@ -78,8 +84,10 @@ class EmailServiceSettingsValidator:
     @classmethod
     def _validate_host(cls, host: SMTPHost) -> None | NoReturn:
         """Приватный метод валидации SMTP хоста.
+
         Args:
             host: SMTP хост для валидации.
+
         Raises:
             InvalidSMTPConfigException: Если host пустой или невалидный.
         """
@@ -89,8 +97,10 @@ class EmailServiceSettingsValidator:
     @classmethod
     def _validate_port(cls, port: SMTPPort) -> None | NoReturn:
         """Приватный метод валидации SMTP порта.
+
         Args:
             port: SMTP порт для валидации.
+
         Raises:
             InvalidSMTPConfigException: Если port невалидный.
         """
@@ -100,8 +110,10 @@ class EmailServiceSettingsValidator:
     @classmethod
     def _validate_user(cls, user: SMTPUser | None) -> None | NoReturn:
         """Приватный метод валидации SMTP пользователя.
+
         Args:
             user: SMTP пользователь для валидации.
+
         Raises:
             InvalidSMTPConfigException: Если user указан, но пустой.
         """
@@ -111,8 +123,10 @@ class EmailServiceSettingsValidator:
     @classmethod
     def _validate_password(cls, password: SMTPPassword | None) -> None | NoReturn:
         """Приватный метод валидации SMTP пароля.
+
         Args:
             password: SMTP пароль для валидации.
+
         Raises:
             InvalidSMTPConfigException: Если password указан, но пустой.
         """
@@ -122,8 +136,10 @@ class EmailServiceSettingsValidator:
     @classmethod
     def _validate_from_email(cls, from_email: Email) -> None | NoReturn:
         """Приватный метод валидации email адреса отправителя.
+
         Args:
             from_email: Email адрес отправителя для валидации.
+
         Raises:
             InvalidEmailFormatException: Если from_email имеет неверный формат или пустой.
         """
@@ -132,8 +148,10 @@ class EmailServiceSettingsValidator:
     @classmethod
     def _validate_from_name(cls, from_name: FromName) -> None | NoReturn:
         """Приватный метод валидации имени отправителя.
+
         Args:
             from_name: Имя отправителя для валидации.
+
         Raises:
             InvalidSMTPConfigException: Если from_name указан, но пустой.
         """
@@ -143,10 +161,12 @@ class EmailServiceSettingsValidator:
     @classmethod
     def _validate_timeout(cls, timeout: SMTPTimeout) -> None | NoReturn:
         """Приватный метод валидации SMTP таймаута.
+
         Args:
             timeout: SMTP таймаут для валидации.
+
         Raises:
-            InvalidSMTPConfigException: Если timeout невалидный (не положительное число).
+            InvalidSMTPConfigException: Если timeout невалидный.
         """
         if not isinstance(timeout, int) or timeout <= 0:
             raise InvalidSMTPConfigException(cls.messages.SMTP_TIMEOUT_INVALID)
@@ -160,8 +180,10 @@ class TemplateRendererSettingsValidator:
     @classmethod
     def validate(cls, settings: "TemplateRendererSettings") -> None | NoReturn:
         """Метод валидации настроек рендерера шаблонов.
+
         Args:
             settings: Настройки рендерера шаблонов для валидации.
+
         Raises:
             InvalidSMTPConfigException: При невалидном пути к директории шаблонов.
         """
@@ -170,8 +192,10 @@ class TemplateRendererSettingsValidator:
     @classmethod
     def _validate_templates_dir(cls, templates_dir: Path) -> None | NoReturn:
         """Приватный метод валидации пути к директории шаблонов.
+
         Args:
             templates_dir: Путь к директории шаблонов для валидации.
+
         Raises:
             InvalidSMTPConfigException: Если templates_dir пустой, не существует или не является директорией.
         """

@@ -28,7 +28,8 @@ class EmailService:
         settings: EmailServiceSettings | None = None,
         **overrides: Any,
     ) -> None:
-        """
+        """Магический метод инициализации класса.
+
         Args:
             settings: Явно переданные настройки email-сервиса.
             **overrides: Переопределения полей настроек.
@@ -42,9 +43,11 @@ class EmailService:
     ) -> tuple[Email, FromName]:
         """Метод разрешения данных отправителя.
         Использует переданные значения или значения по умолчанию из настроек.
+
         Args:
             from_email: Email адрес отправителя.
             from_name: Имя отправителя.
+
         Returns:
             Кортеж из email адреса и имени отправителя.
         """
@@ -61,16 +64,19 @@ class EmailService:
         from_name: FromName | None = None,
     ) -> None:
         """Метод отправки кода подтверждения на email.
+
         Процесс отправки включает:
         1. Нормализацию входных данных
         2. Валидацию формата всех полей
         3. Создание письма с кодом подтверждения используя шаблон
         4. Отправку письма через SMTP сервер
+
         Args:
             to_email: Email адрес получателя.
             code: Код подтверждения.
             from_email: Email адрес отправителя.
             from_name: Имя отправителя.
+
         Raises:
             InvalidEmailFormatException: При неверном формате email адреса.
             InvalidVerificationCodeException: При неверном формате кода подтверждения.
