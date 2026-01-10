@@ -118,7 +118,10 @@ class TestEventsService(TestCase):
         compiled = insert_stmt.compile(dialect=postgresql.dialect())
         sql_text = str(compiled)
 
-        self.assertEqual("INSERT INTO users (id) VALUES (%(id)s::UUID) ON CONFLICT (id) DO NOTHING", sql_text)
+        self.assertEqual(
+            "INSERT INTO users (id, is_verified) VALUES (%(id)s::UUID, %(is_verified)s) ON CONFLICT (id) DO NOTHING",
+            sql_text,
+        )
 
     @patch("app.services.events.send_events.main.logger")
     def test_insert_events_success(self, mock_logger):
