@@ -13,6 +13,7 @@ from app.services.auth.queries import (
     fetch_unused_verification_code_row_by_user_and_code,
     fetch_user_by_email,
     fetch_user_by_id,
+    fetch_user_by_username,
     fetch_users_by_username_or_email,
     update_verification_code_last_sent_at,
 )
@@ -134,6 +135,70 @@ class TestAuthQueries(TestCase):
 
                 async with manager.get_session() as session:
                     found = await fetch_user_by_id(session, user_id)
+                    self.assertIsNone(found)
+
+            self._run_async(_test())
+        finally:
+            self._restore_server_defaults(*originals)
+
+    def test_fetch_user_by_username_returns_user(self):
+        originals = self._patch_server_defaults_for_sqlite()
+        try:
+
+            async def _test():
+                manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+                engine = manager.get_engine()
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+
+                now = datetime.now(timezone.utc)
+                async with manager.get_session() as session:
+                    user = User(
+                        username="testuser",
+                        email="test@example.com",
+                        password="hash",
+                        is_verified=False,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    session.add(user)
+                    await session.commit()
+
+                async with manager.get_session() as session:
+                    found = await fetch_user_by_username(session, "testuser")
+                    self.assertIsNotNone(found)
+                    self.assertEqual(found.username, "testuser")
+
+            self._run_async(_test())
+        finally:
+            self._restore_server_defaults(*originals)
+
+    def test_fetch_user_by_username_returns_none_for_deleted_user(self):
+        originals = self._patch_server_defaults_for_sqlite()
+        try:
+
+            async def _test():
+                manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+                engine = manager.get_engine()
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+
+                now = datetime.now(timezone.utc)
+                async with manager.get_session() as session:
+                    user = User(
+                        username="testuser",
+                        email="test@example.com",
+                        password="hash",
+                        is_verified=False,
+                        created_at=now,
+                        updated_at=now,
+                        deleted_at=now,
+                    )
+                    session.add(user)
+                    await session.commit()
+
+                async with manager.get_session() as session:
+                    found = await fetch_user_by_username(session, "testuser")
                     self.assertIsNone(found)
 
             self._run_async(_test())

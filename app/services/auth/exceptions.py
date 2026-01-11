@@ -70,6 +70,19 @@ class TokenMissingException(AuthUnauthorizedException):
     error_code = AuthErrorCode.TOKEN_MISSING
 
 
+class InvalidCredentialsException(AuthUnauthorizedException):
+    """Неверные учетные данные (401)."""
+
+    error_code = AuthErrorCode.INVALID_CREDENTIALS
+
+
+# Исключения для 403
+class EmailNotVerifiedException(AuthForbiddenException):
+    """Email не подтверждён (403)."""
+
+    error_code = AuthErrorCode.EMAIL_NOT_VERIFIED
+
+
 # Исключения для 409
 class EmailAlreadyExistsException(AuthConflictException):
     """Email уже используется (409)."""
@@ -176,6 +189,8 @@ class AuthMessages:
     PASSWORD_LENGTH_INVALID = "Password length is invalid"
     PASSWORD_MUST_CONTAIN_LETTER = "Password must contain at least one letter"
     PASSWORD_MUST_CONTAIN_DIGIT = "Password must contain at least one digit"
+    INVALID_CREDENTIALS = "Invalid credentials"
+    EMAIL_NOT_VERIFIED = "Email is not verified"
     TOKEN_INVALID = "Token is invalid"
     TOKEN_EXPIRED = "Token has expired"
     TOKEN_MISSING = "Token is missing"

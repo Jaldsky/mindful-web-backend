@@ -8,7 +8,13 @@ from uuid import uuid4
 from jose import jwt
 
 from app.config import JWT_ALGORITHM, JWT_SECRET_KEY
-from app.services.auth.common import create_tokens, decode_token, generate_verification_code, hash_password
+from app.services.auth.common import (
+    create_tokens,
+    decode_token,
+    generate_verification_code,
+    hash_password,
+    verify_password,
+)
 from app.services.auth.common import get_unverified_user_by_email
 from app.services.auth.exceptions import (
     EmailAlreadyVerifiedException,
@@ -44,6 +50,22 @@ class TestAuthCommon(TestCase):
         self.assertIsInstance(hashed, str)
         self.assertTrue(hashed.startswith("$2"))
         self.assertTrue(bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8")))
+
+    def test_verify_password_true_for_correct_password(self):
+        password = "password123"
+        hashed = hash_password(password, rounds=4)
+        self.assertTrue(verify_password(password, hashed))
+
+    def test_verify_password_false_for_wrong_password(self):
+        hashed = hash_password("password123", rounds=4)
+        self.assertFalse(verify_password("wrongpass", hashed))
+
+    def test_create_tokens_rotates_jti(self):
+        """Повторный выпуск токенов в ту же секунду должен давать разные JWT (за счёт jti)."""
+        user_id = uuid4()
+        _a1, r1 = create_tokens(user_id)
+        _a2, r2 = create_tokens(user_id)
+        self.assertNotEqual(r1, r2)
 
     def test_create_tokens_returns_access_and_refresh(self):
         user_id = uuid4()

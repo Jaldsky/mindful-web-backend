@@ -1,4 +1,5 @@
 from .use_cases.register import RegisterService, RegisterServiceBase, RegisterUser
+from .use_cases.login import LoginService, LoginServiceBase, LoginUser
 from .use_cases.refresh import RefreshTokens, RefreshTokensService, RefreshTokensServiceBase
 from .use_cases.resend_code import (
     ResendVerificationCode,
@@ -16,9 +17,11 @@ from .exceptions import (
     AuthUnprocessableEntityException,
     AuthInternalServerErrorException,
     AuthServiceException,
+    EmailNotVerifiedException,
     EmailSendFailedException,
     EmailAlreadyExistsException,
     EmailAlreadyVerifiedException,
+    InvalidCredentialsException,
     TokenExpiredException,
     TokenInvalidException,
     TokenMissingException,
@@ -38,6 +41,9 @@ __all__ = [
     "RegisterService",
     "RegisterServiceBase",
     "RegisterUser",
+    "LoginService",
+    "LoginServiceBase",
+    "LoginUser",
     "RefreshTokens",
     "RefreshTokensService",
     "RefreshTokensServiceBase",
@@ -56,6 +62,8 @@ __all__ = [
     "AuthUnprocessableEntityException",
     "AuthInternalServerErrorException",
     "AuthServiceException",
+    "InvalidCredentialsException",
+    "EmailNotVerifiedException",
     "EmailSendFailedException",
     "EmailAlreadyExistsException",
     "EmailAlreadyVerifiedException",
