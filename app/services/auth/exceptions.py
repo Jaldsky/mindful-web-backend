@@ -76,6 +76,12 @@ class InvalidCredentialsException(AuthUnauthorizedException):
     error_code = AuthErrorCode.INVALID_CREDENTIALS
 
 
+class UserNotFoundException(AuthUnauthorizedException):
+    """Пользователь не найден в системе (401)."""
+
+    error_code = AuthErrorCode.USER_NOT_FOUND
+
+
 # Исключения для 403
 class EmailNotVerifiedException(AuthForbiddenException):
     """Email не подтверждён (403)."""
@@ -126,13 +132,6 @@ class EmailSendFailedException(AuthInternalServerErrorException):
     """Ошибка сервиса email (500)."""
 
     error_code = AuthErrorCode.EMAIL_SEND_FAILED
-
-
-# Исключения для 404
-class UserNotFoundException(AuthNotFoundException):
-    """Пользователь не найден (404)."""
-
-    error_code = AuthErrorCode.USER_NOT_FOUND
 
 
 # Исключения для 422

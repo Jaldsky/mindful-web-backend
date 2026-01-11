@@ -13,7 +13,7 @@ from .verify import (
     VerifyResponseSchema,
     VerifyBadRequestSchema,
     VerifyUnprocessableEntitySchema,
-    VerifyNotFoundSchema,
+    VerifyUnauthorizedSchema,
     VerifyMethodNotAllowedSchema,
     VerifyInternalServerErrorSchema,
 )
@@ -39,7 +39,7 @@ from .resend_code import (
     ResendCodeResponseSchema,
     ResendCodeBadRequestSchema,
     ResendCodeUnprocessableEntitySchema,
-    ResendCodeNotFoundSchema,
+    ResendCodeUnauthorizedSchema,
     ResendCodeMethodNotAllowedSchema,
     ResendCodeInternalServerErrorSchema,
 )
@@ -60,7 +60,7 @@ __all__ = (
     "VerifyResponseSchema",
     "VerifyBadRequestSchema",
     "VerifyUnprocessableEntitySchema",
-    "VerifyNotFoundSchema",
+    "VerifyUnauthorizedSchema",
     "VerifyMethodNotAllowedSchema",
     "VerifyInternalServerErrorSchema",
     # Login
@@ -83,7 +83,7 @@ __all__ = (
     "ResendCodeResponseSchema",
     "ResendCodeBadRequestSchema",
     "ResendCodeUnprocessableEntitySchema",
-    "ResendCodeNotFoundSchema",
+    "ResendCodeUnauthorizedSchema",
     "ResendCodeMethodNotAllowedSchema",
     "ResendCodeInternalServerErrorSchema",
 )

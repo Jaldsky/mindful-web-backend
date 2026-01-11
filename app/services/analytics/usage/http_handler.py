@@ -3,6 +3,7 @@ import logging
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
+from ....common.http_responses import method_not_allowed_response
 from ....schemas import ErrorCode, ErrorDetailData
 from ....schemas.analytics import (
     AnalyticsErrorCode,
@@ -16,19 +17,12 @@ logger = logging.getLogger(__name__)
 
 
 def usage_method_not_allowed_response() -> JSONResponse:
-    """Возвращает ответ для ошибки 405 Method Not Allowed для эндпоинта usage.
+    """Функция возврата ответа 405 Method Not Allowed для POST /usage
 
     Returns:
         JSONResponse с ошибкой 405 Method Not Allowed.
     """
-    error_schema = AnalyticsUsageMethodNotAllowedSchema(
-        code=ErrorCode.METHOD_NOT_ALLOWED,
-        message="Method not allowed. Only GET method is supported for this endpoint.",
-    )
-    return JSONResponse(
-        status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
-        content=error_schema.model_dump(mode="json"),
-    )
+    return method_not_allowed_response(AnalyticsUsageMethodNotAllowedSchema, allowed_method="GET")
 
 
 def usage_business_validation_exception_response(
