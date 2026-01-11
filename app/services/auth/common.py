@@ -26,7 +26,7 @@ from ...config import JWT_ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_REFRES
 
 
 def generate_verification_code(length: int = 6) -> VerificationCode:
-    """Генерация случайного кода подтверждения.
+    """Функция генерации случайного кода подтверждения.
 
     Args:
         length: Длина кода.
@@ -38,7 +38,7 @@ def generate_verification_code(length: int = 6) -> VerificationCode:
 
 
 def hash_password(password: Password, rounds: int = 12) -> PasswordHash:
-    """Хеширование пароля с помощью bcrypt.
+    """Функция хеширования пароля с помощью bcrypt.
 
     Args:
         password: Пароль для хеширования.
@@ -53,8 +53,24 @@ def hash_password(password: Password, rounds: int = 12) -> PasswordHash:
     return hashed.decode("utf-8")
 
 
+def verify_password(password: Password, password_hash: PasswordHash) -> bool:
+    """Функция проверки пароля по bcrypt-хэшу.
+
+    Args:
+        password: Пароль в открытом виде.
+        password_hash: bcrypt-хэш пароля из БД.
+
+    Returns:
+        True, если пароль соответствует хэшу.
+    """
+    try:
+        return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+    except Exception:
+        return False
+
+
 def to_utc_datetime(dt: datetime) -> datetime:
-    """Нормализация datetime к UTC.
+    """Функция нормализации datetime к UTC.
 
     Args:
         dt: datetime.

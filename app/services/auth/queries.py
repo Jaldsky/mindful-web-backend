@@ -58,6 +58,20 @@ async def fetch_user_by_id(session: AsyncSession, user_id: UserId) -> User | Non
     return result.scalar_one_or_none()
 
 
+async def fetch_user_by_username(session: AsyncSession, username: Username) -> User | None:
+    """Функция получения пользователя по username.
+
+    Args:
+        session: AsyncSession.
+        username: Username пользователя.
+
+    Returns:
+        Пользователь или None, если не найден.
+    """
+    result = await session.execute(select(User).where(and_(User.username == username, User.deleted_at.is_(None))))
+    return result.scalar_one_or_none()
+
+
 async def fetch_active_verification_code_row(
     session: AsyncSession, user_id: UserId, now: datetime
 ) -> VerificationCodeModel | None:
