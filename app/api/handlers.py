@@ -6,7 +6,16 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ..exceptions import AppException
-from .routes import SEND_EVENTS_PATH, HEALTHCHECK_PATH, ANALYTICS_USAGE_PATH
+from .routes import (
+    ANALYTICS_USAGE_PATH,
+    HEALTHCHECK_PATH,
+    SEND_EVENTS_PATH,
+    AUTH_LOGIN_PATH,
+    AUTH_REFRESH_PATH,
+    AUTH_REGISTER_PATH,
+    AUTH_RESEND_CODE_PATH,
+    AUTH_VERIFY_PATH,
+)
 from ..schemas import ErrorCode, ErrorDetailData
 from ..schemas.general import UnprocessableEntitySchema, InternalServerErrorSchema, BadRequestSchema
 from ..schemas.general.service_unavailable_schema import ServiceUnavailableSchema
@@ -67,6 +76,13 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
     from ..services.healthcheck import healthcheck_method_not_allowed_response
     from ..services.events.send_events.http_handler import send_events_method_not_allowed_response
     from ..services.analytics.usage.http_handler import usage_method_not_allowed_response
+    from ..services.auth.http_handler import (
+        auth_login_method_not_allowed_response,
+        auth_refresh_method_not_allowed_response,
+        auth_register_method_not_allowed_response,
+        auth_resend_code_method_not_allowed_response,
+        auth_verify_method_not_allowed_response,
+    )
 
     if str(request.url.path) == HEALTHCHECK_PATH:
         return healthcheck_method_not_allowed_response()
@@ -76,6 +92,21 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
 
     if str(request.url.path) == ANALYTICS_USAGE_PATH:
         return usage_method_not_allowed_response()
+
+    if str(request.url.path) == AUTH_REGISTER_PATH:
+        return auth_register_method_not_allowed_response()
+
+    if str(request.url.path) == AUTH_LOGIN_PATH:
+        return auth_login_method_not_allowed_response()
+
+    if str(request.url.path) == AUTH_REFRESH_PATH:
+        return auth_refresh_method_not_allowed_response()
+
+    if str(request.url.path) == AUTH_VERIFY_PATH:
+        return auth_verify_method_not_allowed_response()
+
+    if str(request.url.path) == AUTH_RESEND_CODE_PATH:
+        return auth_resend_code_method_not_allowed_response()
 
     detail = "Method not allowed"
     if isinstance(exc, StarletteHTTPException) and exc.detail:
