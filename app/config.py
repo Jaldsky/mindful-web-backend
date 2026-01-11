@@ -1,4 +1,5 @@
 import os
+from secrets import token_urlsafe
 
 DATE_FORMATS = [
     "%d-%m-%Y",  # DD-MM-YYYY
@@ -46,3 +47,9 @@ SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "false").lower() == "true"
 # Verification Code
 VERIFICATION_CODE_EXPIRE_MINUTES: int = int(os.getenv("VERIFICATION_CODE_EXPIRE_MINUTES", "15"))
 VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS: int = int(os.getenv("VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS", "60"))
+
+# JWT Configuration
+JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", token_urlsafe(32))
+JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = int(os.getenv("JWT_REFRESH_TOKEN_EXPIRE_DAYS", "7"))

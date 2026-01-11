@@ -1,12 +1,21 @@
 import bcrypt
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest import TestCase
 from unittest.mock import Mock
+from uuid import uuid4
 
-from app.services.auth.common import generate_verification_code, hash_password
+from jose import jwt
+
+from app.config import JWT_ALGORITHM, JWT_SECRET_KEY
+from app.services.auth.common import create_tokens, decode_token, generate_verification_code, hash_password
 from app.services.auth.common import get_unverified_user_by_email
-from app.services.auth.exceptions import EmailAlreadyVerifiedException, UserNotFoundException
+from app.services.auth.exceptions import (
+    EmailAlreadyVerifiedException,
+    TokenExpiredException,
+    TokenInvalidException,
+    UserNotFoundException,
+)
 from app.db.models.base import Base
 from app.db.models.tables import User
 from app.db.session.manager import ManagerAsync
@@ -35,6 +44,36 @@ class TestAuthCommon(TestCase):
         self.assertIsInstance(hashed, str)
         self.assertTrue(hashed.startswith("$2"))
         self.assertTrue(bcrypt.checkpw(password.encode("utf-8"), hashed.encode("utf-8")))
+
+    def test_create_tokens_returns_access_and_refresh(self):
+        user_id = uuid4()
+        access, refresh = create_tokens(user_id)
+        self.assertIsInstance(access, str)
+        self.assertIsInstance(refresh, str)
+        self.assertNotEqual(access, refresh)
+
+        access_payload = decode_token(access)
+        refresh_payload = decode_token(refresh)
+        self.assertEqual(access_payload.get("type"), "access")
+        self.assertEqual(refresh_payload.get("type"), "refresh")
+        self.assertEqual(access_payload.get("sub"), str(user_id))
+        self.assertEqual(refresh_payload.get("sub"), str(user_id))
+
+    def test_decode_token_invalid_raises(self):
+        with self.assertRaises(TokenInvalidException):
+            decode_token("not-a-jwt")
+
+    def test_decode_token_expired_raises(self):
+        now = datetime.now(timezone.utc)
+        payload = {
+            "sub": str(uuid4()),
+            "type": "refresh",
+            "iat": int(now.timestamp()),
+            "exp": int((now - timedelta(minutes=1)).timestamp()),
+        }
+        expired = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+        with self.assertRaises(TokenExpiredException):
+            decode_token(expired)
 
 
 class TestGetUnverifiedUserByEmail(TestCase):

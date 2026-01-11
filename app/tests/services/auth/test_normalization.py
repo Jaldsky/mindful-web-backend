@@ -23,3 +23,9 @@ class TestAuthServiceNormalizers(TestCase):
 
     def test_normalize_password_none(self):
         self.assertEqual(AuthServiceNormalizers.normalize_password(None), "")
+
+    def test_normalize_jwt_token_trims(self):
+        self.assertEqual(AuthServiceNormalizers.normalize_jwt_token("  token  "), "token")
+
+    def test_normalize_jwt_token_none(self):
+        self.assertEqual(AuthServiceNormalizers.normalize_jwt_token(None), "")
