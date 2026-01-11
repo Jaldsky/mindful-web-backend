@@ -1,15 +1,28 @@
 import secrets
 import bcrypt
 from datetime import datetime, timezone
+from datetime import timedelta
+from typing import Any
+from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from jose import JWTError, jwt
+from jose.exceptions import ExpiredSignatureError
 
 from ..types import Email
 from ..types import VerificationCode
-from .types import Password, PasswordHash
-from .exceptions import AuthMessages, EmailAlreadyVerifiedException, UserNotFoundException
+from .types import AccessToken, Password, PasswordHash, RefreshToken, TokenPayload
+from .exceptions import (
+    AuthMessages,
+    EmailAlreadyVerifiedException,
+    TokenExpiredException,
+    TokenInvalidException,
+    UserNotFoundException,
+)
+from .normalizers import AuthServiceNormalizers
 from .queries import fetch_user_by_email
 from ...db.models.tables import User
+from ...config import JWT_ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_REFRESH_TOKEN_EXPIRE_DAYS, JWT_SECRET_KEY
 
 
 def generate_verification_code(length: int = 6) -> VerificationCode:
@@ -67,7 +80,7 @@ async def get_unverified_user_by_email(
         messages: Класс сообщений сервиса.
 
     Returns:
-        User: Пользователь с неподтверждённым email.
+        Пользователь с неподтверждённым email.
 
     Raises:
         UserNotFoundException: Если пользователь не найден.
@@ -79,3 +92,56 @@ async def get_unverified_user_by_email(
     if user.is_verified:
         raise EmailAlreadyVerifiedException(messages.EMAIL_ALREADY_VERIFIED)
     return user
+
+
+def create_tokens(user_id: UUID) -> tuple[AccessToken, RefreshToken]:
+    """Функция создание пары JWT токена доступа и токена обновления.
+
+    Args:
+        user_id: UUID пользователя.
+
+    Returns:
+        Кортеж с JWT токеном доступа и токеном обновления.
+    """
+    now = datetime.now(timezone.utc)
+    access_payload: dict[str, Any] = {
+        "sub": str(user_id),
+        "type": "access",
+        "jti": uuid4().hex,
+        "iat": int(now.timestamp()),
+        "exp": int((now + timedelta(minutes=JWT_ACCESS_TOKEN_EXPIRE_MINUTES)).timestamp()),
+    }
+    refresh_payload: dict[str, Any] = {
+        "sub": str(user_id),
+        "type": "refresh",
+        "jti": uuid4().hex,
+        "iat": int(now.timestamp()),
+        "exp": int((now + timedelta(days=JWT_REFRESH_TOKEN_EXPIRE_DAYS)).timestamp()),
+    }
+
+    access_token: AccessToken = jwt.encode(access_payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    refresh_token: RefreshToken = jwt.encode(refresh_payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+    return access_token, refresh_token
+
+
+def decode_token(token: AccessToken | RefreshToken) -> TokenPayload:
+    """Функция декодирования JWT токена.
+
+    Args:
+        token: JWT токен доступа или обновления.
+
+    Returns:
+        Payload токена.
+
+    Raises:
+        TokenExpiredException: Если токен истёк.
+        TokenInvalidException: Если токен невалидный.
+    """
+    token = AuthServiceNormalizers.normalize_jwt_token(token)
+    try:
+        payload: TokenPayload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        return payload
+    except ExpiredSignatureError:
+        raise TokenExpiredException(AuthMessages.TOKEN_EXPIRED)
+    except JWTError:
+        raise TokenInvalidException(AuthMessages.TOKEN_INVALID)

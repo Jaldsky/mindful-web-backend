@@ -5,6 +5,7 @@ from app.services.auth.exceptions import (
     InvalidPasswordFormatException,
     InvalidUsernameFormatException,
     InvalidVerificationCodeFormatException,
+    TokenInvalidException,
 )
 from app.services.auth.validators import AuthServiceValidators
 
@@ -111,11 +112,9 @@ class TestAuthServiceValidators(TestCase):
             self.fail("validate_verification_code() raised InvalidVerificationCodeFormatException unexpectedly!")
 
     def test_validate_verification_code_trims_spaces(self):
-        """Код может содержать пробелы по краям — валидатор должен их игнорировать."""
-        try:
+        """Валидатор не нормализует вход: пробелы делают код невалидным."""
+        with self.assertRaises(InvalidVerificationCodeFormatException):
             AuthServiceValidators.validate_verification_code("  123456  ")
-        except InvalidVerificationCodeFormatException:
-            self.fail("validate_verification_code() raised InvalidVerificationCodeFormatException unexpectedly!")
 
     def test_validate_verification_code_invalid_length(self):
         """Тест валидации кода неверной длины."""
@@ -126,3 +125,15 @@ class TestAuthServiceValidators(TestCase):
         """Тест валидации кода с нецифровыми символами."""
         with self.assertRaises(InvalidVerificationCodeFormatException):
             AuthServiceValidators.validate_verification_code("12ab56")
+
+    def test_validate_jwt_token_empty(self):
+        """Пустой токен должен считаться невалидным."""
+        with self.assertRaises(TokenInvalidException):
+            AuthServiceValidators.validate_jwt_token("")
+
+    def test_validate_jwt_token_valid(self):
+        """Непустой токен валиден на уровне первичной валидации."""
+        try:
+            AuthServiceValidators.validate_jwt_token("some.jwt.token")
+        except TokenInvalidException:
+            self.fail("validate_jwt_token() raised TokenInvalidException unexpectedly!")

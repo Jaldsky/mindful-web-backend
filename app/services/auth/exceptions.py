@@ -51,6 +51,25 @@ class AuthInternalServerErrorException(AuthException):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
+# Исключения для 401
+class TokenInvalidException(AuthUnauthorizedException):
+    """Невалидный токен (401)."""
+
+    error_code = AuthErrorCode.TOKEN_INVALID
+
+
+class TokenExpiredException(AuthUnauthorizedException):
+    """Истёкший токен (401)."""
+
+    error_code = AuthErrorCode.TOKEN_EXPIRED
+
+
+class TokenMissingException(AuthUnauthorizedException):
+    """Отсутствующий токен (401)."""
+
+    error_code = AuthErrorCode.TOKEN_MISSING
+
+
 # Исключения для 409
 class EmailAlreadyExistsException(AuthConflictException):
     """Email уже используется (409)."""
@@ -157,3 +176,6 @@ class AuthMessages:
     PASSWORD_LENGTH_INVALID = "Password length is invalid"
     PASSWORD_MUST_CONTAIN_LETTER = "Password must contain at least one letter"
     PASSWORD_MUST_CONTAIN_DIGIT = "Password must contain at least one digit"
+    TOKEN_INVALID = "Token is invalid"
+    TOKEN_EXPIRED = "Token has expired"
+    TOKEN_MISSING = "Token is missing"

@@ -12,10 +12,11 @@ from .exceptions import (
     AuthMessages,
     InvalidEmailFormatException,
     InvalidPasswordFormatException,
+    TokenInvalidException,
     InvalidUsernameFormatException,
     InvalidVerificationCodeFormatException,
 )
-from .types import Password, Username
+from .types import Password, RefreshToken, Username, AccessToken
 from ..types import Email, VerificationCode
 from ..validators import validate_email_format
 
@@ -86,6 +87,18 @@ class AuthServiceValidators:
         Raises:
             InvalidVerificationCodeFormatException: Если code не валидный.
         """
-        code = (code or "").strip()
         if len(code) != 6 or not code.isdigit():
             raise InvalidVerificationCodeFormatException(cls.messages.VERIFICATION_CODE_FORMAT_INVALID)
+
+    @classmethod
+    def validate_jwt_token(cls, token: RefreshToken | AccessToken) -> None | NoReturn:
+        """Метод валидации токена.
+
+        Args:
+            token: JWT токен access или refresh.
+
+        Raises:
+            TokenInvalidException: Если токен пустой.
+        """
+        if not token:
+            raise TokenInvalidException(cls.messages.TOKEN_INVALID)

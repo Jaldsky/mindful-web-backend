@@ -1,4 +1,4 @@
-from .types import Password, Username
+from .types import Password, Username, AccessToken, RefreshToken
 from ..types import Email
 from ..normalizers import normalize_email
 
@@ -41,3 +41,15 @@ class AuthServiceNormalizers:
             Пароль или пустая строка, если None.
         """
         return password or ""
+
+    @staticmethod
+    def normalize_jwt_token(token: RefreshToken | AccessToken) -> RefreshToken | AccessToken:
+        """Метод нормализации JWT токена.
+
+        Args:
+            token: JWT токен access или refresh.
+
+        Returns:
+            Нормализованный токен.
+        """
+        return (token or "").strip()
