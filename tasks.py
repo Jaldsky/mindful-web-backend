@@ -183,7 +183,9 @@ def docker_compose_up(ctx, rebuild=False, env_file=".env"):
 
     if rebuild:
         cmd.append("--build")
-        cmd.append("--pull=never")
+        cmd.append("--pull=missing")
+    else:
+        cmd.append("--pull=missing")
 
     _run_safe_command(ctx, cmd)
 
