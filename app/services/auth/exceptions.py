@@ -1,7 +1,7 @@
 from fastapi import status
 
 from ...exceptions import AppException
-from ...schemas.auth import AuthErrorCode
+from ...schemas.auth.auth_error_code import AuthErrorCode
 
 
 class AuthException(AppException):
