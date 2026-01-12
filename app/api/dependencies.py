@@ -1,14 +1,23 @@
 import logging
 from typing import Annotated
 from uuid import UUID
-from fastapi import Header, Query
+from fastapi import Depends, Header, Query
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from ..db.session.provider import Provider
 from ..db.types import DatabaseSession
+from ..db.models.tables import User
 from ..schemas.events import SendEventsUserIdHeaderSchema
 from ..schemas.analytics import AnalyticsUsageRequestSchema
+from ..services.auth.exceptions import (
+    AuthMessages,
+    TokenMissingException,
+)
+from ..services.auth.access import authenticate_access_token
 
 logger = logging.getLogger(__name__)
+
+_bearer = HTTPBearer(auto_error=False)
 
 
 async def get_user_id_from_header(
@@ -72,3 +81,35 @@ def validate_usage_request_params(
         to_date=to_date,
         page=page,
     )
+
+
+async def get_current_user(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+    db: DatabaseSession = Depends(get_db_session),
+) -> User:
+    """Функция получения текущего пользователя по JWT токену доступа (Bearer).
+
+    Процесс проверки включает:
+    1. Проверку наличия заголовка Authorization: Bearer <token>
+    2. Декодирование JWT и проверку срока действия токена
+    3. Проверку типа токена
+    4. Извлечение user_id из поля sub
+    5. Поиск пользователя в базе данных по user_id
+
+    Args:
+        credentials: Bearer-токен из заголовка Authorization.
+        db: Сессия базы данных.
+
+    Returns:
+        Текущий авторизованный пользователь.
+
+    Raises:
+        TokenMissingException: Если заголовок Authorization отсутствует.
+        TokenInvalidException: Если токен невалиден/не access/содержит некорректный sub.
+        TokenExpiredException: Если токен истёк.
+        UserNotFoundException: Если пользователь не найден в системе.
+    """
+    if credentials is None:
+        raise TokenMissingException(AuthMessages.TOKEN_MISSING)
+
+    return await authenticate_access_token(db, credentials.credentials)
