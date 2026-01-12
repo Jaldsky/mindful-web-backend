@@ -6,7 +6,6 @@ from typing import Any, NoReturn
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..common import generate_verification_code, to_utc_datetime
-from ..common import get_unverified_user_by_email
 from ..exceptions import (
     AuthMessages,
     AuthServiceException,
@@ -18,7 +17,11 @@ from ..exceptions import (
 )
 from ..normalizers import AuthServiceNormalizers
 from ..validators import AuthServiceValidators
-from ..queries import fetch_active_verification_code_row, update_verification_code_last_sent_at
+from ..queries import (
+    fetch_user_with_active_verification_code_by_email,
+    update_verification_code_last_sent_at,
+)
+from ....config import VERIFICATION_CODE_MAX_ATTEMPTS
 from ...types import Email, UserId, VerificationCode
 from ....config import VERIFICATION_CODE_EXPIRE_MINUTES, VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS
 from ....db.models.tables import User, VerificationCode as VerificationCodeModel
@@ -90,22 +93,10 @@ class ResendVerificationCodeServiceBase:
 class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
     """Сервис повторной отправки кода подтверждения email."""
 
-    async def _get_active_verification_code(self, user_id: UserId) -> VerificationCodeModel | None:
-        """Приватный метод получения активного кода подтверждения пользователя.
-
-        Args:
-            user_id: ID пользователя.
-
-        Returns:
-            Объект VerificationCodeModel или None, если активного кода нет.
-        """
-        now = datetime.now(timezone.utc)
-        return await fetch_active_verification_code_row(self.session, user_id, now)
-
     def _ensure_resend_not_rate_limited(
         self, code_row: VerificationCodeModel, current_datetime: datetime
     ) -> None | NoReturn:
-        """Проверка cooldown между отправками (rate-limit) по last_sent_at/created_at.
+        """Приватный метод проверки cooldown между отправками.
 
         Args:
             code_row: Активная запись кода подтверждения.
@@ -123,23 +114,32 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
         if now_utc < cooldown_until:
             raise TooManyAttemptsException(self.messages.TOO_MANY_ATTEMPTS)
 
-    async def _pick_or_create_code(self, user_id: UserId, current_datetime: datetime) -> tuple[VerificationCode, int]:
-        """Выбор кода для отправки: reuse активного или создание нового.
+    async def _pick_or_create_code(
+        self,
+        user_id: UserId,
+        current_datetime: datetime,
+        active_code_row: VerificationCodeModel | None,
+    ) -> tuple[VerificationCode, int]:
+        """Приватный метод выбора кода для отправки.
 
         Args:
             user_id: ID пользователя.
             current_datetime: Текущее время (UTC).
+            active_code_row: Активная запись кода подтверждения или None, если активного кода нет.
 
         Returns:
-            (code, code_row_id) — код для отправки и ID строки в verification_codes.
+            Кортеж (code, code_row_id):
+            - code: Код подтверждения для отправки.
+            - code_row_id: ID строки verification_codes для последующего обновления last_sent_at.
 
         Raises:
             TooManyAttemptsException: Если повторная отправка слишком частая.
         """
-        active_code = await self._get_active_verification_code(user_id)
-        if active_code is not None:
-            self._ensure_resend_not_rate_limited(active_code, current_datetime)
-            return active_code.code, active_code.id
+        if active_code_row is not None:
+            attempts = int(getattr(active_code_row, "attempts", 0) or 0)
+            if attempts < VERIFICATION_CODE_MAX_ATTEMPTS:
+                self._ensure_resend_not_rate_limited(active_code_row, current_datetime)
+                return active_code_row.code, active_code_row.id
 
         new_row = await self._create_verification_code_row(user_id)
         return new_row.code, new_row.id
@@ -205,12 +205,12 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
         2. Валидацию формата email
         3. Поиск пользователя по email
         4. Проверку, что email ещё не подтверждён
-        5. Поиск активного кода подтверждения (used_at IS NULL, expires_at > now)
-        6. Anti-spam: проверку cooldown между отправками по (last_sent_at или created_at)
+        5. Поиск активного кода подтверждения
+        6. Проверку cooldown между отправками
         7. Переиспользование активного кода подтверждения или создание нового
-        8. Фиксацию DB-фазы (transaction commit через session.begin)
+        8. Фиксацию DB-фазы
         9. Отправку кода подтверждения на email
-        10. Обновление last_sent_at после успешной отправки (best-effort, в отдельной транзакции)
+        10. Обновление last_sent_at после успешной отправки
 
         Returns:
             True, если код успешно выбран/создан и отправлен на email.
@@ -228,11 +228,19 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
 
         code: VerificationCode | None = None
         code_row_id: int | None = None
+
         try:
             async with self.session.begin():
                 now = datetime.now(timezone.utc)
-                user = await get_unverified_user_by_email(self.session, self.email, messages=self.messages)
-                code, code_row_id = await self._pick_or_create_code(user.id, now)
+                user, active_code_row = await fetch_user_with_active_verification_code_by_email(
+                    self.session, self.email, now
+                )
+                if not user:
+                    raise UserNotFoundException(self.messages.USER_NOT_FOUND)
+                if user.is_verified:
+                    raise EmailAlreadyVerifiedException(self.messages.EMAIL_ALREADY_VERIFIED)
+
+                code, code_row_id = await self._pick_or_create_code(user.id, now, active_code_row)
         except (
             InvalidEmailFormatException,
             UserNotFoundException,

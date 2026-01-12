@@ -100,6 +100,118 @@ async def fetch_active_verification_code_row(
     return result.scalar_one_or_none()
 
 
+async def fetch_user_with_active_verification_code_by_email(
+    session: AsyncSession, email: Email, now: datetime
+) -> tuple[User | None, VerificationCodeModel | None]:
+    """Функция получения пользователя по email и активного кода подтверждения одним запросом.
+
+    Активный код определяется как:
+    - used_at IS NULL
+    - expires_at > now
+    Берётся самая свежая запись по created_at (DESC).
+
+    Args:
+        session: AsyncSession.
+        email: Email пользователя.
+        now: Текущее время (UTC).
+
+    Returns:
+        Кортеж (user, verification_code_row):
+        - user: User или None, если пользователь не найден/удалён.
+        - verification_code_row: Активная запись VerificationCodeModel или None, если активного кода нет.
+    """
+    result = await session.execute(
+        select(User, VerificationCodeModel)
+        .outerjoin(
+            VerificationCodeModel,
+            and_(
+                VerificationCodeModel.user_id == User.id,
+                VerificationCodeModel.used_at.is_(None),
+                VerificationCodeModel.expires_at > now,
+            ),
+        )
+        .where(and_(User.email == email, User.deleted_at.is_(None)))
+        .order_by(VerificationCodeModel.created_at.desc().nullslast())
+        .limit(1)
+    )
+    row = result.first()
+    if not row:
+        return None, None
+    user, code_row = row
+    return user, code_row
+
+
+async def fetch_latest_unused_verification_code_row(
+    session: AsyncSession, user_id: UserId
+) -> VerificationCodeModel | None:
+    """Функция получения последней (по времени создания) неиспользованной записи кода подтверждения.
+
+    В отличие от fetch_active_verification_code_row, не фильтрует по expires_at,
+    чтобы можно было корректно различать "код истёк" и "кода нет".
+
+    Args:
+        session: AsyncSession.
+        user_id: ID пользователя.
+
+    Returns:
+        Последняя запись кода или None.
+    """
+    result = await session.execute(
+        select(VerificationCodeModel)
+        .where(
+            and_(
+                VerificationCodeModel.user_id == user_id,
+                VerificationCodeModel.used_at.is_(None),
+            )
+        )
+        .order_by(VerificationCodeModel.created_at.desc())
+        .limit(1)
+    )
+    return result.scalar_one_or_none()
+
+
+async def fetch_user_with_latest_unused_verification_code_by_email(
+    session: AsyncSession, email: Email
+) -> tuple[User | None, VerificationCodeModel | None]:
+    """Функция получения пользователя по email и последней неиспользованной записи кода одним запросом.
+
+    Последняя неиспользованная запись определяется как:
+    - used_at IS NULL
+    Берётся самая свежая запись по created_at (DESC).
+
+    Важно: expires_at намеренно НЕ фильтруется, чтобы на уровне use-case можно было отличать:
+    - "кода нет" (None)
+    - "код есть, но истёк"
+
+    Args:
+        session: AsyncSession.
+        email: Email пользователя.
+
+    Returns:
+        Кортеж (user, verification_code_row):
+        - user: User или None, если пользователь не найден/удалён.
+        - verification_code_row: Последняя запись VerificationCodeModel (used_at IS NULL) или None.
+    """
+    result = await session.execute(
+        select(User, VerificationCodeModel)
+        .outerjoin(
+            VerificationCodeModel,
+            and_(
+                VerificationCodeModel.user_id == User.id,
+                VerificationCodeModel.used_at.is_(None),
+            ),
+        )
+        .where(and_(User.email == email, User.deleted_at.is_(None)))
+        .order_by(VerificationCodeModel.created_at.desc().nullslast())
+        .limit(1)
+    )
+    row = result.first()
+    if not row:
+        return None, None
+    user, code_row = row
+    return user, code_row
+
+
 async def fetch_unused_verification_code_row_by_user_and_code(
     session: AsyncSession, user_id: UserId, code: VerificationCode
 ) -> VerificationCodeModel | None:

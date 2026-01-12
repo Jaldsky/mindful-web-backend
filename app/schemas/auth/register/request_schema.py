@@ -1,11 +1,6 @@
 import re
 from pydantic import BaseModel, Field, field_validator, EmailStr
 
-from ....services.auth.exceptions import (
-    InvalidUsernameFormatException,
-    InvalidPasswordFormatException,
-)
-
 
 class RegisterRequestSchema(BaseModel):
     """Схема запроса регистрации пользователя."""
@@ -31,6 +26,8 @@ class RegisterRequestSchema(BaseModel):
     @classmethod
     def validate_username(cls, v: str) -> str:
         """Валидация логина."""
+        from ....services.auth.exceptions import InvalidUsernameFormatException
+
         v = v.strip().lower()
         if not re.match(r"^[a-z0-9_]+$", v):
             raise InvalidUsernameFormatException(
@@ -44,6 +41,8 @@ class RegisterRequestSchema(BaseModel):
     @classmethod
     def validate_password(cls, v: str) -> str:
         """Валидация пароля."""
+        from ....services.auth.exceptions import InvalidPasswordFormatException
+
         if not re.search(r"[a-zA-Z]", v):
             raise InvalidPasswordFormatException("Password must contain at least one letter")
         if not re.search(r"\d", v):
