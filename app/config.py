@@ -47,6 +47,7 @@ SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "false").lower() == "true"
 # Verification Code
 VERIFICATION_CODE_EXPIRE_MINUTES: int = int(os.getenv("VERIFICATION_CODE_EXPIRE_MINUTES", "15"))
 VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS: int = int(os.getenv("VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS", "60"))
+VERIFICATION_CODE_MAX_ATTEMPTS: int = int(os.getenv("VERIFICATION_CODE_MAX_ATTEMPTS", "10"))
 
 # JWT Configuration
 JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", token_urlsafe(32))

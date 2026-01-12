@@ -10,16 +10,18 @@ from ..exceptions import (
     AuthServiceException,
     EmailAlreadyVerifiedException,
     InvalidVerificationCodeFormatException,
+    TooManyAttemptsException,
     UserNotFoundException,
     VerificationCodeExpiredException,
     VerificationCodeInvalidException,
 )
-from ..common import get_unverified_user_by_email
 from ..common import to_utc_datetime
 from ..normalizers import AuthServiceNormalizers
-from ..queries import fetch_unused_verification_code_row_by_user_and_code
+from ..queries import fetch_user_with_latest_unused_verification_code_by_email
+from ....config import VERIFICATION_CODE_MAX_ATTEMPTS
 from ..validators import AuthServiceValidators
 from ...types import Email, VerificationCode
+from ....db.models.tables import User, VerificationCode as VerificationCodeModel
 
 logger = logging.getLogger(__name__)
 
@@ -95,29 +97,82 @@ class VerifyEmailServiceBase:
 class VerifyEmailService(VerifyEmailServiceBase):
     """Сервис подтверждения email."""
 
-    async def _get_valid_verification_code_row(self, user_id, code: VerificationCode, current_datetime: datetime):
-        """Приватный метод получения валидной записи кода подтверждения.
-
-        Args:
-            user_id: ID пользователя.
-            code: Код подтверждения.
-            current_datetime: Текущее время (UTC).
+    async def _load_user_and_code_row(self) -> tuple[User, VerificationCodeModel]:
+        """Приватный метод загрузки пользователя и последней записи кода подтверждения.
 
         Returns:
-            Объект записи кода подтверждения.
+            Кортеж с пользователем и записью кода подтверждения.
 
         Raises:
-            VerificationCodeInvalidException: Если запись кода не найдена.
-            VerificationCodeExpiredException: Если код истёк.
+            UserNotFoundException: Если пользователь не найден.
+            EmailAlreadyVerifiedException: Если email уже подтверждён.
+            VerificationCodeInvalidException: Если нет неиспользованного кода подтверждения.
         """
-        verification = await fetch_unused_verification_code_row_by_user_and_code(self.session, user_id, code)
+        user, verification = await fetch_user_with_latest_unused_verification_code_by_email(self.session, self.email)
+        if not user:
+            raise UserNotFoundException(self.messages.USER_NOT_FOUND)
+        if user.is_verified:
+            raise EmailAlreadyVerifiedException(self.messages.EMAIL_ALREADY_VERIFIED)
         if not verification:
             raise VerificationCodeInvalidException(self.messages.CODE_INVALID)
+        return user, verification
+
+    def _ensure_code_not_expired(self, verification: VerificationCodeModel, now: datetime) -> None | NoReturn:
+        """Приватный метод проверки срока действия кода подтверждения.
+
+        Args:
+            verification: Запись кода подтверждения.
+            now: Текущее время (UTC).
+
+        Raises:
+            VerificationCodeExpiredException: Если код истёк.
+        """
         expires_at_utc = to_utc_datetime(verification.expires_at)
-        now_utc = to_utc_datetime(current_datetime)
+        now_utc = to_utc_datetime(now)
         if expires_at_utc < now_utc:
             raise VerificationCodeExpiredException(self.messages.CODE_EXPIRED)
-        return verification
+
+    async def _handle_attempt_limit(self, verification: VerificationCodeModel, now: datetime) -> None | NoReturn:
+        """Приватный метод проверки лимита попыток ввода кода.
+
+        Если лимит исчерпан, инвалидирует код (used_at) и коммитит, чтобы следующий resend создал новый.
+
+        Args:
+            verification: Запись кода подтверждения.
+            now: Текущее время (UTC).
+
+        Raises:
+            TooManyAttemptsException: Если превышен лимит попыток.
+        """
+        attempts = int(getattr(verification, "attempts", 0) or 0)
+        if attempts >= VERIFICATION_CODE_MAX_ATTEMPTS:
+            verification.used_at = now
+            await self.session.commit()
+            raise TooManyAttemptsException(self.messages.TOO_MANY_ATTEMPTS)
+
+    async def _verify_code_match(self, verification: VerificationCodeModel, now: datetime) -> None | NoReturn:
+        """Приватный метод проверки совпадения кода и обработки неверного кода.
+
+        Args:
+            verification: Запись кода подтверждения.
+            now: Текущее время (UTC).
+
+        Raises:
+            TooManyAttemptsException: Если после инкремента attempts достиг лимита.
+            VerificationCodeInvalidException: Если код неверный и лимит ещё не достигнут.
+        """
+        if verification.code == self.code:
+            return
+
+        verification.attempts = int(getattr(verification, "attempts", 0) or 0) + 1
+        reached_limit = verification.attempts >= VERIFICATION_CODE_MAX_ATTEMPTS
+        if reached_limit:
+            verification.used_at = now
+        await self.session.commit()
+
+        if reached_limit:
+            raise TooManyAttemptsException(self.messages.TOO_MANY_ATTEMPTS)
+        raise VerificationCodeInvalidException(self.messages.CODE_INVALID)
 
     async def exec(self) -> bool | NoReturn:
         """Функция подтверждения email по ранее отправленному коду.
@@ -141,21 +196,23 @@ class VerifyEmailService(VerifyEmailServiceBase):
             EmailAlreadyVerifiedException: Если email уже подтверждён.
             VerificationCodeInvalidException: Если код не найден или уже использован.
             VerificationCodeExpiredException: Если код истёк.
+            TooManyAttemptsException: Если превышен лимит попыток ввода кода.
             AuthServiceException: При непредвиденной ошибке.
         """
         self.normalize()
         self.validate()
 
         try:
-            user = await get_unverified_user_by_email(self.session, self.email, messages=self.messages)
-
             now = datetime.now(timezone.utc)
-            verification = await self._get_valid_verification_code_row(user.id, self.code, now)
+            user, verification = await self._load_user_and_code_row()
+            await self._handle_attempt_limit(verification, now)
+            self._ensure_code_not_expired(verification, now)
+            await self._verify_code_match(verification, now)
 
             verification.used_at = now
             user.is_verified = True
-
             await self.session.commit()
+
             logger.info(f"Email verified: {self.email}")
             return True
 
@@ -165,8 +222,8 @@ class VerifyEmailService(VerifyEmailServiceBase):
             EmailAlreadyVerifiedException,
             VerificationCodeInvalidException,
             VerificationCodeExpiredException,
+            TooManyAttemptsException,
         ):
-            await self.session.rollback()
             raise
         except Exception:
             await self.session.rollback()

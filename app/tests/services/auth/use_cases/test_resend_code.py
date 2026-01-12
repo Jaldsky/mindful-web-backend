@@ -641,3 +641,68 @@ class TestResendVerificationCodeServiceExec(TestCase):
             self._run_async(_test_session())
         finally:
             self._restore_server_defaults(*originals)
+
+    def test_exec_reached_max_attempts_creates_new_code(self):
+        """Если у текущего кода достигнут лимит попыток — должен быть создан новый код."""
+        from app.services.email import EmailService
+        from datetime import datetime, timezone, timedelta
+
+        manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+        originals = self._patch_server_defaults_for_sqlite()
+        try:
+
+            async def _test_session():
+                engine = manager.get_engine()
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+
+                async with manager.get_session() as session:
+                    now = datetime.now(timezone.utc)
+                    user = User(
+                        username="testuser",
+                        email="test@example.com",
+                        password="hash",
+                        is_verified=False,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    session.add(user)
+                    await session.flush()
+
+                    exhausted = VerificationCode(
+                        user_id=user.id,
+                        code="555555",
+                        expires_at=now + timedelta(minutes=10),
+                        used_at=None,
+                        attempts=10,
+                        last_sent_at=now - timedelta(minutes=5),
+                        created_at=now - timedelta(minutes=5),
+                    )
+                    session.add(exhausted)
+                    await session.commit()
+
+                with (
+                    unittest.mock.patch("app.services.auth.use_cases.resend_code.VERIFICATION_CODE_MAX_ATTEMPTS", 10),
+                    unittest.mock.patch(
+                        "app.services.auth.use_cases.resend_code.generate_verification_code", return_value="666666"
+                    ),
+                    unittest.mock.patch.object(
+                        EmailService, "send_verification_code", new_callable=AsyncMock
+                    ) as mock_send,
+                ):
+                    async with manager.get_session() as session:
+                        service = ResendVerificationCodeService(session=session, email="test@example.com")
+                        ok = await service.exec()
+                        self.assertTrue(ok)
+
+                    mock_send.assert_awaited_once_with(to_email="test@example.com", code="666666")
+
+                async with manager.get_session() as session:
+                    result = await session.execute(text("SELECT COUNT(*) FROM verification_codes"))
+                    self.assertEqual(result.scalar(), 2)
+                    result = await session.execute(text("SELECT code FROM verification_codes WHERE code = '666666'"))
+                    self.assertIsNotNone(result.scalar())
+
+            self._run_async(_test_session())
+        finally:
+            self._restore_server_defaults(*originals)

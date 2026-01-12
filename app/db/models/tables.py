@@ -82,6 +82,13 @@ class VerificationCode(Base, CreatedMixin):
         nullable=False,
         comment="Код подтверждения",
     )
+    attempts: Mapped[int] = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0",
+        comment="Количество неудачных попыток ввода кода",
+    )
     expires_at: Mapped[datetime] = Column(
         DateTime(timezone=True),
         nullable=False,

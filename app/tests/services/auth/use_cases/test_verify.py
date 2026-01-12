@@ -16,6 +16,7 @@ from app.services.auth.exceptions import (
     UserNotFoundException,
     VerificationCodeExpiredException,
     VerificationCodeInvalidException,
+    TooManyAttemptsException,
 )
 
 
@@ -268,6 +269,116 @@ class TestVerifyEmailServiceExec(TestCase):
                     service = VerifyEmailService(session=session, email="test@example.com", code="12ab56")
                     with self.assertRaises(InvalidVerificationCodeFormatException):
                         await service.exec()
+
+            self._run_async(_test_session())
+        finally:
+            self._restore_server_defaults(*originals)
+
+    def test_exec_increments_attempts_on_invalid_code(self):
+        originals = self._patch_server_defaults_for_sqlite()
+        try:
+
+            async def _test_session():
+                manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+                engine = manager.get_engine()
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+
+                now = datetime.now(timezone.utc)
+                expires_at = now + timedelta(minutes=10)
+
+                async with manager.get_session() as session:
+                    user = User(
+                        username="testuser",
+                        email="test@example.com",
+                        password="hash",
+                        is_verified=False,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    session.add(user)
+                    await session.flush()
+                    session.add(
+                        VerificationCode(
+                            user_id=user.id,
+                            code="123456",
+                            expires_at=expires_at,
+                            used_at=None,
+                            attempts=0,
+                            created_at=now,
+                        )
+                    )
+                    await session.commit()
+
+                async with manager.get_session() as session:
+                    service = VerifyEmailService(session=session, email="test@example.com", code="000000")
+                    with self.assertRaises(VerificationCodeInvalidException):
+                        await service.exec()
+
+                async with manager.get_session() as session:
+                    result = await session.execute(
+                        text("SELECT attempts FROM verification_codes WHERE code = '123456'")
+                    )
+                    self.assertEqual(result.scalar(), 1)
+
+            self._run_async(_test_session())
+        finally:
+            self._restore_server_defaults(*originals)
+
+    def test_exec_reaches_max_attempts_invalidates_code(self):
+        originals = self._patch_server_defaults_for_sqlite()
+        try:
+
+            async def _test_session():
+                manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+                engine = manager.get_engine()
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+
+                now = datetime.now(timezone.utc)
+                expires_at = now + timedelta(minutes=10)
+
+                async with manager.get_session() as session:
+                    user = User(
+                        username="testuser",
+                        email="test@example.com",
+                        password="hash",
+                        is_verified=False,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    session.add(user)
+                    await session.flush()
+                    session.add(
+                        VerificationCode(
+                            user_id=user.id,
+                            code="123456",
+                            expires_at=expires_at,
+                            used_at=None,
+                            attempts=9,
+                            created_at=now,
+                        )
+                    )
+                    await session.commit()
+
+                with unittest.mock.patch("app.services.auth.use_cases.verify.VERIFICATION_CODE_MAX_ATTEMPTS", 10):
+                    async with manager.get_session() as session:
+                        service = VerifyEmailService(session=session, email="test@example.com", code="000000")
+                        with self.assertRaises(TooManyAttemptsException):
+                            await service.exec()
+
+                async with manager.get_session() as session:
+                    result = await session.execute(
+                        text("SELECT attempts, used_at FROM verification_codes WHERE code = '123456'")
+                    )
+                    row = result.fetchone()
+                    self.assertEqual(row[0], 10)
+                    self.assertIsNotNone(row[1])
+
+                    result = await session.execute(
+                        text("SELECT is_verified FROM users WHERE email = 'test@example.com'")
+                    )
+                    self.assertEqual(int(bool(result.scalar())), 0)
 
             self._run_async(_test_session())
         finally:
