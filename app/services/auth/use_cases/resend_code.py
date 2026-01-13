@@ -15,8 +15,6 @@ from ..exceptions import (
     TooManyAttemptsException,
     UserNotFoundException,
 )
-from ..normalizers import AuthServiceNormalizers
-from ..validators import AuthServiceValidators
 from ..queries import (
     fetch_user_with_active_verification_code_by_email,
     update_verification_code_last_sent_at,
@@ -35,20 +33,6 @@ class ResendVerificationCode:
     """Данные для повторной отправки кода подтверждения."""
 
     email: Email
-
-    def normalize(self) -> None:
-        """Метод нормализации входных данных повторной отправки кода."""
-        normalized_email = AuthServiceNormalizers.normalize_email(self.email)
-        if normalized_email != self.email:
-            object.__setattr__(self, "email", normalized_email)
-
-    def validate(self) -> None | NoReturn:
-        """Метод валидации входных данных повторной отправки кода.
-
-        Raises:
-            InvalidEmailFormatException: При неверном формате email.
-        """
-        AuthServiceValidators.validate_email(self.email)
 
 
 class ResendVerificationCodeServiceBase:
@@ -76,18 +60,6 @@ class ResendVerificationCodeServiceBase:
             Email адрес пользователя.
         """
         return self._data.email
-
-    def normalize(self) -> None:
-        """Метод нормализации входных данных."""
-        self._data.normalize()
-
-    def validate(self) -> None | NoReturn:
-        """Метод валидации входных данных.
-
-        Raises:
-            InvalidEmailFormatException: При неверном формате email.
-        """
-        self._data.validate()
 
 
 class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
@@ -201,16 +173,14 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
         """Метод повторной отправки кода подтверждения.
 
         Процесс включает:
-        1. Нормализацию входных данных
-        2. Валидацию формата email
-        3. Поиск пользователя по email
-        4. Проверку, что email ещё не подтверждён
-        5. Поиск активного кода подтверждения
-        6. Проверку cooldown между отправками
-        7. Переиспользование активного кода подтверждения или создание нового
-        8. Фиксацию DB-фазы
-        9. Отправку кода подтверждения на email
-        10. Обновление last_sent_at после успешной отправки
+        1. Поиск пользователя по email
+        2. Проверку, что email ещё не подтверждён
+        3. Поиск активного кода подтверждения
+        4. Проверку cooldown между отправками
+        5. Переиспользование активного кода подтверждения или создание нового
+        6. Фиксацию DB-фазы
+        7. Отправку кода подтверждения на email
+        8. Обновление last_sent_at после успешной отправки
 
         Raises:
             InvalidEmailFormatException: При неверном формате email.
@@ -220,9 +190,6 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
             EmailSendFailedException: Если не удалось отправить email.
             AuthServiceException: При неожиданной ошибке на DB-стадии или email-стадии.
         """
-        self.normalize()
-        self.validate()
-
         code: VerificationCode | None = None
         code_row_id: int | None = None
 

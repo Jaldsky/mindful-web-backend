@@ -19,6 +19,7 @@ from app.services.auth.exceptions import (
     TooManyAttemptsException,
     UserNotFoundException,
 )
+from app.schemas.auth import ResendCodeRequestSchema
 
 
 class TestResendVerificationCodeServiceMethods(TestCase):
@@ -451,19 +452,13 @@ class TestResendVerificationCodeServiceExec(TestCase):
             self._restore_server_defaults(*originals)
 
     def test_exec_invalid_email(self):
-        manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+        ManagerAsync(logger=self.logger, database_url=self.database_url)
         originals = self._patch_server_defaults_for_sqlite()
         try:
 
             async def _test_session():
-                engine = manager.get_engine()
-                async with engine.begin() as conn:
-                    await conn.run_sync(Base.metadata.create_all)
-
-                async with manager.get_session() as session:
-                    service = ResendVerificationCodeService(session=session, email="bad-email")
-                    with self.assertRaises(InvalidEmailFormatException):
-                        await service.exec()
+                with self.assertRaises(InvalidEmailFormatException):
+                    ResendCodeRequestSchema(email="bad-email")
 
             self._run_async(_test_session())
         finally:

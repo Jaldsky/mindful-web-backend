@@ -16,10 +16,8 @@ from ..exceptions import (
     VerificationCodeInvalidException,
 )
 from ..common import to_utc_datetime
-from ..normalizers import AuthServiceNormalizers
 from ..queries import fetch_user_with_latest_verification_code_by_email
 from ....config import VERIFICATION_CODE_MAX_ATTEMPTS
-from ..validators import AuthServiceValidators
 from ...types import Email, VerificationCode
 from ....db.models.tables import User, VerificationCode as VerificationCodeModel
 
@@ -32,26 +30,6 @@ class VerifyEmail:
 
     email: Email
     code: VerificationCode
-
-    def normalize(self) -> None:
-        """Нормализация входных данных подтверждения email."""
-        normalized_email = AuthServiceNormalizers.normalize_email(self.email)
-        if normalized_email != self.email:
-            object.__setattr__(self, "email", normalized_email)
-
-        normalized_code = (self.code or "").strip()
-        if normalized_code != self.code:
-            object.__setattr__(self, "code", normalized_code)
-
-    def validate(self) -> None | NoReturn:
-        """Функция валидации входных данных подтверждения email.
-
-        Email валидируется pydantic-схемой (EmailStr) на уровне API-схемы.
-
-        Raises:
-            InvalidVerificationCodeFormatException: Если код не валидный.
-        """
-        AuthServiceValidators.validate_verification_code(self.code)
 
 
 class VerifyEmailServiceBase:
@@ -80,18 +58,6 @@ class VerifyEmailServiceBase:
     def code(self) -> str:
         """Свойство получения кода подтверждения из входных данных."""
         return self._data.code
-
-    def normalize(self) -> None:
-        """Функция нормализации входных данных подтверждения email."""
-        self._data.normalize()
-
-    def validate(self) -> None | NoReturn:
-        """Метод валидации входных данных подтверждения email.
-
-        Raises:
-            InvalidVerificationCodeFormatException: Если код не валидный.
-        """
-        self._data.validate()
 
 
 class VerifyEmailService(VerifyEmailServiceBase):
@@ -186,14 +152,12 @@ class VerifyEmailService(VerifyEmailServiceBase):
         """Функция подтверждения email по ранее отправленному коду.
 
         Процесс включает:
-        1. Нормализацию входных данных
-        2. Валидацию формата кода
-        3. Поиск пользователя по email
-        4. Проверку, что email ещё не подтверждён
-        5. Поиск записи кода подтверждения
-        6. Проверку, что код не истёк
-        7. Пометку кода как использованного и пользователя как подтверждённого
-        8. Коммит транзакции
+        1. Поиск пользователя по email
+        2. Проверку, что email ещё не подтверждён
+        3. Поиск записи кода подтверждения
+        4. Проверку, что код не истёк
+        5. Пометку кода как использованного и пользователя как подтверждённого
+        6. Коммит транзакции
 
         Raises:
             InvalidVerificationCodeFormatException: Если code не валидный.
@@ -204,9 +168,6 @@ class VerifyEmailService(VerifyEmailServiceBase):
             TooManyAttemptsException: Если превышен лимит попыток ввода кода.
             AuthServiceException: При непредвиденной ошибке.
         """
-        self.normalize()
-        self.validate()
-
         try:
             now = datetime.now(timezone.utc)
             user, verification = await self._load_user_and_code_row()

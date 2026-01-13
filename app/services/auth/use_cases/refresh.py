@@ -13,10 +13,8 @@ from ..exceptions import (
     TokenInvalidException,
     UserNotFoundException,
 )
-from ..normalizers import AuthServiceNormalizers
 from ..queries import fetch_user_by_id
 from ..types import AccessToken, RefreshToken, TokenPayload
-from ..validators import AuthServiceValidators
 
 logger = logging.getLogger(__name__)
 
@@ -26,20 +24,6 @@ class RefreshTokens:
     """Данные для обновления пары токенов по refresh токену."""
 
     refresh_token: RefreshToken
-
-    def normalize(self) -> None:
-        """Метод нормализации входных данных обновления токенов."""
-        normalized = AuthServiceNormalizers.normalize_jwt_token(self.refresh_token)
-        if normalized != self.refresh_token:
-            object.__setattr__(self, "refresh_token", normalized)
-
-    def validate(self) -> None | NoReturn:
-        """Метод валидации входных данных обновления токенов.
-
-        Raises:
-            TokenInvalidException: Если токен обновления пустой.
-        """
-        AuthServiceValidators.validate_jwt_token(self.refresh_token)
 
 
 class RefreshTokensServiceBase:
@@ -67,18 +51,6 @@ class RefreshTokensServiceBase:
             Токен обновления.
         """
         return self._data.refresh_token
-
-    def normalize(self) -> None:
-        """Метод нормализации входных данных."""
-        self._data.normalize()
-
-    def validate(self) -> None | NoReturn:
-        """Метод валидации входных данных.
-
-        Raises:
-            TokenInvalidException: Если токен обновления пустой.
-        """
-        self._data.validate()
 
 
 class RefreshTokensService(RefreshTokensServiceBase):
@@ -122,13 +94,11 @@ class RefreshTokensService(RefreshTokensServiceBase):
         """Метод обновления токенов (access и refresh) по старому refresh токену.
 
         Процесс включает:
-        1. Нормализацию входных данных
-        2. Валидацию наличия токена обновления
-        3. Декодирование токена обновления
-        4. Проверку, что тип токена = refresh
-        5. Получение user_id из sub
-        6. Поиск пользователя по user_id
-        7. Выпуск новой пары токенов (access и refresh)
+        1. Декодирование токена обновления
+        2. Проверку, что тип токена = refresh
+        3. Получение user_id из sub
+        4. Поиск пользователя по user_id
+        5. Выпуск новой пары токенов (access и refresh)
 
         Returns:
             Кортеж (access_token, refresh_token).
@@ -139,9 +109,6 @@ class RefreshTokensService(RefreshTokensServiceBase):
             UserNotFoundException: Если пользователь не найден.
             AuthServiceException: При непредвиденной ошибке.
         """
-        self.normalize()
-        self.validate()
-
         try:
             payload: TokenPayload = decode_token(self.refresh_token)
             user_id = self._extract_user_id_from_refresh_payload(payload)

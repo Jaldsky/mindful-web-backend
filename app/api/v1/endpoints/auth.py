@@ -100,7 +100,7 @@ async def register(
     user = await RegisterService(
         session=db,
         username=payload.username,
-        email=str(payload.email),
+        email=payload.email,
         password=payload.password,
     ).exec()
     return RegisterResponseSchema(
@@ -152,7 +152,7 @@ async def resend_code(
 ) -> ResendCodeResponseSchema:
     await ResendVerificationCodeService(
         session=db,
-        email=str(payload.email),
+        email=payload.email,
     ).exec()
     return ResendCodeResponseSchema()
 
@@ -200,7 +200,7 @@ async def verify(
 ) -> VerifyResponseSchema:
     await VerifyEmailService(
         session=db,
-        email=str(payload.email),
+        email=payload.email,
         code=payload.code,
     ).exec()
     return VerifyResponseSchema()
