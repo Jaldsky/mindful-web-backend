@@ -212,6 +212,35 @@ async def fetch_user_with_latest_unused_verification_code_by_email(
     return user, code_row
 
 
+async def fetch_user_with_latest_verification_code_by_email(
+    session: AsyncSession, email: Email
+) -> tuple[User | None, VerificationCodeModel | None]:
+    """Функция получения пользователя по email и последней записи кода одним запросом.
+
+    Args:
+        session: AsyncSession.
+        email: Email пользователя.
+
+    Returns:
+        Кортеж (user, verification_code_row)
+    """
+    result = await session.execute(
+        select(User, VerificationCodeModel)
+        .outerjoin(
+            VerificationCodeModel,
+            VerificationCodeModel.user_id == User.id,
+        )
+        .where(and_(User.email == email, User.deleted_at.is_(None)))
+        .order_by(VerificationCodeModel.created_at.desc().nullslast())
+        .limit(1)
+    )
+    row = result.first()
+    if not row:
+        return None, None
+    user, code_row = row
+    return user, code_row
+
+
 async def fetch_unused_verification_code_row_by_user_and_code(
     session: AsyncSession, user_id: UserId, code: VerificationCode
 ) -> VerificationCodeModel | None:

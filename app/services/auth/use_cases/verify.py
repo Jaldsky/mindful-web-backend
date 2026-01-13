@@ -17,7 +17,7 @@ from ..exceptions import (
 )
 from ..common import to_utc_datetime
 from ..normalizers import AuthServiceNormalizers
-from ..queries import fetch_user_with_latest_unused_verification_code_by_email
+from ..queries import fetch_user_with_latest_verification_code_by_email
 from ....config import VERIFICATION_CODE_MAX_ATTEMPTS
 from ..validators import AuthServiceValidators
 from ...types import Email, VerificationCode
@@ -106,15 +106,23 @@ class VerifyEmailService(VerifyEmailServiceBase):
         Raises:
             UserNotFoundException: Если пользователь не найден.
             EmailAlreadyVerifiedException: Если email уже подтверждён.
-            VerificationCodeInvalidException: Если нет неиспользованного кода подтверждения.
+            TooManyAttemptsException: Если последний код был инвалидирован из-за исчерпания попыток.
+            VerificationCodeInvalidException: Если нет кода подтверждения или он уже использован.
         """
-        user, verification = await fetch_user_with_latest_unused_verification_code_by_email(self.session, self.email)
+        user, verification = await fetch_user_with_latest_verification_code_by_email(self.session, self.email)
         if not user:
             raise UserNotFoundException(self.messages.USER_NOT_FOUND)
         if user.is_verified:
             raise EmailAlreadyVerifiedException(self.messages.EMAIL_ALREADY_VERIFIED)
         if not verification:
             raise VerificationCodeInvalidException(self.messages.CODE_INVALID)
+
+        if verification.used_at is not None:
+            attempts = int(getattr(verification, "attempts", 0) or 0)
+            if attempts >= VERIFICATION_CODE_MAX_ATTEMPTS:
+                raise TooManyAttemptsException(self.messages.TOO_MANY_ATTEMPTS)
+            raise VerificationCodeInvalidException(self.messages.CODE_INVALID)
+
         return user, verification
 
     def _ensure_code_not_expired(self, verification: VerificationCodeModel, now: datetime) -> None | NoReturn:

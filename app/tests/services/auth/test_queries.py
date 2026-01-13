@@ -17,6 +17,7 @@ from app.services.auth.queries import (
     fetch_users_by_username_or_email,
     fetch_user_with_active_verification_code_by_email,
     fetch_user_with_latest_unused_verification_code_by_email,
+    fetch_user_with_latest_verification_code_by_email,
     update_verification_code_last_sent_at,
 )
 
@@ -512,6 +513,68 @@ class TestAuthQueries(TestCase):
                     self.assertIsNotNone(code_row)
                     self.assertEqual(user_row.email, "test@example.com")
                     self.assertEqual(code_row.code, "222222")
+
+            self._run_async(_test())
+        finally:
+            self._restore_server_defaults(*originals)
+
+    def test_fetch_user_with_latest_verification_code_by_email_returns_used_code(self):
+        """Тест что новая оптимизированная функция возвращает последний код даже если он использован."""
+        originals = self._patch_server_defaults_for_sqlite()
+        try:
+
+            async def _test():
+                manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+                engine = manager.get_engine()
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+
+                now = datetime.now(timezone.utc)
+                async with manager.get_session() as session:
+                    user = User(
+                        username="testuser",
+                        email="test@example.com",
+                        password="hash",
+                        is_verified=False,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    session.add(user)
+                    await session.flush()
+
+                    session.add(
+                        VerificationCode(
+                            user_id=user.id,
+                            code="111111",
+                            expires_at=now + timedelta(minutes=10),
+                            used_at=None,
+                            attempts=0,
+                            created_at=now - timedelta(minutes=2),
+                        )
+                    )
+                    session.add(
+                        VerificationCode(
+                            user_id=user.id,
+                            code="222222",
+                            expires_at=now + timedelta(minutes=10),
+                            used_at=now,
+                            attempts=10,
+                            created_at=now,
+                        )
+                    )
+                    await session.commit()
+
+                async with manager.get_session() as session:
+                    user_row, code_row = await fetch_user_with_latest_verification_code_by_email(
+                        session, "test@example.com"
+                    )
+                    self.assertIsNotNone(user_row)
+                    self.assertIsNotNone(code_row)
+                    self.assertEqual(user_row.email, "test@example.com")
+
+                    self.assertEqual(code_row.code, "222222")
+                    self.assertIsNotNone(code_row.used_at)
+                    self.assertEqual(code_row.attempts, 10)
 
             self._run_async(_test())
         finally:
