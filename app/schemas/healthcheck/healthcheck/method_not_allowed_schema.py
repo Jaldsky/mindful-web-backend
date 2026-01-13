@@ -1,4 +1,4 @@
-from ..error_response_schema import ErrorResponseSchema
+from ...error_response_schema import ErrorResponseSchema
 
 
 class HealthcheckMethodNotAllowedSchema(ErrorResponseSchema):

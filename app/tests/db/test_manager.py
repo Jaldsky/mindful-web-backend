@@ -7,7 +7,7 @@ from logging import Logger
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
 
-from ...db.exceptions import DatabaseManagerException, DatabaseManagerMessages
+from app.db.exceptions import DatabaseManagerException, DatabaseManagerMessages
 from app.db.session.manager import ManagerValidator, ManagerAsync, ManagerSync
 
 

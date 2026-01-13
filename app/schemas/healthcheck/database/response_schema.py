@@ -1,7 +1,9 @@
 from pydantic import BaseModel, Field
 
 
-class HealthcheckResponseSchema(BaseModel):
+class DatabaseHealthcheckResponseSchema(BaseModel):
+    """Схема ответа на проверку доступности базы данных."""
+
     code: str = Field(..., description="Код статуса")
     message: str = Field(..., description="Сообщение статуса")
 
@@ -9,6 +11,6 @@ class HealthcheckResponseSchema(BaseModel):
         json_schema_extra = {
             "example": {
                 "code": "OK",
-                "message": "Service is available",
+                "message": "Database is available",
             }
         }
