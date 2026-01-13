@@ -6,8 +6,6 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..common import generate_verification_code, hash_password
-from ..normalizers import AuthServiceNormalizers
-from ..validators import AuthServiceValidators
 from ..queries import fetch_users_by_username_or_email
 from ..exceptions import (
     AuthMessages,
@@ -35,32 +33,6 @@ class RegisterUser:
     username: Username
     email: Email
     password: Password
-
-    def normalize(self) -> None:
-        """Метод нормализации входных данных регистрации."""
-        normalized_username = AuthServiceNormalizers.normalize_username(self.username)
-        if normalized_username != self.username:
-            object.__setattr__(self, "username", normalized_username)
-
-        normalized_email = AuthServiceNormalizers.normalize_email(self.email)
-        if normalized_email != self.email:
-            object.__setattr__(self, "email", normalized_email)
-
-        normalized_password = AuthServiceNormalizers.normalize_password(self.password)
-        if normalized_password != self.password:
-            object.__setattr__(self, "password", normalized_password)
-
-    def validate(self) -> None | NoReturn:
-        """Метод валидации всех входных данных регистрации.
-
-        Raises:
-            InvalidUsernameFormatException: При неверном формате username.
-            InvalidEmailFormatException: При неверном формате email.
-            InvalidPasswordFormatException: При неверном формате password.
-        """
-        AuthServiceValidators.validate_username(self.username)
-        AuthServiceValidators.validate_email(self.email)
-        AuthServiceValidators.validate_password(self.password)
 
 
 class RegisterServiceBase:
@@ -106,20 +78,6 @@ class RegisterServiceBase:
             Пароль пользователя.
         """
         return self._data.password
-
-    def normalize(self) -> None:
-        """Метод нормализации входных данных регистрации."""
-        self._data.normalize()
-
-    def validate(self) -> None | NoReturn:
-        """Метод валидации входных данных регистрации.
-
-        Raises:
-            InvalidUsernameFormatException: При неверном формате username.
-            InvalidEmailFormatException: При неверном формате email.
-            InvalidPasswordFormatException: При неверном формате password.
-        """
-        self._data.validate()
 
 
 class RegisterService(RegisterServiceBase):
@@ -207,14 +165,12 @@ class RegisterService(RegisterServiceBase):
         """Метод регистрации пользователя.
 
         Процесс регистрации включает:
-        1. Нормализацию входных данных
-        2. Валидацию формата всех полей
-        3. Проверку уникальности username и email
-        4. Создание пользователя
-        5. Flush для получения ID пользователя
-        6. Создание кода подтверждения
-        7. Отправку кода подтверждения на email
-        8. Коммит транзакции
+        1. Проверку уникальности username и email
+        2. Создание пользователя
+        3. Flush для получения ID пользователя
+        4. Создание кода подтверждения
+        5. Отправку кода подтверждения на email
+        6. Коммит транзакции
 
         Returns:
             Созданный объект User.
@@ -228,9 +184,6 @@ class RegisterService(RegisterServiceBase):
             EmailSendFailedException: Если не удалось отправить email.
             AuthServiceException: При неожиданной ошибке.
         """
-        self.normalize()
-        self.validate()
-
         try:
             await self._check_uniqueness()
             user = await self._create_user()

@@ -1,52 +1,80 @@
-import re
-from pydantic import BaseModel, Field, field_validator, EmailStr
+from typing import Any
+
+from pydantic import BaseModel, Field, field_validator
+from pydantic.types import StrictStr
 
 
 class RegisterRequestSchema(BaseModel):
     """Схема запроса регистрации пользователя."""
 
-    username: str = Field(
+    username: StrictStr = Field(
         ...,
-        min_length=3,
-        max_length=50,
         description="Логин пользователя (3-50 символов, буквы, цифры, подчёркивание)",
     )
-    email: EmailStr = Field(
+    email: StrictStr = Field(
         ...,
         description="Email пользователя",
     )
-    password: str = Field(
+    password: StrictStr = Field(
         ...,
-        min_length=8,
-        max_length=128,
         description="Пароль (минимум 8 символов, буквы и цифры)",
     )
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def normalize_username(cls, v: Any) -> Any:
+        """Нормализация логина."""
+        if not isinstance(v, str):
+            return v
+        from ....services.auth.normalizers import AuthServiceNormalizers
+
+        return AuthServiceNormalizers.normalize_username(v)
 
     @field_validator("username")
     @classmethod
     def validate_username(cls, v: str) -> str:
-        """Валидация логина."""
-        from ....services.auth.exceptions import InvalidUsernameFormatException
+        """Бизнес-валидация логина (422)."""
+        from ....services.auth.validators import AuthServiceValidators
 
-        v = v.strip().lower()
-        if not re.match(r"^[a-z0-9_]+$", v):
-            raise InvalidUsernameFormatException(
-                "Username must contain only lowercase letters, numbers, and underscores"
-            )
-        if v.startswith("_") or v.endswith("_"):
-            raise InvalidUsernameFormatException("Username cannot start or end with underscore")
+        AuthServiceValidators.validate_username(v)
         return v
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: Any) -> Any:
+        """Нормализация email."""
+        if not isinstance(v, str):
+            return v
+        from ....services.auth.normalizers import AuthServiceNormalizers
+
+        return AuthServiceNormalizers.normalize_email(v)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        """Бизнес-валидация email (422)."""
+        from ....services.auth.validators import AuthServiceValidators
+
+        AuthServiceValidators.validate_email(v)
+        return v
+
+    @field_validator("password", mode="before")
+    @classmethod
+    def normalize_password(cls, v: Any) -> Any:
+        """Нормализация пароля."""
+        if not isinstance(v, str):
+            return v
+        from ....services.auth.normalizers import AuthServiceNormalizers
+
+        return AuthServiceNormalizers.normalize_password(v)
 
     @field_validator("password")
     @classmethod
     def validate_password(cls, v: str) -> str:
-        """Валидация пароля."""
-        from ....services.auth.exceptions import InvalidPasswordFormatException
+        """Бизнес-валидация пароля (422)."""
+        from ....services.auth.validators import AuthServiceValidators
 
-        if not re.search(r"[a-zA-Z]", v):
-            raise InvalidPasswordFormatException("Password must contain at least one letter")
-        if not re.search(r"\d", v):
-            raise InvalidPasswordFormatException("Password must contain at least one digit")
+        AuthServiceValidators.validate_password(v)
         return v
 
     class Config:

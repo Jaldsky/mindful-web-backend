@@ -13,6 +13,7 @@ from app.services.auth.common import create_tokens, decode_token
 from app.services.auth.exceptions import TokenExpiredException, TokenInvalidException, UserNotFoundException
 from app.services.auth.use_cases import RefreshTokensService
 from app.config import JWT_ALGORITHM, JWT_SECRET_KEY
+from app.schemas.auth import RefreshRequestSchema
 
 
 class TestRefreshTokensService(TestCase):
@@ -221,7 +222,8 @@ class TestRefreshTokensService(TestCase):
                 refresh_with_spaces = f"  {refresh}  "
 
                 async with manager.get_session() as session:
-                    service = RefreshTokensService(session=session, refresh_token=refresh_with_spaces)
+                    payload = RefreshRequestSchema(refresh_token=refresh_with_spaces)
+                    service = RefreshTokensService(session=session, refresh_token=payload.refresh_token)
                     new_access, new_refresh = await service.exec()
 
                 self.assertIsInstance(new_access, str)

@@ -11,7 +11,6 @@ from ..exceptions import (
     EmailNotVerifiedException,
     InvalidCredentialsException,
 )
-from ..normalizers import AuthServiceNormalizers
 from ..queries import fetch_user_by_username
 from ..types import AccessToken, Password, PasswordHash, RefreshToken, Username
 from ....db.models.tables import User
@@ -25,16 +24,6 @@ class LoginUser:
 
     username: Username
     password: Password
-
-    def normalize(self) -> None:
-        """Метод нормализации входных данных авторизации."""
-        normalized_username = AuthServiceNormalizers.normalize_username(self.username)
-        if normalized_username != self.username:
-            object.__setattr__(self, "username", normalized_username)
-
-        normalized_password = AuthServiceNormalizers.normalize_password(self.password)
-        if normalized_password != self.password:
-            object.__setattr__(self, "password", normalized_password)
 
 
 class LoginServiceBase:
@@ -63,10 +52,6 @@ class LoginServiceBase:
     def password(self) -> Password:
         """Свойство получения password из входных данных."""
         return self._data.password
-
-    def normalize(self) -> None:
-        """Метод нормализации входных данных авторизации."""
-        self._data.normalize()
 
 
 class LoginService(LoginServiceBase):
@@ -107,9 +92,8 @@ class LoginService(LoginServiceBase):
         """Метод авторизации пользователя.
 
         Процесс включает:
-        1. Нормализацию входных данных
-        2. Аутентификацию пользователя
-        3. Выпуск access/refresh токенов
+        1. Аутентификацию пользователя
+        2. Выпуск access/refresh токенов
 
         Returns:
             Кортеж (user, access_token, refresh_token).
@@ -119,8 +103,6 @@ class LoginService(LoginServiceBase):
             EmailNotVerifiedException: Если email не подтверждён.
             AuthServiceException: При непредвиденной ошибке.
         """
-        self.normalize()
-
         try:
             user = await self._authenticate_user()
             access_token, refresh_token = create_tokens(user.id)

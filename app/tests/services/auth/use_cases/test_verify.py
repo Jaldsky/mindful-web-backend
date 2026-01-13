@@ -18,6 +18,7 @@ from app.services.auth.exceptions import (
     VerificationCodeInvalidException,
     TooManyAttemptsException,
 )
+from app.schemas.auth import VerifyRequestSchema
 
 
 class TestVerifyEmailServiceExec(TestCase):
@@ -247,28 +248,8 @@ class TestVerifyEmailServiceExec(TestCase):
         try:
 
             async def _test_session():
-                manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
-                engine = manager.get_engine()
-                async with engine.begin() as conn:
-                    await conn.run_sync(Base.metadata.create_all)
-
-                now = datetime.now(timezone.utc)
-                async with manager.get_session() as session:
-                    user = User(
-                        username="testuser",
-                        email="test@example.com",
-                        password="hash",
-                        is_verified=False,
-                        created_at=now,
-                        updated_at=now,
-                    )
-                    session.add(user)
-                    await session.commit()
-
-                async with manager.get_session() as session:
-                    service = VerifyEmailService(session=session, email="test@example.com", code="12ab56")
-                    with self.assertRaises(InvalidVerificationCodeFormatException):
-                        await service.exec()
+                with self.assertRaises(InvalidVerificationCodeFormatException):
+                    VerifyRequestSchema(email="test@example.com", code="12ab56")
 
             self._run_async(_test_session())
         finally:
@@ -476,17 +457,3 @@ class TestVerifyEmailServiceExec(TestCase):
             self._run_async(_test_session())
         finally:
             self._restore_server_defaults(*originals)
-
-
-class TestVerifyEmailServiceNormalization(TestCase):
-    """Быстрые тесты нормализации/валидации без БД."""
-
-    def test_normalize_lowercases_email_and_strips_code(self):
-        from sqlalchemy.ext.asyncio import AsyncSession
-        from unittest.mock import AsyncMock
-
-        session = AsyncMock(spec=AsyncSession)
-        service = VerifyEmailService(session=session, email="  TeSt@Example.com ", code=" 123456 ")
-        service.normalize()
-        self.assertEqual(service.email, "test@example.com")
-        self.assertEqual(service.code, "123456")

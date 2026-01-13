@@ -19,6 +19,7 @@ from app.services.auth.exceptions import (
     InvalidUsernameFormatException,
     UsernameAlreadyExistsException,
 )
+from app.schemas.auth import RegisterRequestSchema
 
 
 class TestRegisterServiceMethods(TestCase):
@@ -43,7 +44,6 @@ class TestRegisterServiceMethods(TestCase):
         service = RegisterService(
             session=self.session, username="testuser", email="test@example.com", password="password123"
         )
-        service.normalize()
 
         user = self._run_async(service._create_user())
 
@@ -84,7 +84,6 @@ class TestRegisterServiceMethods(TestCase):
         service = RegisterService(
             session=self.session, username="testuser", email="test@example.com", password="password123"
         )
-        service.normalize()
 
         self._run_async(service._check_uniqueness())
         self.session.execute.assert_called_once()
@@ -102,7 +101,6 @@ class TestRegisterServiceMethods(TestCase):
         service = RegisterService(
             session=self.session, username="testuser", email="test@example.com", password="password123"
         )
-        service.normalize()
 
         with self.assertRaises(UsernameAlreadyExistsException):
             self._run_async(service._check_uniqueness())
@@ -120,7 +118,6 @@ class TestRegisterServiceMethods(TestCase):
         service = RegisterService(
             session=self.session, username="testuser", email="test@example.com", password="password123"
         )
-        service.normalize()
 
         with self.assertRaises(EmailAlreadyExistsException):
             self._run_async(service._check_uniqueness())
@@ -162,8 +159,6 @@ class TestRegisterServiceExecUnit(TestCase):
         service = RegisterService(
             session=self.session, username="testuser", email="test@example.com", password="password123"
         )
-        service.normalize = Mock()
-        service.validate = Mock()
 
         service._check_uniqueness = AsyncMock()
         user = Mock()
@@ -315,66 +310,42 @@ class TestRegisterServiceExec(TestCase):
             self._restore_server_defaults(*originals)
 
     def test_exec_invalid_username(self):
-        """Тест регистрации с неверным username."""
-        manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+        """Тест бизнес-валидации username на уровне request-схемы (422)."""
+        ManagerAsync(logger=self.logger, database_url=self.database_url)
         originals = self._patch_server_defaults_for_sqlite()
         try:
 
             async def _test_session():
-                engine = manager.get_engine()
-                async with engine.begin() as conn:
-                    await conn.run_sync(Base.metadata.create_all)
-
-                async with manager.get_session() as session:
-                    service = RegisterService(
-                        session=session, username="ab", email="test@example.com", password="password123"
-                    )
-                    with self.assertRaises(InvalidUsernameFormatException):
-                        await service.exec()
+                with self.assertRaises(InvalidUsernameFormatException):
+                    RegisterRequestSchema(username="ab", email="test@example.com", password="password123")
 
             self._run_async(_test_session())
         finally:
             self._restore_server_defaults(*originals)
 
     def test_exec_invalid_email(self):
-        """Тест регистрации с неверным email."""
-        manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+        """Тест бизнес-валидации email на уровне request-схемы (422)."""
+        ManagerAsync(logger=self.logger, database_url=self.database_url)
         originals = self._patch_server_defaults_for_sqlite()
         try:
 
             async def _test_session():
-                engine = manager.get_engine()
-                async with engine.begin() as conn:
-                    await conn.run_sync(Base.metadata.create_all)
-
-                async with manager.get_session() as session:
-                    service = RegisterService(
-                        session=session, username="testuser", email="invalid-email", password="password123"
-                    )
-                    with self.assertRaises(InvalidEmailFormatException):
-                        await service.exec()
+                with self.assertRaises(InvalidEmailFormatException):
+                    RegisterRequestSchema(username="testuser", email="invalid-email", password="password123")
 
             self._run_async(_test_session())
         finally:
             self._restore_server_defaults(*originals)
 
     def test_exec_invalid_password(self):
-        """Тест регистрации с неверным password."""
-        manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+        """Тест бизнес-валидации password на уровне request-схемы (422)."""
+        ManagerAsync(logger=self.logger, database_url=self.database_url)
         originals = self._patch_server_defaults_for_sqlite()
         try:
 
             async def _test_session():
-                engine = manager.get_engine()
-                async with engine.begin() as conn:
-                    await conn.run_sync(Base.metadata.create_all)
-
-                async with manager.get_session() as session:
-                    service = RegisterService(
-                        session=session, username="testuser", email="test@example.com", password="short"
-                    )
-                    with self.assertRaises(InvalidPasswordFormatException):
-                        await service.exec()
+                with self.assertRaises(InvalidPasswordFormatException):
+                    RegisterRequestSchema(username="testuser", email="test@example.com", password="short")
 
             self._run_async(_test_session())
         finally:

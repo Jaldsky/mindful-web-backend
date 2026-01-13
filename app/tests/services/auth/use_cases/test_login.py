@@ -9,6 +9,7 @@ from app.db.session.manager import ManagerAsync
 from app.services.auth.common import decode_token, hash_password
 from app.services.auth.exceptions import EmailNotVerifiedException, InvalidCredentialsException
 from app.services.auth.use_cases import LoginService
+from app.schemas.auth import LoginRequestSchema
 
 
 class TestLoginService(TestCase):
@@ -57,7 +58,8 @@ class TestLoginService(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = LoginService(session=session, username="  TestUser  ", password=password)
+                    payload = LoginRequestSchema(username="  TestUser  ", password=password)
+                    service = LoginService(session=session, username=payload.username, password=payload.password)
                     user_out, access, refresh = await service.exec()
 
                 self.assertEqual(user_out.username, "testuser")
