@@ -384,6 +384,99 @@ class TestVerifyEmailServiceExec(TestCase):
         finally:
             self._restore_server_defaults(*originals)
 
+    def test_exec_used_code_with_max_attempts_raises_too_many_attempts(self):
+        """Тест что при попытке использовать уже инвалидированный код (attempts >= 10) выбрасывается TooManyAttemptsException."""
+        originals = self._patch_server_defaults_for_sqlite()
+        try:
+
+            async def _test_session():
+                manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+                engine = manager.get_engine()
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+
+                now = datetime.now(timezone.utc)
+                expires_at = now + timedelta(minutes=10)
+
+                async with manager.get_session() as session:
+                    user = User(
+                        username="testuser",
+                        email="test@example.com",
+                        password="hash",
+                        is_verified=False,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    session.add(user)
+                    await session.flush()
+                    session.add(
+                        VerificationCode(
+                            user_id=user.id,
+                            code="123456",
+                            expires_at=expires_at,
+                            used_at=now - timedelta(minutes=1),
+                            attempts=10,
+                            created_at=now,
+                        )
+                    )
+                    await session.commit()
+
+                with unittest.mock.patch("app.services.auth.use_cases.verify.VERIFICATION_CODE_MAX_ATTEMPTS", 10):
+                    async with manager.get_session() as session:
+                        service = VerifyEmailService(session=session, email="test@example.com", code="123456")
+                        with self.assertRaises(TooManyAttemptsException):
+                            await service.exec()
+
+            self._run_async(_test_session())
+        finally:
+            self._restore_server_defaults(*originals)
+
+    def test_exec_used_code_with_low_attempts_raises_invalid(self):
+        """Тест что при попытке использовать уже использованный код (но attempts < 10) выбрасывается VerificationCodeInvalidException."""
+        originals = self._patch_server_defaults_for_sqlite()
+        try:
+
+            async def _test_session():
+                manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+                engine = manager.get_engine()
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+
+                now = datetime.now(timezone.utc)
+                expires_at = now + timedelta(minutes=10)
+
+                async with manager.get_session() as session:
+                    user = User(
+                        username="testuser",
+                        email="test@example.com",
+                        password="hash",
+                        is_verified=False,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    session.add(user)
+                    await session.flush()
+                    session.add(
+                        VerificationCode(
+                            user_id=user.id,
+                            code="123456",
+                            expires_at=expires_at,
+                            used_at=now - timedelta(minutes=1),
+                            attempts=3,
+                            created_at=now,
+                        )
+                    )
+                    await session.commit()
+
+                async with manager.get_session() as session:
+                    service = VerifyEmailService(session=session, email="test@example.com", code="123456")
+                    with self.assertRaises(VerificationCodeInvalidException):
+                        await service.exec()
+
+            self._run_async(_test_session())
+        finally:
+            self._restore_server_defaults(*originals)
+
 
 class TestVerifyEmailServiceNormalization(TestCase):
     """Быстрые тесты нормализации/валидации без БД."""
