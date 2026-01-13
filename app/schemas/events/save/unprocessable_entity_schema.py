@@ -5,8 +5,8 @@ from ...error_response_schema import ErrorResponseSchema, ErrorCode
 from ..events_error_code import EventsErrorCode
 
 
-class SendEventsUnprocessableEntitySchema(ErrorResponseSchema):
-    """Схема ошибки 422 Unprocessable Entity для events endpoint."""
+class SaveEventsUnprocessableEntitySchema(ErrorResponseSchema):
+    """Схема ошибки 422 Unprocessable Entity для events/save endpoint."""
 
     code: Union[ErrorCode | EventsErrorCode] = Field(..., description="Код ошибки")
 

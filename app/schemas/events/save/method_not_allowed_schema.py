@@ -1,8 +1,8 @@
 from ...error_response_schema import ErrorResponseSchema
 
 
-class SendEventsMethodNotAllowedSchema(ErrorResponseSchema):
-    """Схема ошибки 405 Method Not Allowed для events endpoint."""
+class SaveEventsMethodNotAllowedSchema(ErrorResponseSchema):
+    """Схема ошибки 405 Method Not Allowed для events/save endpoint."""
 
     class Config:
         json_schema_extra = {

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_user_id_from_header, get_db_session
 from app.db.session.provider import Provider
-from app.services.events.send_events.exceptions import InvalidUserIdException
+from app.services.events.exceptions import InvalidUserIdException
 
 
 class TestGetUserIdFromHeader(TestCase):

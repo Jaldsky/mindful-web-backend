@@ -7,7 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from ..db.session.provider import Provider
 from ..db.types import DatabaseSession
 from ..db.models.tables import User
-from ..schemas.events import SendEventsUserIdHeaderSchema
+from ..schemas.events import SaveEventsUserIdHeaderSchema
 from ..schemas.analytics import AnalyticsUsageRequestSchema
 from ..services.auth.exceptions import (
     AuthMessages,
@@ -47,7 +47,7 @@ async def get_user_id_from_header(
     Raises:
         InvalidUserIdException: При неверном формате User ID (обрабатывается в events.py).
     """
-    header = SendEventsUserIdHeaderSchema(**({} if x_user_id is None else {"x_user_id": x_user_id}))
+    header = SaveEventsUserIdHeaderSchema(**({} if x_user_id is None else {"x_user_id": x_user_id}))
     return UUID(header.x_user_id)
 
 

@@ -74,7 +74,7 @@ async def bad_request_error_handler(request: Request, exc: Exception) -> JSONRes
 async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONResponse:
     """Обработчик для ошибки 405 Method Not Allowed."""
     from ..services.healthcheck import healthcheck_method_not_allowed_response
-    from ..services.events.send_events.http_handler import send_events_method_not_allowed_response
+    from ..services.events.http_handler import save_events_method_not_allowed_response
     from ..services.analytics.usage.http_handler import usage_method_not_allowed_response
     from ..services.auth.http_handler import (
         auth_login_method_not_allowed_response,
@@ -88,7 +88,7 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
         return healthcheck_method_not_allowed_response()
 
     if str(request.url.path) == SEND_EVENTS_PATH:
-        return send_events_method_not_allowed_response()
+        return save_events_method_not_allowed_response()
 
     if str(request.url.path) == ANALYTICS_USAGE_PATH:
         return usage_method_not_allowed_response()

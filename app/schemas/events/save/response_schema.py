@@ -2,8 +2,8 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
-class SendEventsResponseSchema(BaseModel):
-    """Схема успешного ответа для events endpoint."""
+class SaveEventsResponseSchema(BaseModel):
+    """Схема успешного ответа для events/save endpoint."""
 
     code: Literal["CREATED"] = Field("CREATED", description="Код статуса")
     message: str = Field(..., description="Сообщение статуса")
