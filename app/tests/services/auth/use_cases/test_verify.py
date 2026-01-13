@@ -82,7 +82,7 @@ class TestVerifyEmailServiceExec(TestCase):
                 async with manager.get_session() as session:
                     service = VerifyEmailService(session=session, email="test@example.com", code="123456")
                     ok = await service.exec()
-                    self.assertTrue(ok)
+                    self.assertIsNone(ok)
 
                 async with manager.get_session() as session:
                     result = await session.execute(

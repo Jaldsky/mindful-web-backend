@@ -182,7 +182,7 @@ class VerifyEmailService(VerifyEmailServiceBase):
             raise TooManyAttemptsException(self.messages.TOO_MANY_ATTEMPTS)
         raise VerificationCodeInvalidException(self.messages.CODE_INVALID)
 
-    async def exec(self) -> bool | NoReturn:
+    async def exec(self) -> None | NoReturn:
         """Функция подтверждения email по ранее отправленному коду.
 
         Процесс включает:
@@ -194,9 +194,6 @@ class VerifyEmailService(VerifyEmailServiceBase):
         6. Проверку, что код не истёк
         7. Пометку кода как использованного и пользователя как подтверждённого
         8. Коммит транзакции
-
-        Returns:
-            True: Если email успешно подтверждён.
 
         Raises:
             InvalidVerificationCodeFormatException: Если code не валидный.
@@ -222,7 +219,6 @@ class VerifyEmailService(VerifyEmailServiceBase):
             await self.session.commit()
 
             logger.info(f"Email verified: {self.email}")
-            return True
 
         except (
             InvalidVerificationCodeFormatException,
