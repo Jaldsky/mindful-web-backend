@@ -197,7 +197,7 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
         except Exception:
             raise EmailSendFailedException(self.messages.EMAIL_SEND_FAILED)
 
-    async def exec(self) -> bool | NoReturn:
+    async def exec(self) -> None | NoReturn:
         """Метод повторной отправки кода подтверждения.
 
         Процесс включает:
@@ -211,9 +211,6 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
         8. Фиксацию DB-фазы
         9. Отправку кода подтверждения на email
         10. Обновление last_sent_at после успешной отправки
-
-        Returns:
-            True, если код успешно выбран/создан и отправлен на email.
 
         Raises:
             InvalidEmailFormatException: При неверном формате email.
@@ -270,4 +267,3 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
                 pass
 
         logger.info(f"Verification code resent to: {self.email}")
-        return True

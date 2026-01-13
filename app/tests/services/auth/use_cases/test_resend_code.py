@@ -128,7 +128,7 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     async with manager.get_session() as session:
                         service = ResendVerificationCodeService(session=session, email="test@example.com")
                         ok = await service.exec()
-                        self.assertTrue(ok)
+                        self.assertIsNone(ok)
 
                 async with manager.get_session() as session:
                     result = await session.execute(text("SELECT COUNT(*) FROM verification_codes"))
@@ -245,7 +245,7 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     async with manager.get_session() as session:
                         service = ResendVerificationCodeService(session=session, email="test@example.com")
                         ok = await service.exec()
-                        self.assertTrue(ok)
+                        self.assertIsNone(ok)
 
                     mock_send.assert_awaited_once_with(to_email="test@example.com", code="111111")
 
@@ -311,7 +311,7 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     async with manager.get_session() as session:
                         service = ResendVerificationCodeService(session=session, email="test@example.com")
                         ok = await service.exec()
-                        self.assertTrue(ok)
+                        self.assertIsNone(ok)
 
                     mock_send.assert_awaited_once_with(to_email="test@example.com", code="333333")
 
@@ -377,7 +377,7 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     async with manager.get_session() as session:
                         service = ResendVerificationCodeService(session=session, email="test@example.com")
                         ok = await service.exec()
-                        self.assertTrue(ok)
+                        self.assertIsNone(ok)
 
                     mock_send.assert_awaited_once_with(to_email="test@example.com", code="444444")
 
@@ -636,7 +636,7 @@ class TestResendVerificationCodeServiceExec(TestCase):
                             ) as mock_touch:
                                 mock_touch.side_effect = Exception("last_sent_at update boom")
                                 ok = await service.exec()
-                                self.assertTrue(ok)
+                                self.assertIsNone(ok)
 
             self._run_async(_test_session())
         finally:
@@ -693,7 +693,7 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     async with manager.get_session() as session:
                         service = ResendVerificationCodeService(session=session, email="test@example.com")
                         ok = await service.exec()
-                        self.assertTrue(ok)
+                        self.assertIsNone(ok)
 
                     mock_send.assert_awaited_once_with(to_email="test@example.com", code="666666")
 
