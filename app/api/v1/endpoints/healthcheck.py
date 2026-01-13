@@ -1,15 +1,26 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import (
     HTTP_200_OK,
     HTTP_405_METHOD_NOT_ALLOWED,
+    HTTP_500_INTERNAL_SERVER_ERROR,
     HTTP_503_SERVICE_UNAVAILABLE,
 )
 
-from ....schemas.general import ServiceUnavailableSchema
+from ...dependencies import get_db_session
+from ....schemas.general import (
+    InternalServerErrorSchema,
+    ServiceUnavailableSchema,
+)
 from ....schemas.healthcheck import (
     HealthcheckMethodNotAllowedSchema,
     HealthcheckResponseSchema,
+    DatabaseHealthcheckResponseSchema,
+    DatabaseHealthcheckMethodNotAllowedSchema,
+    DatabaseHealthcheckInternalServerErrorSchema,
+    DatabaseHealthcheckServiceUnavailableSchema,
 )
+from ....services.healthcheck import DatabaseHealthcheckService
 
 router = APIRouter(prefix="/healthcheck", tags=["healthcheck"])
 
@@ -25,16 +36,53 @@ router = APIRouter(prefix="/healthcheck", tags=["healthcheck"])
             "model": HealthcheckMethodNotAllowedSchema,
             "description": "Поддерживается только GET метод",
         },
+        HTTP_500_INTERNAL_SERVER_ERROR: {
+            "model": InternalServerErrorSchema,
+            "description": "Внутренняя ошибка сервера",
+        },
         HTTP_503_SERVICE_UNAVAILABLE: {
             "model": ServiceUnavailableSchema,
             "description": "Сервис не доступен",
         },
     },
-    summary="Работоспособность сервиса",
+    summary="Проверка доступности сервиса",
     description="Проверка работоспособности сервиса",
 )
-async def check_service_health():
+async def check_service_health() -> HealthcheckResponseSchema:
     return HealthcheckResponseSchema(
         code="OK",
         message="Service is available",
+    )
+
+
+@router.get(
+    "/database",
+    response_model=DatabaseHealthcheckResponseSchema,
+    responses={
+        HTTP_200_OK: {
+            "description": "База данных доступна",
+        },
+        HTTP_405_METHOD_NOT_ALLOWED: {
+            "model": DatabaseHealthcheckMethodNotAllowedSchema,
+            "description": "Поддерживается только GET метод",
+        },
+        HTTP_500_INTERNAL_SERVER_ERROR: {
+            "model": DatabaseHealthcheckInternalServerErrorSchema,
+            "description": "Внутренняя ошибка сервера",
+        },
+        HTTP_503_SERVICE_UNAVAILABLE: {
+            "model": DatabaseHealthcheckServiceUnavailableSchema,
+            "description": "База данных недоступна",
+        },
+    },
+    summary="Проверка доступности базы данных",
+    description="Проверяет подключение к базе данных и ее работоспособность",
+)
+async def check_database_health(
+    db: AsyncSession = Depends(get_db_session),
+) -> DatabaseHealthcheckResponseSchema:
+    await DatabaseHealthcheckService(session=db).exec()
+    return DatabaseHealthcheckResponseSchema(
+        code="OK",
+        message="Database is available",
     )
