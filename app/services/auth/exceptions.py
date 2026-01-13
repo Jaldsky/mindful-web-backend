@@ -9,18 +9,6 @@ class AuthException(AppException):
 
 
 # Исключения по статусу ответа
-class AuthBadRequestException(AuthException):
-    """Ошибка первичной валидации (400)."""
-
-    status_code = status.HTTP_400_BAD_REQUEST
-
-
-class AuthNotFoundException(AuthException):
-    """Ресурс не найден (404)."""
-
-    status_code = status.HTTP_404_NOT_FOUND
-
-
 class AuthUnauthorizedException(AuthException):
     """Ошибка авторизации (401)."""
 

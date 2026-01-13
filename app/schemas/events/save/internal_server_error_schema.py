@@ -6,8 +6,8 @@ from ..events_error_code import EventsErrorCode
 from ...general import InternalServerErrorSchema
 
 
-class SendEventsInternalServerErrorSchema(InternalServerErrorSchema):
-    """Схема ошибки 500 Internal Server Error для events endpoint."""
+class SaveEventsInternalServerErrorSchema(InternalServerErrorSchema):
+    """Схема ошибки 500 Internal Server Error для events/save endpoint."""
 
     code: Union[ErrorCode | EventsErrorCode] = Field(..., description="Код ошибки")
 

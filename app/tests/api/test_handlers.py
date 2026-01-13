@@ -8,7 +8,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.handlers import method_not_allowed_handler
 from app.api.routes import HEALTHCHECK_PATH, SEND_EVENTS_PATH
 from app.schemas import ErrorCode
-from app.schemas.events import SendEventsMethodNotAllowedSchema
+from app.schemas.events import SaveEventsMethodNotAllowedSchema
 from app.schemas.healthcheck import HealthcheckMethodNotAllowedSchema
 
 
@@ -59,7 +59,7 @@ class TestMethodNotAllowedHandler(TestCase):
         import json
 
         data = json.loads(content)
-        schema = SendEventsMethodNotAllowedSchema(**data)
+        schema = SaveEventsMethodNotAllowedSchema(**data)
         self.assertEqual(schema.code, ErrorCode.METHOD_NOT_ALLOWED)
         self.assertEqual(schema.message, "Method not allowed. Only POST method is supported for this endpoint.")
 

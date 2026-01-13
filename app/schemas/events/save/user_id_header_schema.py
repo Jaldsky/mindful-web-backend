@@ -1,10 +1,8 @@
-from uuid import UUID, uuid4
+from uuid import uuid4
 from pydantic import BaseModel, Field, field_validator
 
-from ....services.events.send_events.exceptions import InvalidUserIdException
 
-
-class SendEventsUserIdHeaderSchema(BaseModel):
+class SaveEventsUserIdHeaderSchema(BaseModel):
     """Схема для заголовка X-User-ID."""
 
     x_user_id: str = Field(
@@ -17,13 +15,9 @@ class SendEventsUserIdHeaderSchema(BaseModel):
     @classmethod
     def validate_x_user_id(cls, v: str) -> str:
         """Валидация X-User-ID."""
-        try:
-            user_uuid = UUID(v)
-            if user_uuid.version != 4:
-                raise InvalidUserIdException("X-User-ID must be a valid UUID4 string", v)
-            return v
-        except (ValueError, AttributeError, TypeError):
-            raise InvalidUserIdException("X-User-ID must be a valid UUID4 string", v)
+        from ....services.events.validators import EventsServiceValidators
+
+        return EventsServiceValidators.validate_user_id_header(v)
 
     class Config:
         json_schema_extra = {
