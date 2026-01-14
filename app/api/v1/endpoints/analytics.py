@@ -13,7 +13,7 @@ from ....schemas.analytics import (
     AnalyticsUsageMethodNotAllowedSchema,
 )
 from ....schemas.general import ServiceUnavailableSchema
-from ....services.scheduler import Orchestrator, compute_domain_usage_task
+from ....services.analytics import AnalyticsUsageService
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -68,16 +68,12 @@ async def get_usage(
         OrchestratorTimeoutException: При таймауте выполнения задачи (обрабатывается в хендлере как 202).
         OrchestratorBrokerUnavailableException: При недоступности брокера (обрабатывается в хендлере как 503).
     """
-    orchestrator = Orchestrator()
-    data_dict = orchestrator.exec(
-        task=compute_domain_usage_task,
-        user_id=str(user_id),
-        start_date=request_params.from_date,
-        end_date=request_params.to_date,
+    response = await AnalyticsUsageService(
+        user_id=user_id,
+        from_date=request_params.from_date,
+        to_date=request_params.to_date,
         page=request_params.page,
-    )
-
-    response = AnalyticsUsageResponseOkSchema(**data_dict)
+    ).exec()
     response.pagination = PaginationUrlBuilder.build_links(request, response.pagination)
 
     return response
