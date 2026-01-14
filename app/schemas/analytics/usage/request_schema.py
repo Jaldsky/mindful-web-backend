@@ -1,11 +1,7 @@
-from datetime import date, datetime
-from pydantic import BaseModel, Field, field_validator
+from datetime import date
+from typing import Any
 
-from ....config import DATE_FORMATS
-from ....services.analytics.usage.exceptions import (
-    InvalidDateFormatException,
-    InvalidPageException,
-)
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class AnalyticsUsageRequestSchema(BaseModel):
@@ -17,35 +13,37 @@ class AnalyticsUsageRequestSchema(BaseModel):
 
     @field_validator("from_date", "to_date", mode="before")
     @classmethod
-    def parse_date_string(cls, v) -> date:
-        """Парсит строку даты, пробуя разные форматы.
-
-        Args:
-            v: Значение для парсинга (строка или date).
-
-        Returns:
-            Объект date.
-
-        Raises:
-            InvalidDateFormatException: Если ни один формат не подошел.
-        """
-        if isinstance(v, date):
+    def normalize_date(cls, v: Any) -> Any:
+        """Нормализация даты."""
+        if not isinstance(v, str):
             return v
+        from ....services.analytics.normalizers import AnalyticsServiceNormalizers
 
-        v = v.strip()
-        for date_format in DATE_FORMATS:
-            try:
-                return datetime.strptime(v, date_format).date()
-            except ValueError:
-                continue
-        raise InvalidDateFormatException("Invalid date format")
+        return AnalyticsServiceNormalizers.normalize_date(v)
+
+    @field_validator("from_date", "to_date", mode="before")
+    @classmethod
+    def validate_date(cls, v: Any) -> date:
+        """Валидация даты (422)."""
+        from ....services.analytics.validators import AnalyticsServiceValidators
+
+        return AnalyticsServiceValidators.validate_date(v)
+
+    @model_validator(mode="after")
+    def validate_time_range(self) -> "AnalyticsUsageRequestSchema":
+        """Валидация временного диапазона (422)."""
+        from ....services.analytics.validators import AnalyticsServiceValidators
+
+        AnalyticsServiceValidators.validate_time_range(self.from_date, self.to_date)
+        return self
 
     @field_validator("page")
     @classmethod
     def validate_page(cls, v: int) -> int:
         """Валидация номера страницы."""
-        if v < 1:
-            raise InvalidPageException("Page must be greater than or equal to 1")
+        from ....services.analytics.validators import AnalyticsServiceValidators
+
+        AnalyticsServiceValidators.validate_page(v)
         return v
 
     class Config:

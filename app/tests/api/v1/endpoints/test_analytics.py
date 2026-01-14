@@ -1,6 +1,6 @@
 import logging
 from unittest import TestCase
-from unittest.mock import patch, Mock
+from unittest.mock import patch, Mock, AsyncMock
 from uuid import uuid4
 from fastapi.testclient import TestClient
 from starlette.status import (
@@ -14,6 +14,7 @@ from starlette.status import (
 
 from app.main import app
 from app.schemas import ErrorCode
+from app.schemas.analytics.analytics_error_code import AnalyticsErrorCode
 from app.schemas.analytics import (
     AnalyticsUsageResponseOkSchema,
     AnalyticsUsageResponseAcceptedSchema,
@@ -66,10 +67,8 @@ class TestAnalyticsUsageEndpoint(TestCase):
             ],
         }
 
-        with patch("app.api.v1.endpoints.analytics.Orchestrator") as mock_orchestrator:
-            mock_orchestrator_instance = Mock()
-            mock_orchestrator_instance.exec.return_value = mock_data
-            mock_orchestrator.return_value = mock_orchestrator_instance
+        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
+            mock_service.return_value.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
 
             response = self.client.get(
                 self.usage_url,
@@ -87,13 +86,13 @@ class TestAnalyticsUsageEndpoint(TestCase):
     def test_usage_timeout_exception(self):
         """Таймаут выполнения задачи возвращает статус 202 ACCEPTED."""
         task_id = "test-task-id-123"
-        with patch("app.api.v1.endpoints.analytics.Orchestrator") as mock_orchestrator:
-            mock_orchestrator_instance = Mock()
-            mock_orchestrator_instance.exec.side_effect = OrchestratorTimeoutException(
-                task_id=task_id,
-                message=OrchestratorServiceMessages.TASK_TIMEOUT.format(task_id=task_id),
+        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
+            mock_service.return_value.exec = AsyncMock(
+                side_effect=OrchestratorTimeoutException(
+                    task_id=task_id,
+                    message=OrchestratorServiceMessages.TASK_TIMEOUT.format(task_id=task_id),
+                )
             )
-            mock_orchestrator.return_value = mock_orchestrator_instance
 
             response = self.client.get(
                 self.usage_url,
@@ -109,12 +108,12 @@ class TestAnalyticsUsageEndpoint(TestCase):
 
     def test_usage_broker_unavailable_exception(self):
         """Недоступность брокера возвращает статус 503 SERVICE_UNAVAILABLE."""
-        with patch("app.api.v1.endpoints.analytics.Orchestrator") as mock_orchestrator:
-            mock_orchestrator_instance = Mock()
-            mock_orchestrator_instance.exec.side_effect = OrchestratorBrokerUnavailableException(
-                message=OrchestratorServiceMessages.BROKER_UNAVAILABLE
+        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
+            mock_service.return_value.exec = AsyncMock(
+                side_effect=OrchestratorBrokerUnavailableException(
+                    message=OrchestratorServiceMessages.BROKER_UNAVAILABLE
+                )
             )
-            mock_orchestrator.return_value = mock_orchestrator_instance
 
             response = self.client.get(
                 self.usage_url,
@@ -183,7 +182,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
 
         data = response.json()
         schema = AnalyticsUsageUnprocessableEntitySchema(**data)
-        self.assertIsNotNone(schema.details)
+        self.assertEqual(schema.code, AnalyticsErrorCode.INVALID_DATE_FORMAT)
 
     def test_usage_invalid_page_parameter(self):
         """Неверный параметр page (меньше 1) возвращает 400."""
@@ -221,10 +220,8 @@ class TestAnalyticsUsageEndpoint(TestCase):
             "data": [],
         }
 
-        with patch("app.api.v1.endpoints.analytics.Orchestrator") as mock_orchestrator:
-            mock_orchestrator_instance = Mock()
-            mock_orchestrator_instance.exec.return_value = mock_data
-            mock_orchestrator.return_value = mock_orchestrator_instance
+        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
+            mock_service.return_value.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
 
             response = self.client.get(
                 self.usage_url,
@@ -233,9 +230,9 @@ class TestAnalyticsUsageEndpoint(TestCase):
 
             # Должен успешно обработаться с автоматически сгенерированным UUID
             self.assertEqual(response.status_code, HTTP_200_OK)
-            # Проверяем, что orchestrator был вызван с каким-то user_id
-            mock_orchestrator_instance.exec.assert_called_once()
-            call_kwargs = mock_orchestrator_instance.exec.call_args[1]
+            # Проверяем, что сервис был создан с каким-то user_id
+            mock_service.assert_called_once()
+            call_kwargs = mock_service.call_args.kwargs
             self.assertIn("user_id", call_kwargs)
 
     def test_usage_pagination_links(self):
@@ -256,10 +253,8 @@ class TestAnalyticsUsageEndpoint(TestCase):
             "data": [],
         }
 
-        with patch("app.api.v1.endpoints.analytics.Orchestrator") as mock_orchestrator:
-            mock_orchestrator_instance = Mock()
-            mock_orchestrator_instance.exec.return_value = mock_data
-            mock_orchestrator.return_value = mock_orchestrator_instance
+        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
+            mock_service.return_value.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
 
             response = self.client.get(
                 self.usage_url,
@@ -293,10 +288,8 @@ class TestAnalyticsUsageEndpoint(TestCase):
             "data": [],
         }
 
-        with patch("app.api.v1.endpoints.analytics.Orchestrator") as mock_orchestrator:
-            mock_orchestrator_instance = Mock()
-            mock_orchestrator_instance.exec.return_value = mock_data
-            mock_orchestrator.return_value = mock_orchestrator_instance
+        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
+            mock_service.return_value.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
 
             response = self.client.get(
                 self.usage_url,
@@ -325,10 +318,8 @@ class TestAnalyticsUsageEndpoint(TestCase):
             "data": [],
         }
 
-        with patch("app.api.v1.endpoints.analytics.Orchestrator") as mock_orchestrator:
-            mock_orchestrator_instance = Mock()
-            mock_orchestrator_instance.exec.return_value = mock_data
-            mock_orchestrator.return_value = mock_orchestrator_instance
+        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
+            mock_service.return_value.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
 
             for _ in range(5):
                 response = self.client.get(

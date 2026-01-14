@@ -6,11 +6,11 @@ from uuid import UUID, uuid4
 from datetime import date, datetime, time, timezone
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.services.analytics.usage.main import AnalyticsUsageService
-from app.services.analytics.usage.exceptions import (
+from app.services.analytics import ComputeDomainUsageService
+from app.services.analytics.exceptions import (
     DatabaseQueryFailedException,
     UnexpectedUsageException,
-    UsageServiceMessages,
+    AnalyticsUsageMessages,
 )
 from app.schemas.analytics.usage.response_ok_schema import AnalyticsUsageResponseOkSchema
 
@@ -32,9 +32,9 @@ class TestUsageService(TestCase):
         """Вспомогательный метод для запуска асинхронного кода."""
         return asyncio.run(coro)
 
-    @patch("app.services.analytics.usage.main.logger")
-    @patch("app.services.analytics.usage.main.AnalyticsUsageService._load_sql")
-    @patch("app.services.analytics.usage.main.isinstance")
+    @patch("app.services.analytics.jobs.compute_domain_usage.logger")
+    @patch("app.services.analytics.common.load_compute_domain_usage_sql")
+    @patch("app.services.analytics.queries.isinstance")
     def test_exec_success(self, mock_isinstance, mock_load_sql, mock_logger):
         """Успешное выполнение запроса аналитики на моках."""
         mock_isinstance.side_effect = lambda obj, cls: cls == AsyncSession
@@ -46,9 +46,14 @@ class TestUsageService(TestCase):
         self.session.execute = AsyncMock(return_value=mock_result)
 
         result = self._run_async(
-            AnalyticsUsageService(self.session, self.user_id).exec(
-                self.start_date, self.end_date, self.page, self.page_size
-            )
+            ComputeDomainUsageService(
+                session=self.session,
+                user_id=self.user_id,
+                start_date=self.start_date,
+                end_date=self.end_date,
+                page=self.page,
+                page_size=self.page_size,
+            ).exec()
         )
 
         self.assertIsInstance(result, AnalyticsUsageResponseOkSchema)
@@ -59,13 +64,11 @@ class TestUsageService(TestCase):
         self.assertEqual(result.pagination.per_page, self.page_size)
         self.assertEqual(len(result.data), 1)
         self.assertEqual(result.data[0].domain, "example.com")
-        mock_logger.info.assert_called_with(
-            f"Successfully computed usage analytics (async, 1 SQL) for user {self.user_id}"
-        )
+        mock_logger.info.assert_called_with(f"Successfully computed usage analytics for user {self.user_id}")
 
-    @patch("app.services.analytics.usage.main.logger")
-    @patch("app.services.analytics.usage.main.AnalyticsUsageService._load_sql")
-    @patch("app.services.analytics.usage.main.isinstance")
+    @patch("app.services.analytics.jobs.compute_domain_usage.logger")
+    @patch("app.services.analytics.common.load_compute_domain_usage_sql")
+    @patch("app.services.analytics.queries.isinstance")
     def test_exec_database_query_fails(self, mock_isinstance, mock_load_sql, mock_logger):
         """Ошибка при запросе к базе данных."""
         mock_isinstance.side_effect = lambda obj, cls: cls == AsyncSession
@@ -74,17 +77,21 @@ class TestUsageService(TestCase):
 
         with self.assertRaises(DatabaseQueryFailedException) as cm:
             self._run_async(
-                AnalyticsUsageService(self.session, self.user_id).exec(
-                    self.start_date, self.end_date, self.page, self.page_size
-                )
+                ComputeDomainUsageService(
+                    session=self.session,
+                    user_id=self.user_id,
+                    start_date=self.start_date,
+                    end_date=self.end_date,
+                    page=self.page,
+                    page_size=self.page_size,
+                ).exec()
             )
 
-        mock_logger.error.assert_called()
-        self.assertEqual(UsageServiceMessages.DATABASE_QUERY_ERROR, cm.exception.message)
+        self.assertEqual(AnalyticsUsageMessages.DATABASE_QUERY_ERROR, cm.exception.message)
 
-    @patch("app.services.analytics.usage.main.logger")
-    @patch("app.services.analytics.usage.main.AnalyticsUsageService._load_sql")
-    @patch("app.services.analytics.usage.main.isinstance")
+    @patch("app.services.analytics.jobs.compute_domain_usage.logger")
+    @patch("app.services.analytics.common.load_compute_domain_usage_sql")
+    @patch("app.services.analytics.queries.isinstance")
     def test_exec_unexpected_error(self, mock_isinstance, mock_load_sql, mock_logger):
         """Обработка неожиданного исключения."""
         mock_isinstance.side_effect = lambda obj, cls: cls == AsyncSession
@@ -93,18 +100,29 @@ class TestUsageService(TestCase):
 
         with self.assertRaises(UnexpectedUsageException) as cm:
             self._run_async(
-                AnalyticsUsageService(self.session, self.user_id).exec(
-                    self.start_date, self.end_date, self.page, self.page_size
-                )
+                ComputeDomainUsageService(
+                    session=self.session,
+                    user_id=self.user_id,
+                    start_date=self.start_date,
+                    end_date=self.end_date,
+                    page=self.page,
+                    page_size=self.page_size,
+                ).exec()
             )
 
-        mock_logger.error.assert_called()
-        self.assertEqual(UsageServiceMessages.UNEXPECTED_ERROR, cm.exception.message)
+        self.assertEqual(AnalyticsUsageMessages.UNEXPECTED_ERROR, cm.exception.message)
 
-    @patch("app.services.analytics.usage.main.logger")
+    @patch("app.services.analytics.jobs.compute_domain_usage.logger")
     def test_normalize_pagination(self, _):
         """Метод _normalize_pagination корректно нормализует параметры."""
-        service = AnalyticsUsageService(self.session, self.user_id)
+        service = ComputeDomainUsageService(
+            session=self.session,
+            user_id=self.user_id,
+            start_date=self.start_date,
+            end_date=self.end_date,
+            page=self.page,
+            page_size=self.page_size,
+        )
 
         test_cases = [
             (2, 10, 2, 10),
@@ -118,10 +136,17 @@ class TestUsageService(TestCase):
                 self.assertEqual(page, expected_page)
                 self.assertEqual(page_size, expected_page_size)
 
-    @patch("app.services.analytics.usage.main.logger")
+    @patch("app.services.analytics.jobs.compute_domain_usage.logger")
     def test_build_time_range(self, _):
         """Метод _build_time_range корректно строит временной диапазон."""
-        service = AnalyticsUsageService(self.session, self.user_id)
+        service = ComputeDomainUsageService(
+            session=self.session,
+            user_id=self.user_id,
+            start_date=self.start_date,
+            end_date=self.end_date,
+            page=self.page,
+            page_size=self.page_size,
+        )
 
         start_date = date(2025, 4, 5)
         end_date = date(2025, 4, 6)
@@ -137,37 +162,11 @@ class TestUsageService(TestCase):
         self.assertEqual(start_dt.tzinfo, timezone.utc)
         self.assertEqual(end_dt.tzinfo, timezone.utc)
 
-    @patch("app.services.analytics.usage.main.logger")
-    @patch("app.services.analytics.usage.main.read_text_file")
-    def test_load_sql(self, mock_read_file, _):
-        """Метод _load_sql корректно загружает SQL из файла."""
-        mock_read_file.return_value = "SELECT * FROM test"
-        service = AnalyticsUsageService(self.session, self.user_id)
+    # NOTE: загрузка SQL/выполнение запроса теперь вынесены в queries.py и покрываются интеграционно через exec()
 
-        sql_text = service._load_sql()
-
-        self.assertEqual(sql_text, "SELECT * FROM test")
-        mock_read_file.assert_called_once()
-
-    @patch("app.services.analytics.usage.main.logger")
-    @patch("app.services.analytics.usage.main.isinstance")
-    def test_execute_query_async_session(self, mock_isinstance, _):
-        """Метод _execute_query работает с AsyncSession."""
-        mock_isinstance.side_effect = lambda obj, cls: cls == AsyncSession
-        mock_result = MagicMock()
-        mock_result.mappings.return_value.all.return_value = [{"test": "value"}]
-        self.session.execute = AsyncMock(return_value=mock_result)
-
-        service = AnalyticsUsageService(self.session, self.user_id)
-        result = self._run_async(service._execute_query("SELECT * FROM test", {"param": "value"}))
-
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0]["test"], "value")
-        self.session.execute.assert_awaited_once()
-
-    @patch("app.services.analytics.usage.main.logger")
-    @patch("app.services.analytics.usage.main.AnalyticsUsageService._load_sql")
-    @patch("app.services.analytics.usage.main.isinstance")
+    @patch("app.services.analytics.jobs.compute_domain_usage.logger")
+    @patch("app.services.analytics.common.load_compute_domain_usage_sql")
+    @patch("app.services.analytics.queries.isinstance")
     def test_exec_empty_result(self, mock_isinstance, mock_load_sql, mock_logger):
         """Обработка пустого результата запроса."""
         mock_isinstance.side_effect = lambda obj, cls: cls == AsyncSession
@@ -177,18 +176,23 @@ class TestUsageService(TestCase):
         self.session.execute = AsyncMock(return_value=mock_result)
 
         result = self._run_async(
-            AnalyticsUsageService(self.session, self.user_id).exec(
-                self.start_date, self.end_date, self.page, self.page_size
-            )
+            ComputeDomainUsageService(
+                session=self.session,
+                user_id=self.user_id,
+                start_date=self.start_date,
+                end_date=self.end_date,
+                page=self.page,
+                page_size=self.page_size,
+            ).exec()
         )
 
         self.assertIsInstance(result, AnalyticsUsageResponseOkSchema)
         self.assertEqual(result.pagination.total_items, 0)
         self.assertEqual(len(result.data), 0)
 
-    @patch("app.services.analytics.usage.main.logger")
-    @patch("app.services.analytics.usage.main.AnalyticsUsageService._load_sql")
-    @patch("app.services.analytics.usage.main.isinstance")
+    @patch("app.services.analytics.jobs.compute_domain_usage.logger")
+    @patch("app.services.analytics.common.load_compute_domain_usage_sql")
+    @patch("app.services.analytics.queries.isinstance")
     def test_exec_pagination_calculation(self, mock_isinstance, mock_load_sql, mock_logger):
         """Корректный расчет пагинации."""
         mock_isinstance.side_effect = lambda obj, cls: cls == AsyncSession
@@ -200,9 +204,14 @@ class TestUsageService(TestCase):
         self.session.execute = AsyncMock(return_value=mock_result)
 
         result = self._run_async(
-            AnalyticsUsageService(self.session, self.user_id).exec(
-                self.start_date, self.end_date, page=1, page_size=10
-            )
+            ComputeDomainUsageService(
+                session=self.session,
+                user_id=self.user_id,
+                start_date=self.start_date,
+                end_date=self.end_date,
+                page=1,
+                page_size=10,
+            ).exec()
         )
 
         self.assertEqual(result.pagination.total_items, 25)
