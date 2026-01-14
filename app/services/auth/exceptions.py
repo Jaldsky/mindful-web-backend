@@ -1,156 +1,124 @@
-from fastapi import status
-
-from ...exceptions import AppException
+from ..exceptions import (
+    UnauthorizedException,
+    ForbiddenException,
+    ConflictException,
+    UnprocessableEntityException,
+    InternalServerErrorException,
+)
 from ...schemas.auth.auth_error_code import AuthErrorCode
 
 
-class AuthException(AppException):
-    """Базовое исключение сервиса авторизации."""
-
-
-# Исключения по статусу ответа
-class AuthUnauthorizedException(AuthException):
-    """Ошибка авторизации (401)."""
-
-    status_code = status.HTTP_401_UNAUTHORIZED
-
-
-class AuthForbiddenException(AuthException):
-    """Ошибка прав доступа (403)."""
-
-    status_code = status.HTTP_403_FORBIDDEN
-
-
-class AuthConflictException(AuthException):
-    """Ошибка при конфликте (409)."""
-
-    status_code = status.HTTP_409_CONFLICT
-
-
-class AuthUnprocessableEntityException(AuthException):
-    """Бизнес ошибка (422)."""
-
-    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-
-
-class AuthInternalServerErrorException(AuthException):
-    """Непредвиденная ошибка (500)."""
-
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-
-
 # Исключения для 401
-class TokenInvalidException(AuthUnauthorizedException):
+class TokenInvalidException(UnauthorizedException):
     """Невалидный токен (401)."""
 
     error_code = AuthErrorCode.TOKEN_INVALID
 
 
-class TokenExpiredException(AuthUnauthorizedException):
+class TokenExpiredException(UnauthorizedException):
     """Истёкший токен (401)."""
 
     error_code = AuthErrorCode.TOKEN_EXPIRED
 
 
-class TokenMissingException(AuthUnauthorizedException):
+class TokenMissingException(UnauthorizedException):
     """Отсутствующий токен (401)."""
 
     error_code = AuthErrorCode.TOKEN_MISSING
 
 
-class InvalidCredentialsException(AuthUnauthorizedException):
+class InvalidCredentialsException(UnauthorizedException):
     """Неверные учетные данные (401)."""
 
     error_code = AuthErrorCode.INVALID_CREDENTIALS
 
 
-class UserNotFoundException(AuthUnauthorizedException):
+class UserNotFoundException(UnauthorizedException):
     """Пользователь не найден в системе (401)."""
 
     error_code = AuthErrorCode.USER_NOT_FOUND
 
 
 # Исключения для 403
-class EmailNotVerifiedException(AuthForbiddenException):
+class EmailNotVerifiedException(ForbiddenException):
     """Email не подтверждён (403)."""
 
     error_code = AuthErrorCode.EMAIL_NOT_VERIFIED
 
 
 # Исключения для 409
-class EmailAlreadyExistsException(AuthConflictException):
+class EmailAlreadyExistsException(ConflictException):
     """Email уже используется (409)."""
 
     error_code = AuthErrorCode.EMAIL_ALREADY_EXISTS
 
 
-class UsernameAlreadyExistsException(AuthConflictException):
+class UsernameAlreadyExistsException(ConflictException):
     """Логин уже занят (409)."""
 
     error_code = AuthErrorCode.USERNAME_ALREADY_EXISTS
 
 
 # Исключения для 422
-class InvalidUsernameFormatException(AuthUnprocessableEntityException):
+class InvalidUsernameFormatException(UnprocessableEntityException):
     """Неверный формат логина (422)."""
 
     error_code = AuthErrorCode.INVALID_USERNAME_FORMAT
 
 
-class InvalidEmailFormatException(AuthUnprocessableEntityException):
+class InvalidEmailFormatException(UnprocessableEntityException):
     """Неверный формат email (422)."""
 
     error_code = AuthErrorCode.INVALID_EMAIL_FORMAT
 
 
-class InvalidPasswordFormatException(AuthUnprocessableEntityException):
+class InvalidPasswordFormatException(UnprocessableEntityException):
     """Неверный формат пароля (422)."""
 
     error_code = AuthErrorCode.INVALID_PASSWORD_FORMAT
 
 
-# Исключения для 500
-class AuthServiceException(AuthInternalServerErrorException):
-    """Ошибка сервиса авторизации (500)."""
-
-    error_code = AuthErrorCode.AUTH_SERVICE_ERROR
-
-
-class EmailSendFailedException(AuthInternalServerErrorException):
-    """Ошибка сервиса email (500)."""
-
-    error_code = AuthErrorCode.EMAIL_SEND_FAILED
-
-
-# Исключения для 422
-class EmailAlreadyVerifiedException(AuthUnprocessableEntityException):
+class EmailAlreadyVerifiedException(UnprocessableEntityException):
     """Email уже подтверждён (422)."""
 
     error_code = AuthErrorCode.EMAIL_ALREADY_VERIFIED
 
 
-class TooManyAttemptsException(AuthUnprocessableEntityException):
+class TooManyAttemptsException(UnprocessableEntityException):
     """Слишком много попыток (422)."""
 
     error_code = AuthErrorCode.TOO_MANY_ATTEMPTS
 
 
-class InvalidVerificationCodeFormatException(AuthUnprocessableEntityException):
+class InvalidVerificationCodeFormatException(UnprocessableEntityException):
     """Неверный формат кода подтверждения (422)."""
 
     error_code = AuthErrorCode.INVALID_VERIFICATION_CODE
 
 
-class VerificationCodeExpiredException(AuthUnprocessableEntityException):
+class VerificationCodeExpiredException(UnprocessableEntityException):
     """Код подтверждения истёк (422)."""
 
     error_code = AuthErrorCode.VERIFICATION_CODE_EXPIRED
 
 
-class VerificationCodeInvalidException(AuthUnprocessableEntityException):
+class VerificationCodeInvalidException(UnprocessableEntityException):
     """Код подтверждения неверный (422)."""
 
     error_code = AuthErrorCode.VERIFICATION_CODE_INVALID
+
+
+# Исключения для 500
+class AuthServiceException(InternalServerErrorException):
+    """Ошибка сервиса авторизации (500)."""
+
+    error_code = AuthErrorCode.AUTH_SERVICE_ERROR
+
+
+class EmailSendFailedException(InternalServerErrorException):
+    """Ошибка сервиса email (500)."""
+
+    error_code = AuthErrorCode.EMAIL_SEND_FAILED
 
 
 class AuthMessages:

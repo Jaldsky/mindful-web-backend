@@ -1,60 +1,33 @@
-from fastapi import status
-
-from ...exceptions import AppException
-from ...schemas.error_response_schema import ErrorCode
-
-
-class EmailServiceException(AppException):
-    """Базовое исключение сервиса email."""
+from .error_code import EmailErrorCode
+from ..exceptions import (
+    UnprocessableEntityException,
+    InternalServerErrorException,
+)
 
 
-# Исключения по статусу ответа
-class EmailBadRequestException(EmailServiceException):
-    """Ошибка запроса (400)."""
-
-    status_code = status.HTTP_400_BAD_REQUEST
-    error_code = ErrorCode.BUSINESS_VALIDATION_ERROR
-
-
-# Исключения по статусу ответа
-class EmailUnprocessableEntityException(EmailServiceException):
-    """Бизнес ошибка (422)."""
-
-    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-    error_code = ErrorCode.BUSINESS_VALIDATION_ERROR
-
-
-class EmailInternalServerErrorException(EmailServiceException):
-    """Непредвиденная ошибка (500)."""
-
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-    error_code = ErrorCode.INTERNAL_ERROR
-
-
-# Исключения для 422
-class InvalidEmailFormatException(EmailUnprocessableEntityException):
-    """Неверный формат email (422)."""
-
-    error_code = "INVALID_EMAIL_FORMAT"
-
-
-class InvalidVerificationCodeException(EmailUnprocessableEntityException):
+class InvalidVerificationCodeException(UnprocessableEntityException):
     """Неверный формат кода подтверждения (422)."""
 
-    error_code = "INVALID_VERIFICATION_CODE"
+    error_code = EmailErrorCode.INVALID_VERIFICATION_CODE
+
+
+class InvalidEmailFormatException(UnprocessableEntityException):
+    """Неверный формат кода подтверждения (422)."""
+
+    error_code = EmailErrorCode.INVALID_EMAIL
 
 
 # Исключения для 500
-class EmailSendFailedException(EmailInternalServerErrorException):
+class EmailSendFailedException(InternalServerErrorException):
     """Ошибка отправки email (500)."""
 
-    error_code = "EMAIL_SEND_FAILED"
+    error_code = EmailErrorCode.EMAIL_SEND_FAILED
 
 
-class InvalidSMTPConfigException(EmailInternalServerErrorException):
+class InvalidSMTPConfigException(InternalServerErrorException):
     """Неверная конфигурация SMTP (500)."""
 
-    error_code = "INVALID_SMTP_CONFIG"
+    error_code = EmailErrorCode.EMAIL_SEND_FAILED
 
 
 class EmailServiceMessages:
