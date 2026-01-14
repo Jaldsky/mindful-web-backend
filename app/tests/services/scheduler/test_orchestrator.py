@@ -93,7 +93,6 @@ class TestOrchestrator(TestCase):
             self.orchestrator.exec(self.mock_task)
 
         self.assertEqual(cm.exception.message, OrchestratorServiceMessages.BROKER_UNAVAILABLE)
-        mock_logger.error.assert_called_once_with("Celery broker unavailable for task test_task")
 
     @patch("app.services.scheduler.orchestrator.logger")
     def test_exec_task_without_name(self, _):

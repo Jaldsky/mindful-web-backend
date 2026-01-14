@@ -57,6 +57,8 @@ class Orchestrator(OrchestratorBase):
             OrchestratorTimeoutException: При таймауте выполнения задачи.
             OrchestratorBrokerUnavailableException: При недоступности брокера.
         """
+        from ...celery_app import celery as _celery  # noqa: F401
+
         celery_task = None
         task_name = getattr(task, "name", "unknown")
         try:
@@ -74,5 +76,4 @@ class Orchestrator(OrchestratorBase):
                 message=self.messages.TASK_TIMEOUT.format(task_id=task_id),
             )
         except OperationalError:
-            logger.error(f"Celery broker unavailable for task {task_name}")
             raise OrchestratorBrokerUnavailableException(message=self.messages.BROKER_UNAVAILABLE)

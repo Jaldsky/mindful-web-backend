@@ -86,7 +86,6 @@ class AnalyticsUsageService(AnalyticsUsageServiceBase):
             OrchestratorTimeoutException: Если задача не успела выполниться в пределах таймаута (202).
             OrchestratorBrokerUnavailableException: Если брокер Celery недоступен (503).
         """
-        # Ленивая загрузка, чтобы импорт app.services.analytics не требовал Celery сразу.
         from ...scheduler import Orchestrator, compute_domain_usage_task
 
         orchestrator = Orchestrator()
