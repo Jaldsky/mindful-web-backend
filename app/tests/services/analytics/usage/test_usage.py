@@ -8,11 +8,11 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.services.analytics import ComputeDomainUsageService
 from app.services.analytics.exceptions import (
-    DatabaseQueryFailedException,
-    UnexpectedUsageException,
     AnalyticsUsageMessages,
+    AnalyticsServiceException,
 )
 from app.schemas.analytics.usage.response_ok_schema import AnalyticsUsageResponseOkSchema
+from app.services.exceptions import ServiceDatabaseErrorException
 
 
 class TestUsageService(TestCase):
@@ -75,7 +75,7 @@ class TestUsageService(TestCase):
         mock_load_sql.return_value = "SELECT * FROM test"
         self.session.execute = AsyncMock(side_effect=SQLAlchemyError("Connection lost"))
 
-        with self.assertRaises(DatabaseQueryFailedException) as cm:
+        with self.assertRaises(ServiceDatabaseErrorException) as cm:
             self._run_async(
                 ComputeDomainUsageService(
                     session=self.session,
@@ -98,7 +98,7 @@ class TestUsageService(TestCase):
         mock_load_sql.return_value = "SELECT * FROM test"
         self.session.execute = AsyncMock(side_effect=ValueError("Something weird"))
 
-        with self.assertRaises(UnexpectedUsageException) as cm:
+        with self.assertRaises(AnalyticsServiceException) as cm:
             self._run_async(
                 ComputeDomainUsageService(
                     session=self.session,

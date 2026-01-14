@@ -1,23 +1,10 @@
-from fastapi import status
-
-from ...exceptions import AppException
-
-
-class HealthcheckException(AppException):
-    """Базовое исключение сервиса healthcheck."""
+from ..exceptions import (
+    ServiceUnavailableException,
+)
 
 
-# Исключения по статусу ответа
-class HealthcheckServiceUnavailableException(HealthcheckException):
+class HealthcheckServiceUnavailableException(ServiceUnavailableException):
     """Сервис недоступен (503)."""
-
-    status_code = status.HTTP_503_SERVICE_UNAVAILABLE
-
-
-class HealthcheckInternalServerErrorException(HealthcheckException):
-    """Непредвиденная ошибка (500)."""
-
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
 
 class HealthcheckMessages:

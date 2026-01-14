@@ -8,6 +8,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from ...exceptions import ServiceDatabaseErrorException
 from ....config import DEFAULT_PAGE_SIZE
 from ....schemas.analytics.usage.response_ok_schema import (
     AnalyticsUsageResponseOkSchema,
@@ -15,11 +16,7 @@ from ....schemas.analytics.usage.response_ok_schema import (
     PaginationMeta,
 )
 from ..types import Date, Page, PageSize, DomainUsageRow
-from ..exceptions import (
-    AnalyticsUsageMessages,
-    DatabaseQueryFailedException,
-    UnexpectedUsageException,
-)
+from ..exceptions import AnalyticsUsageMessages, AnalyticsServiceException
 from ..queries import execute_domain_usage_query
 
 logger = logging.getLogger(__name__)
@@ -213,8 +210,8 @@ class ComputeDomainUsageService(ComputeDomainUsageServiceBase):
             AnalyticsUsageResponseOkSchema с агрегированной статистикой.
 
         Raises:
-            DatabaseQueryFailedException: При ошибке запроса к базе данных.
-            UnexpectedUsageException: При любой другой непредвиденной ошибке.
+            ServiceDatabaseErrorException: При ошибке запроса к базе данных.
+            AnalyticsServiceException: При любой другой непредвиденной ошибке.
         """
         try:
             page, page_size = self._normalize_pagination(self.page, self.page_size)
@@ -235,6 +232,6 @@ class ComputeDomainUsageService(ComputeDomainUsageServiceBase):
                 data=data,
             )
         except SQLAlchemyError:
-            raise DatabaseQueryFailedException(self.messages.DATABASE_QUERY_ERROR)
+            raise ServiceDatabaseErrorException(self.messages.DATABASE_QUERY_ERROR)
         except Exception:
-            raise UnexpectedUsageException(self.messages.UNEXPECTED_ERROR)
+            raise AnalyticsServiceException(self.messages.UNEXPECTED_ERROR)

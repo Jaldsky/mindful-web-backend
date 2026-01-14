@@ -1,91 +1,75 @@
-from fastapi import status
-
-from ...exceptions import AppException
+from ..exceptions import (
+    UnprocessableEntityException,
+    InternalServerErrorException,
+)
 from ...schemas.events.events_error_code import EventsErrorCode
 
 
-class EventsServiceException(AppException):
-    """Базовое исключение сервиса events."""
-
-
-# Исключения по статусу ответа
-class EventsUnprocessableEntityException(EventsServiceException):
-    """Бизнес ошибка (422)."""
-
-    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-
-
-class EventsInternalServerErrorException(EventsServiceException):
-    """Непредвиденная ошибка (500)."""
-
-    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
-
-
 # Исключения для 422
-class InvalidUserIdException(EventsUnprocessableEntityException):
+class InvalidUserIdException(UnprocessableEntityException):
     """Неверный формат User ID (422)."""
 
     error_code = EventsErrorCode.INVALID_USER_ID
 
 
-class InvalidEventTypeException(EventsUnprocessableEntityException):
+class InvalidEventTypeException(UnprocessableEntityException):
     """Неверный тип события (422)."""
 
     error_code = EventsErrorCode.INVALID_EVENT_TYPE
 
 
-class InvalidDomainFormatException(EventsUnprocessableEntityException):
+class InvalidDomainFormatException(UnprocessableEntityException):
     """Неверный формат домена (422)."""
 
     error_code = EventsErrorCode.INVALID_DOMAIN_FORMAT
 
 
-class InvalidDomainLengthException(EventsUnprocessableEntityException):
+class InvalidDomainLengthException(UnprocessableEntityException):
     """Неверная длина домена (422)."""
 
     error_code = EventsErrorCode.INVALID_DOMAIN_LENGTH
 
 
-class TimestampInFutureException(EventsUnprocessableEntityException):
+class TimestampInFutureException(UnprocessableEntityException):
     """Timestamp в будущем (422)."""
 
     error_code = EventsErrorCode.TIMESTAMP_IN_FUTURE
 
 
-class EmptyEventsListException(EventsUnprocessableEntityException):
+class EmptyEventsListException(UnprocessableEntityException):
     """Пустой список событий (422)."""
 
 
-class TooManyEventsException(EventsUnprocessableEntityException):
+class TooManyEventsException(UnprocessableEntityException):
     """Слишком много событий (422)."""
 
 
 # Исключения для 500
-class UserCreationFailedException(EventsInternalServerErrorException):
+class UserCreationFailedException(InternalServerErrorException):
     """Ошибка создания/получения пользователя (500)."""
 
     error_code = EventsErrorCode.USER_CREATION_FAILED
 
 
-class EventsInsertFailedException(EventsInternalServerErrorException):
+class EventsInsertFailedException(InternalServerErrorException):
     """Ошибка вставки событий (500)."""
 
     error_code = EventsErrorCode.EVENTS_INSERT_FAILED
 
 
-class DataIntegrityViolationException(EventsInternalServerErrorException):
+class DataIntegrityViolationException(InternalServerErrorException):
     """Нарушение целостности данных (500)."""
 
     error_code = EventsErrorCode.DATA_INTEGRITY_VIOLATION
 
 
-class TransactionFailedException(EventsInternalServerErrorException):
+class TransactionFailedException(InternalServerErrorException):
     """Ошибка транзакции (500)."""
 
     error_code = EventsErrorCode.TRANSACTION_FAILED
 
 
-class UnexpectedEventsException(EventsInternalServerErrorException):
+class UnexpectedEventsException(InternalServerErrorException):
     """Неожиданная ошибка обработки событий (500)."""
 
     error_code = EventsErrorCode.TRANSACTION_FAILED
