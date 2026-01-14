@@ -1,5 +1,5 @@
-from .types import Password, Username, AccessToken, RefreshToken
-from ..types import Email
+from .types import Password, AccessToken, RefreshToken
+from ..types import Email, Username
 from ..normalizers import normalize_email
 
 

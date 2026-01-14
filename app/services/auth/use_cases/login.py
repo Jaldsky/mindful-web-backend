@@ -12,7 +12,8 @@ from ..exceptions import (
     InvalidCredentialsException,
 )
 from ..queries import fetch_user_by_username
-from ..types import AccessToken, Password, PasswordHash, RefreshToken, Username
+from ..types import AccessToken, Password, PasswordHash, RefreshToken
+from ...types import Username
 from ....db.models.tables import User
 
 logger = logging.getLogger(__name__)

@@ -3,8 +3,7 @@ from datetime import datetime
 from sqlalchemy import and_, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..types import Email, UserId, VerificationCode
-from .types import Username
+from ..types import Email, UserId, VerificationCode, Username
 from ...db.models.tables import User, VerificationCode as VerificationCodeModel
 
 

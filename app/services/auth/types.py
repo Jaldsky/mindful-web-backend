@@ -1,6 +1,5 @@
 from typing import Any, TypeAlias
 
-Username: TypeAlias = str
 Password: TypeAlias = str
 PasswordHash: TypeAlias = str
 

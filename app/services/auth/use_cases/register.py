@@ -17,8 +17,8 @@ from ..exceptions import (
     InvalidUsernameFormatException,
     UsernameAlreadyExistsException,
 )
-from ..types import Password, PasswordHash, Username
-from ...types import Email, UserId, VerificationCode
+from ..types import Password, PasswordHash
+from ...types import Email, UserId, VerificationCode, Username
 from ....db.models.tables import User, VerificationCode as VerificationCodeModel
 from ....services.email import EmailService
 from ....config import VERIFICATION_CODE_EXPIRE_MINUTES
