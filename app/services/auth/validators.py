@@ -16,8 +16,8 @@ from .exceptions import (
     InvalidUsernameFormatException,
     InvalidVerificationCodeFormatException,
 )
-from .types import Password, RefreshToken, Username, AccessToken
-from ..types import Email, VerificationCode
+from .types import Password, RefreshToken, AccessToken
+from ..types import Email, VerificationCode, Username
 from ..validators import validate_email_format
 
 
