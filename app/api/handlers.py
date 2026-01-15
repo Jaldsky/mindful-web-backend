@@ -15,6 +15,7 @@ from .routes import (
     AUTH_REGISTER_PATH,
     AUTH_RESEND_CODE_PATH,
     AUTH_VERIFY_PATH,
+    AUTH_LOGOUT_PATH,
     USER_PROFILE_PATH,
 )
 from ..schemas import ErrorCode, ErrorDetailData
@@ -84,6 +85,7 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
     from ..services.analytics.http_handler import analytics_usage_method_not_allowed_response
     from ..services.auth.http_handler import (
         auth_login_method_not_allowed_response,
+        auth_logout_method_not_allowed_response,
         auth_refresh_method_not_allowed_response,
         auth_register_method_not_allowed_response,
         auth_resend_code_method_not_allowed_response,
@@ -114,6 +116,9 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
 
     if str(request.url.path) == AUTH_RESEND_CODE_PATH:
         return auth_resend_code_method_not_allowed_response()
+
+    if str(request.url.path) == AUTH_LOGOUT_PATH:
+        return auth_logout_method_not_allowed_response()
 
     if str(request.url.path) == USER_PROFILE_PATH:
         return user_profile_method_not_allowed_response()

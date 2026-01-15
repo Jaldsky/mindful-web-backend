@@ -27,6 +27,10 @@ from ....schemas.auth import (
     RefreshUnauthorizedSchema,
     RefreshMethodNotAllowedSchema,
     RefreshInternalServerErrorSchema,
+    # Logout
+    LogoutResponseSchema,
+    LogoutMethodNotAllowedSchema,
+    LogoutInternalServerErrorSchema,
     # Verify
     VerifyRequestSchema,
     VerifyResponseSchema,
@@ -52,7 +56,7 @@ from ....services.auth import (
     ResendVerificationCodeService,
     VerifyEmailService,
 )
-from ....services.auth.cookies import set_auth_cookies
+from ....services.auth.cookies import set_auth_cookies, clear_auth_cookies
 from ....services.auth.exceptions import AuthMessages, TokenMissingException
 from ....services.auth.constants import AUTH_REFRESH_COOKIE_NAME
 
@@ -321,3 +325,33 @@ async def login(
         access_token=access_token,
         refresh_token=refresh_token,
     )
+
+
+@router.post(
+    "/logout",
+    response_model=LogoutResponseSchema,
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_200_OK: {
+            "model": LogoutResponseSchema,
+            "description": "Авторизация пользователя отозвана",
+        },
+        status.HTTP_405_METHOD_NOT_ALLOWED: {
+            "model": LogoutMethodNotAllowedSchema,
+            "description": "Поддерживается только POST метод",
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "model": LogoutInternalServerErrorSchema,
+            "description": "Внутренняя ошибка сервера",
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "model": ServiceUnavailableSchema,
+            "description": "Сервис не доступен",
+        },
+    },
+    summary="Выход пользователя из системы",
+    description="Удаляет токен доступа и токен обновления из HTTP куки.",
+)
+async def logout(response: Response) -> LogoutResponseSchema:
+    clear_auth_cookies(response)
+    return LogoutResponseSchema()

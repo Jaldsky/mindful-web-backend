@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from ...common.http_responses import method_not_allowed_response
 from ...schemas.auth import (
     LoginMethodNotAllowedSchema,
+    LogoutMethodNotAllowedSchema,
     RefreshMethodNotAllowedSchema,
     RegisterMethodNotAllowedSchema,
     ResendCodeMethodNotAllowedSchema,
@@ -26,6 +27,15 @@ def auth_login_method_not_allowed_response() -> JSONResponse:
         JSONResponse с ошибкой 405 Method Not Allowed.
     """
     return method_not_allowed_response(LoginMethodNotAllowedSchema, allowed_method="POST")
+
+
+def auth_logout_method_not_allowed_response() -> JSONResponse:
+    """Функция возврата ответа 405 Method Not Allowed для POST /auth/logout.
+
+    Returns:
+        JSONResponse с ошибкой 405 Method Not Allowed.
+    """
+    return method_not_allowed_response(LogoutMethodNotAllowedSchema, allowed_method="POST")
 
 
 def auth_refresh_method_not_allowed_response() -> JSONResponse:

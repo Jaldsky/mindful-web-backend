@@ -43,6 +43,11 @@ from .resend_code import (
     ResendCodeMethodNotAllowedSchema,
     ResendCodeInternalServerErrorSchema,
 )
+from .logout import (
+    LogoutResponseSchema,
+    LogoutMethodNotAllowedSchema,
+    LogoutInternalServerErrorSchema,
+)
 
 __all__ = (
     # Common
@@ -86,4 +91,8 @@ __all__ = (
     "ResendCodeUnauthorizedSchema",
     "ResendCodeMethodNotAllowedSchema",
     "ResendCodeInternalServerErrorSchema",
+    # Logout
+    "LogoutResponseSchema",
+    "LogoutMethodNotAllowedSchema",
+    "LogoutInternalServerErrorSchema",
 )
