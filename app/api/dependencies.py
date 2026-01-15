@@ -13,7 +13,7 @@ from ..services.auth.exceptions import (
     AuthMessages,
     TokenMissingException,
 )
-from ..services.auth.access import authenticate_access_token
+from ..services.auth.access import authenticate_access_token, extract_user_id_from_access_token
 
 logger = logging.getLogger(__name__)
 
@@ -113,3 +113,25 @@ async def get_current_user(
         raise TokenMissingException(AuthMessages.TOKEN_MISSING)
 
     return await authenticate_access_token(db, credentials.credentials)
+
+
+async def get_current_user_id(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+) -> UUID:
+    """Функция получения user_id текущего пользователя по JWT токену доступа.
+
+    Args:
+        credentials: Bearer-токен из заголовка Authorization.
+
+    Returns:
+        UUID пользователя.
+
+    Raises:
+        TokenMissingException: Если заголовок Authorization отсутствует.
+        TokenInvalidException: Если токен невалиден.
+        TokenExpiredException: Если токен истёк.
+    """
+    if credentials is None:
+        raise TokenMissingException(AuthMessages.TOKEN_MISSING)
+
+    return extract_user_id_from_access_token(credentials.credentials)

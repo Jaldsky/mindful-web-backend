@@ -12,7 +12,7 @@ from app.db.models.tables import User
 from app.db.session.manager import ManagerAsync
 from app.services.auth.common import create_tokens
 from app.services.auth.exceptions import TokenExpiredException, TokenInvalidException, UserNotFoundException
-from app.services.auth.access import authenticate_access_token
+from app.services.auth.access import authenticate_access_token, extract_user_id_from_access_token
 
 
 class TestAuthenticateAccessToken(TestCase):
@@ -165,3 +165,57 @@ class TestAuthenticateAccessToken(TestCase):
                     await authenticate_access_token(session, token)
 
         self._run_async(_test())
+
+
+class TestExtractUserIdFromAccessToken(TestCase):
+    def _run_async(self, coro):
+        return asyncio.run(coro)
+
+    def _make_access_token(self, *, sub: str, exp: datetime) -> str:
+        now = datetime.now(timezone.utc)
+        payload = {
+            "sub": sub,
+            "type": "access",
+            "iat": int(now.timestamp()),
+            "exp": int(exp.timestamp()),
+        }
+        return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+    def _make_refresh_token(self, *, sub: str, exp: datetime) -> str:
+        now = datetime.now(timezone.utc)
+        payload = {
+            "sub": sub,
+            "type": "refresh",
+            "iat": int(now.timestamp()),
+            "exp": int(exp.timestamp()),
+        }
+        return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
+
+    def test_returns_user_id_from_valid_access(self):
+        exp = datetime.now(timezone.utc) + timedelta(minutes=5)
+        user_id = uuid4()
+        token = self._make_access_token(sub=str(user_id), exp=exp)
+
+        extracted = extract_user_id_from_access_token(token)
+        self.assertEqual(extracted, user_id)
+
+    def test_raises_token_invalid_for_refresh_token(self):
+        exp = datetime.now(timezone.utc) + timedelta(minutes=5)
+        token = self._make_refresh_token(sub=str(uuid4()), exp=exp)
+
+        with self.assertRaises(TokenInvalidException):
+            extract_user_id_from_access_token(token)
+
+    def test_raises_token_invalid_for_non_uuid_sub(self):
+        exp = datetime.now(timezone.utc) + timedelta(minutes=5)
+        token = self._make_access_token(sub="not-a-uuid", exp=exp)
+
+        with self.assertRaises(TokenInvalidException):
+            extract_user_id_from_access_token(token)
+
+    def test_raises_token_expired_for_expired_access(self):
+        exp = datetime.now(timezone.utc) - timedelta(minutes=1)
+        token = self._make_access_token(sub=str(uuid4()), exp=exp)
+
+        with self.assertRaises(TokenExpiredException):
+            extract_user_id_from_access_token(token)

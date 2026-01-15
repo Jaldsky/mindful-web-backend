@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
-from .api.v1.endpoints import healthcheck, auth, events, analytics
+from .api.v1.endpoints import healthcheck, auth, user, events, analytics
 from .api.handlers import (
     method_not_allowed_handler,
     service_unavailable_handler,
@@ -47,5 +47,6 @@ app.add_exception_handler(503, service_unavailable_handler)
 
 app.include_router(healthcheck.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
+app.include_router(user.router, prefix="/api/v1")
 app.include_router(events.router, prefix="/api/v1")
 app.include_router(analytics.router, prefix="/api/v1")
