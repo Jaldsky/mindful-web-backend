@@ -201,7 +201,8 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
                 )
                 if not user:
                     raise UserNotFoundException(self.messages.USER_NOT_FOUND)
-                if user.is_verified:
+                is_pending_email = user.pending_email is not None and user.pending_email == self.email
+                if user.is_verified and not is_pending_email:
                     raise EmailAlreadyVerifiedException(self.messages.EMAIL_ALREADY_VERIFIED)
 
                 code, code_row_id = await self._pick_or_create_code(user.id, now, active_code_row)
