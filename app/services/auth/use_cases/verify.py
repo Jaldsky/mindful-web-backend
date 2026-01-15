@@ -63,22 +63,23 @@ class VerifyEmailServiceBase:
 class VerifyEmailService(VerifyEmailServiceBase):
     """Сервис подтверждения email."""
 
-    async def _load_user_and_code_row(self) -> tuple[User, VerificationCodeModel]:
+    async def _load_user_and_code_row(self) -> tuple[User, VerificationCodeModel, bool]:
         """Приватный метод загрузки пользователя и последней записи кода подтверждения.
 
         Returns:
-            Кортеж с пользователем и записью кода подтверждения.
+            Кортеж с пользователем, записью кода подтверждения и флагом pending-email.
 
         Raises:
             UserNotFoundException: Если пользователь не найден.
-            EmailAlreadyVerifiedException: Если email уже подтверждён.
+            EmailAlreadyVerifiedException: Если email уже подтверждён и pending_email отсутствует.
             TooManyAttemptsException: Если последний код был инвалидирован из-за исчерпания попыток.
             VerificationCodeInvalidException: Если нет кода подтверждения или он уже использован.
         """
         user, verification = await fetch_user_with_latest_verification_code_by_email(self.session, self.email)
         if not user:
             raise UserNotFoundException(self.messages.USER_NOT_FOUND)
-        if user.is_verified:
+        is_pending_email = user.pending_email is not None and user.pending_email == self.email
+        if user.is_verified and not is_pending_email:
             raise EmailAlreadyVerifiedException(self.messages.EMAIL_ALREADY_VERIFIED)
         if not verification:
             raise VerificationCodeInvalidException(self.messages.CODE_INVALID)
@@ -89,7 +90,7 @@ class VerifyEmailService(VerifyEmailServiceBase):
                 raise TooManyAttemptsException(self.messages.TOO_MANY_ATTEMPTS)
             raise VerificationCodeInvalidException(self.messages.CODE_INVALID)
 
-        return user, verification
+        return user, verification, is_pending_email
 
     def _ensure_code_not_expired(self, verification: VerificationCodeModel, now: datetime) -> None | NoReturn:
         """Приватный метод проверки срока действия кода подтверждения.
@@ -152,11 +153,11 @@ class VerifyEmailService(VerifyEmailServiceBase):
         """Функция подтверждения email по ранее отправленному коду.
 
         Процесс включает:
-        1. Поиск пользователя по email
-        2. Проверку, что email ещё не подтверждён
+        1. Поиск пользователя по email или pending_email
+        2. Проверку, что email ещё не подтверждён или подтверждается pending_email
         3. Поиск записи кода подтверждения
         4. Проверку, что код не истёк
-        5. Пометку кода как использованного и пользователя как подтверждённого
+        5. Пометку кода как использованного и подтверждение email
         6. Коммит транзакции
 
         Raises:
@@ -170,12 +171,16 @@ class VerifyEmailService(VerifyEmailServiceBase):
         """
         try:
             now = datetime.now(timezone.utc)
-            user, verification = await self._load_user_and_code_row()
+            user, verification, is_pending_email = await self._load_user_and_code_row()
             await self._handle_attempt_limit(verification, now)
             self._ensure_code_not_expired(verification, now)
             await self._verify_code_match(verification, now)
 
             verification.used_at = now
+            if is_pending_email:
+                user.email = user.pending_email
+                user.pending_email = None
+                user.updated_at = now
             user.is_verified = True
             await self.session.commit()
 

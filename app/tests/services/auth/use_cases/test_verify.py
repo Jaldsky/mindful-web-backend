@@ -104,6 +104,57 @@ class TestVerifyEmailServiceExec(TestCase):
         finally:
             self._restore_server_defaults(*originals)
 
+    def test_exec_pending_email_applies_new_email(self):
+        originals = self._patch_server_defaults_for_sqlite()
+        try:
+
+            async def _test_session():
+                manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+                engine = manager.get_engine()
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+
+                now = datetime.now(timezone.utc)
+                expires_at = now + timedelta(minutes=10)
+
+                async with manager.get_session() as session:
+                    user = User(
+                        username="testuser",
+                        email="old@example.com",
+                        pending_email="new@example.com",
+                        password="hash",
+                        is_verified=True,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    session.add(user)
+                    await session.flush()
+                    session.add(
+                        VerificationCode(
+                            user_id=user.id,
+                            code="123456",
+                            expires_at=expires_at,
+                            used_at=None,
+                            created_at=now,
+                        )
+                    )
+                    await session.commit()
+
+                async with manager.get_session() as session:
+                    service = VerifyEmailService(session=session, email="new@example.com", code="123456")
+                    ok = await service.exec()
+                    self.assertIsNone(ok)
+
+                async with manager.get_session() as session:
+                    refreshed = await session.get(User, user.id)
+                    self.assertEqual(refreshed.email, "new@example.com")
+                    self.assertIsNone(refreshed.pending_email)
+                    self.assertTrue(refreshed.is_verified)
+
+            self._run_async(_test_session())
+        finally:
+            self._restore_server_defaults(*originals)
+
     def test_exec_user_not_found(self):
         originals = self._patch_server_defaults_for_sqlite()
         try:
@@ -116,6 +167,51 @@ class TestVerifyEmailServiceExec(TestCase):
 
                 async with manager.get_session() as session:
                     service = VerifyEmailService(session=session, email="missing@example.com", code="123456")
+                    with self.assertRaises(UserNotFoundException):
+                        await service.exec()
+
+            self._run_async(_test_session())
+        finally:
+            self._restore_server_defaults(*originals)
+
+    def test_exec_old_pending_email_not_found(self):
+        originals = self._patch_server_defaults_for_sqlite()
+        try:
+
+            async def _test_session():
+                manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+                engine = manager.get_engine()
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+
+                now = datetime.now(timezone.utc)
+                expires_at = now + timedelta(minutes=10)
+
+                async with manager.get_session() as session:
+                    user = User(
+                        username="testuser",
+                        email="old@example.com",
+                        pending_email="second@example.com",
+                        password="hash",
+                        is_verified=True,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    session.add(user)
+                    await session.flush()
+                    session.add(
+                        VerificationCode(
+                            user_id=user.id,
+                            code="123456",
+                            expires_at=expires_at,
+                            used_at=None,
+                            created_at=now,
+                        )
+                    )
+                    await session.commit()
+
+                async with manager.get_session() as session:
+                    service = VerifyEmailService(session=session, email="first@example.com", code="123456")
                     with self.assertRaises(UserNotFoundException):
                         await service.exec()
 

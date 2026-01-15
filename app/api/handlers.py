@@ -17,6 +17,8 @@ from .routes import (
     AUTH_VERIFY_PATH,
     AUTH_LOGOUT_PATH,
     USER_PROFILE_PATH,
+    USER_PROFILE_USERNAME_PATH,
+    USER_PROFILE_EMAIL_PATH,
 )
 from ..schemas import ErrorCode, ErrorDetailData
 from ..schemas.general import UnprocessableEntitySchema, InternalServerErrorSchema, BadRequestSchema
@@ -91,7 +93,11 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
         auth_resend_code_method_not_allowed_response,
         auth_verify_method_not_allowed_response,
     )
-    from ..services.user.http_handler import user_profile_method_not_allowed_response
+    from ..services.user.http_handler import (
+        user_profile_method_not_allowed_response,
+        user_profile_username_method_not_allowed_response,
+        user_profile_email_method_not_allowed_response,
+    )
 
     if str(request.url.path) == HEALTHCHECK_PATH:
         return healthcheck_method_not_allowed_response()
@@ -122,6 +128,12 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
 
     if str(request.url.path) == USER_PROFILE_PATH:
         return user_profile_method_not_allowed_response()
+
+    if str(request.url.path) == USER_PROFILE_USERNAME_PATH:
+        return user_profile_username_method_not_allowed_response()
+
+    if str(request.url.path) == USER_PROFILE_EMAIL_PATH:
+        return user_profile_email_method_not_allowed_response()
 
     detail = "Method not allowed"
     if isinstance(exc, StarletteHTTPException) and exc.detail:
