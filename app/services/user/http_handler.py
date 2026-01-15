@@ -1,7 +1,7 @@
 from fastapi.responses import JSONResponse
 
 from ...common.http_responses import method_not_allowed_response
-from ...schemas.user import UserProfileMethodNotAllowedSchema
+from ...schemas.user import ProfileMethodNotAllowedSchema
 
 
 def user_profile_method_not_allowed_response() -> JSONResponse:
@@ -10,4 +10,4 @@ def user_profile_method_not_allowed_response() -> JSONResponse:
     Returns:
         JSONResponse с ошибкой 405 Method Not Allowed.
     """
-    return method_not_allowed_response(UserProfileMethodNotAllowedSchema, allowed_method="GET")
+    return method_not_allowed_response(ProfileMethodNotAllowedSchema, allowed_method="GET")

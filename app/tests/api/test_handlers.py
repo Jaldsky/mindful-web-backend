@@ -3,13 +3,13 @@ from unittest import TestCase
 from unittest.mock import Mock
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
-from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.handlers import method_not_allowed_handler
-from app.api.routes import HEALTHCHECK_PATH, SEND_EVENTS_PATH
+from app.api.routes import HEALTHCHECK_PATH, SEND_EVENTS_PATH, USER_PROFILE_PATH
 from app.schemas import ErrorCode
 from app.schemas.events import SaveEventsMethodNotAllowedSchema
 from app.schemas.healthcheck import HealthcheckMethodNotAllowedSchema
+from app.schemas.user import ProfileMethodNotAllowedSchema
 
 
 class TestMethodNotAllowedHandler(TestCase):
@@ -79,3 +79,20 @@ class TestMethodNotAllowedHandler(TestCase):
         data = json.loads(content)
         self.assertIn("detail", data)
         self.assertEqual(data["detail"], "Method not allowed")
+
+    def test_user_profile_path_returns_correct_schema(self):
+        """Обработчик возвращает корректную схему для user profile endpoint."""
+        request = self._create_mock_request(USER_PROFILE_PATH)
+        exc = Exception("Test exception")
+
+        response = self._run_async(method_not_allowed_handler(request, exc))
+
+        self.assertIsInstance(response, JSONResponse)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+        content = response.body.decode("utf-8")
+        import json
+
+        data = json.loads(content)
+        schema = ProfileMethodNotAllowedSchema(**data)
+        self.assertEqual(schema.code, ErrorCode.METHOD_NOT_ALLOWED)
