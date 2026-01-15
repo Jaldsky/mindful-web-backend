@@ -12,6 +12,7 @@ AUTH_LOGIN_PATH = f"{AUTH_PATH}/login"
 AUTH_REFRESH_PATH = f"{AUTH_PATH}/refresh"
 AUTH_VERIFY_PATH = f"{AUTH_PATH}/verify"
 AUTH_RESEND_CODE_PATH = f"{AUTH_PATH}/resend-code"
+AUTH_LOGOUT_PATH = f"{AUTH_PATH}/logout"
 
 # User
 USER_PATH = f"{API_V1_PREFIX}/user"
