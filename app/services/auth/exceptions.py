@@ -128,6 +128,8 @@ class AuthMessages:
     EMAIL_EXISTS = "User with this email already exists"
     EMAIL_SEND_FAILED = "Failed to send verification email"
     AUTH_SERVICE_ERROR = "Authentication service error"
+    ANON_ID_GENERATION_FAILED = "Failed to generate anonymous session id"
+    ANON_TOKEN_CREATE_FAILED = "Failed to create anonymous session token"
     RESEND_CODE_DB_STAGE_ERROR = "Resend code failed due to a database error"
     RESEND_CODE_EMAIL_STAGE_ERROR = "Resend code failed while sending verification email"
     USER_NOT_FOUND = "User not found"
