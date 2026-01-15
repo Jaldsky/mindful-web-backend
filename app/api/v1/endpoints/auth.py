@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -52,6 +52,9 @@ from ....services.auth import (
     ResendVerificationCodeService,
     VerifyEmailService,
 )
+from ....services.auth.cookies import set_auth_cookies
+from ....services.auth.exceptions import AuthMessages, TokenMissingException
+from ....services.auth.constants import AUTH_REFRESH_COOKIE_NAME
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -240,13 +243,24 @@ async def verify(
     description="Принимает refresh токен и возвращает новую пару access/refresh.",
 )
 async def refresh(
-    payload: RefreshRequestSchema = Body(..., description="Данные обновления токена"),
+    request: Request,
+    response: Response,
+    payload: RefreshRequestSchema | None = Body(None, description="Данные обновления токена"),
     db: AsyncSession = Depends(get_db_session),
 ) -> RefreshResponseSchema:
+    refresh_token = payload.refresh_token if payload else None
+    if not refresh_token:
+        refresh_token = request.cookies.get(AUTH_REFRESH_COOKIE_NAME)
+    if not refresh_token:
+        raise TokenMissingException(AuthMessages.TOKEN_MISSING)
+
     access_token, refresh_token = await RefreshTokensService(
         session=db,
-        refresh_token=payload.refresh_token,
+        refresh_token=refresh_token,
     ).exec()
+
+    set_auth_cookies(response, access_token, refresh_token)
+
     return RefreshResponseSchema(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -291,6 +305,7 @@ async def refresh(
     description="Проверяет учётные данные и возвращает пару access/refresh токенов.",
 )
 async def login(
+    response: Response,
     payload: LoginRequestSchema = Body(..., description="Данные авторизации"),
     db: AsyncSession = Depends(get_db_session),
 ) -> LoginResponseSchema:
@@ -299,6 +314,9 @@ async def login(
         username=payload.username,
         password=payload.password,
     ).exec()
+
+    set_auth_cookies(response, access_token, refresh_token)
+
     return LoginResponseSchema(
         access_token=access_token,
         refresh_token=refresh_token,

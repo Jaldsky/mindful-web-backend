@@ -7,13 +7,13 @@ from pydantic.types import StrictStr
 class RefreshRequestSchema(BaseModel):
     """Схема запроса обновления токена."""
 
-    refresh_token: StrictStr = Field(..., description="Refresh токен")
+    refresh_token: StrictStr | None = Field(default=None, description="Refresh токен")
 
     @field_validator("refresh_token", mode="before")
     @classmethod
     def normalize_refresh_token(cls, v: Any) -> Any:
         """Нормализация refresh token."""
-        if not isinstance(v, str):
+        if v is None or not isinstance(v, str):
             return v
         from ....services.auth.normalizers import AuthServiceNormalizers
 
@@ -25,5 +25,7 @@ class RefreshRequestSchema(BaseModel):
         """Валидация наличия токена обновления (401)."""
         from ....services.auth.validators import AuthServiceValidators
 
+        if v is None:
+            return v
         AuthServiceValidators.validate_jwt_token(v)
         return v

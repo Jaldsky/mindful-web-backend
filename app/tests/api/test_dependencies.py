@@ -3,9 +3,12 @@ from unittest import TestCase
 from unittest.mock import patch, AsyncMock
 from uuid import uuid4, uuid3, uuid5, uuid1, NAMESPACE_DNS
 from fastapi import HTTPException
+from fastapi.security import HTTPAuthorizationCredentials
+from starlette.requests import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_user_id_from_header, get_db_session
+from app.api.dependencies import get_user_id_from_header, get_db_session, _extract_access_token
+from app.services.auth.constants import AUTH_ACCESS_COOKIE_NAME
 from app.db.session.provider import Provider
 from app.services.events.exceptions import InvalidUserIdException
 
@@ -129,3 +132,35 @@ class TestGetDbSession(TestCase):
         gen = get_db_session()
         self.assertTrue(hasattr(gen, "__aiter__"))
         self.assertTrue(hasattr(gen, "__anext__"))
+
+
+class TestExtractAccessToken(TestCase):
+    def test_prefers_bearer_credentials(self):
+        credentials = HTTPAuthorizationCredentials(scheme="Bearer", credentials="header-token")
+        request = Request(
+            {
+                "type": "http",
+                "method": "GET",
+                "path": "/",
+                "headers": [(b"cookie", f"{AUTH_ACCESS_COOKIE_NAME}=cookie-token".encode())],
+            }
+        )
+        result = _extract_access_token(credentials, request)
+        self.assertEqual(result, "header-token")
+
+    def test_falls_back_to_cookie(self):
+        request = Request(
+            {
+                "type": "http",
+                "method": "GET",
+                "path": "/",
+                "headers": [(b"cookie", f"{AUTH_ACCESS_COOKIE_NAME}=cookie-token".encode())],
+            }
+        )
+        result = _extract_access_token(None, request)
+        self.assertEqual(result, "cookie-token")
+
+    def test_returns_none_without_header_or_cookie(self):
+        request = Request({"type": "http", "method": "GET", "path": "/", "headers": []})
+        result = _extract_access_token(None, request)
+        self.assertIsNone(result)

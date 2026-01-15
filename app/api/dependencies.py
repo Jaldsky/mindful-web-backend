@@ -1,7 +1,7 @@
 import logging
 from typing import Annotated
 from uuid import UUID
-from fastapi import Depends, Header, Query
+from fastapi import Depends, Header, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from ..db.session.provider import Provider
@@ -14,6 +14,8 @@ from ..services.auth.exceptions import (
     TokenMissingException,
 )
 from ..services.auth.access import authenticate_access_token, extract_user_id_from_access_token
+from ..services.auth.constants import AUTH_ACCESS_COOKIE_NAME
+from ..services.auth.types import AccessToken
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +85,26 @@ def validate_usage_request_params(
     )
 
 
+def _extract_access_token(
+    credentials: HTTPAuthorizationCredentials | None,
+    request: Request,
+) -> AccessToken | None:
+    """Функция извлечения токена доступа из заголовка или куки.
+
+    Args:
+        credentials: Bearer-токен из заголовка Authorization.
+        request: HTTP-запрос для доступа к куки.
+
+    Returns:
+        JWT токен доступа или None.
+    """
+    if credentials is not None:
+        return credentials.credentials
+    return request.cookies.get(AUTH_ACCESS_COOKIE_NAME)
+
+
 async def get_current_user(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     db: DatabaseSession = Depends(get_db_session),
 ) -> User:
@@ -97,6 +118,7 @@ async def get_current_user(
     5. Поиск пользователя в базе данных по user_id
 
     Args:
+        request: HTTP-запрос.
         credentials: Bearer-токен из заголовка Authorization.
         db: Сессия базы данных.
 
@@ -109,18 +131,21 @@ async def get_current_user(
         TokenExpiredException: Если токен истёк.
         UserNotFoundException: Если пользователь не найден в системе.
     """
-    if credentials is None:
+    token = _extract_access_token(credentials, request)
+    if token is None:
         raise TokenMissingException(AuthMessages.TOKEN_MISSING)
 
-    return await authenticate_access_token(db, credentials.credentials)
+    return await authenticate_access_token(db, token)
 
 
 async def get_current_user_id(
+    request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> UUID:
-    """Функция получения user_id текущего пользователя по JWT токену доступа.
+    """Функция получения идентификатора текущего пользователя по JWT токену доступа.
 
     Args:
+        request: HTTP-запрос.
         credentials: Bearer-токен из заголовка Authorization.
 
     Returns:
@@ -131,7 +156,8 @@ async def get_current_user_id(
         TokenInvalidException: Если токен невалиден.
         TokenExpiredException: Если токен истёк.
     """
-    if credentials is None:
+    token = _extract_access_token(credentials, request)
+    if token is None:
         raise TokenMissingException(AuthMessages.TOKEN_MISSING)
 
-    return extract_user_id_from_access_token(credentials.credentials)
+    return extract_user_id_from_access_token(token)
