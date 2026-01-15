@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.schemas.events.save.request_schema import SaveEventData
 from app.services.events.exceptions import (
+    AnonEventsLimitExceededException,
     DataIntegrityViolationException,
     TransactionFailedException,
     UnexpectedEventsException,
@@ -50,6 +51,45 @@ class TestSaveEventsService(TestCase):
         self.assertEqual(values[0]["user_id"], self.user_id)
         self.assertEqual(values[0]["domain"], "example.com")
         self.assertEqual(values[0]["event_type"], "active")
+
+    @patch("app.services.events.use_cases.save_events.count_attention_events_by_user_id", new_callable=AsyncMock)
+    @patch("app.services.events.use_cases.save_events.bulk_insert_attention_events", new_callable=AsyncMock)
+    @patch("app.services.events.use_cases.save_events.insert_user_if_not_exists", new_callable=AsyncMock)
+    def test_exec_anon_limit_exceeded(self, mock_insert_user, mock_bulk_insert, mock_count):
+        mock_count.return_value = 99
+        service = SaveEventsService(
+            session=self.session,
+            data=self.data,
+            user_id=self.user_id,
+            actor_type="anon",
+        )
+
+        with self.assertRaises(AnonEventsLimitExceededException):
+            self._run_async(service.exec())
+
+        self.session.begin.assert_called_once()
+        mock_count.assert_awaited_once_with(self.session, self.user_id)
+        mock_insert_user.assert_not_awaited()
+        mock_bulk_insert.assert_not_awaited()
+
+    @patch("app.services.events.use_cases.save_events.count_attention_events_by_user_id", new_callable=AsyncMock)
+    @patch("app.services.events.use_cases.save_events.bulk_insert_attention_events", new_callable=AsyncMock)
+    @patch("app.services.events.use_cases.save_events.insert_user_if_not_exists", new_callable=AsyncMock)
+    def test_exec_anon_limit_allows_insert(self, mock_insert_user, mock_bulk_insert, mock_count):
+        mock_count.return_value = 98
+        service = SaveEventsService(
+            session=self.session,
+            data=self.data,
+            user_id=self.user_id,
+            actor_type="anon",
+        )
+
+        self._run_async(service.exec())
+
+        self.session.begin.assert_called_once()
+        mock_count.assert_awaited_once_with(self.session, self.user_id)
+        mock_insert_user.assert_awaited_once_with(self.session, self.user_id)
+        self.assertTrue(mock_bulk_insert.await_count == 1)
 
     @patch("app.services.events.use_cases.save_events.bulk_insert_attention_events", new_callable=AsyncMock)
     @patch("app.services.events.use_cases.save_events.insert_user_if_not_exists", new_callable=AsyncMock)

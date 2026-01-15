@@ -1,8 +1,7 @@
-from uuid import UUID
 from fastapi import APIRouter, Depends, Request
 from starlette import status
 
-from ...dependencies import get_user_id_from_header, validate_usage_request_params
+from ...dependencies import validate_usage_request_params, get_actor_id_from_token, ActorContext
 from ....common.pagination import PaginationUrlBuilder
 from ....schemas.analytics import (
     AnalyticsUsageRequestSchema,
@@ -47,18 +46,21 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
         },
     },
     summary="Статистика активности пользователя по доменам",
-    description="Возвращает агрегированную статистику времени активности по доменам за заданный интервал времени",
+    description=(
+        "Возвращает агрегированную статистику времени активности по доменам "
+        "за заданный интервал времени. Требуется Authorization: Bearer <access token>."
+    ),
 )
 async def get_usage(
     request: Request,
-    user_id: UUID = Depends(get_user_id_from_header),
+    actor: ActorContext = Depends(get_actor_id_from_token),
     request_params: AnalyticsUsageRequestSchema = Depends(validate_usage_request_params),
 ) -> AnalyticsUsageResponseOkSchema:
     """Эндпоинт для получения статистики использования доменов.
 
     Args:
         request: Объект запроса FastAPI.
-        user_id: Идентификатор пользователя из заголовка X-User-ID.
+        actor: Контекст пользователя или анонимной сессии из JWT.
         request_params: Валидированные параметры запроса.
 
     Returns:
@@ -69,7 +71,7 @@ async def get_usage(
         OrchestratorBrokerUnavailableException: При недоступности брокера (обрабатывается в хендлере как 503).
     """
     response = await AnalyticsUsageService(
-        user_id=user_id,
+        user_id=actor.actor_id,
         from_date=request_params.from_date,
         to_date=request_params.to_date,
         page=request_params.page,

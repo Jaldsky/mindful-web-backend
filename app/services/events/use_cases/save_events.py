@@ -6,8 +6,10 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ...types import ActorType
 from ....schemas.events.save.request_schema import SaveEventData
 from ..exceptions import (
+    AnonEventsLimitExceededException,
     DataIntegrityViolationException,
     EventsInsertFailedException,
     EventsServiceMessages,
@@ -15,7 +17,11 @@ from ..exceptions import (
     UnexpectedEventsException,
     UserCreationFailedException,
 )
-from ..queries import bulk_insert_attention_events, insert_user_if_not_exists
+from ..queries import (
+    bulk_insert_attention_events,
+    count_attention_events_by_user_id,
+    insert_user_if_not_exists,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +32,7 @@ class SaveEventsData:
 
     data: list[SaveEventData]
     user_id: UUID
+    actor_type: ActorType = "access"
 
 
 class SaveEventsServiceBase:
@@ -62,6 +69,15 @@ class SaveEventsServiceBase:
             Идентификатор пользователя.
         """
         return self._data.user_id
+
+    @property
+    def actor_type(self) -> str:
+        """Свойство получения типа субъекта (access/anon).
+
+        Returns:
+            Тип access или anon.
+        """
+        return self._data.actor_type
 
 
 class SaveEventsService(SaveEventsServiceBase):
@@ -115,6 +131,16 @@ class SaveEventsService(SaveEventsServiceBase):
 
         await bulk_insert_attention_events(self.session, values)
 
+    async def _enforce_anon_limit(self) -> None | NoReturn:
+        """Приватный метод проверки лимита событий для анонимной сессии."""
+        if self.actor_type != "anon":
+            return
+
+        existing_count = await count_attention_events_by_user_id(self.session, self.user_id)
+        total_count = existing_count + len(self.data)
+        if total_count > 100:
+            raise AnonEventsLimitExceededException(self.messages.ANON_EVENTS_LIMIT_EXCEEDED)
+
     async def exec(self) -> None | NoReturn:
         """Метод сохранения событий в базе данных.
 
@@ -132,6 +158,7 @@ class SaveEventsService(SaveEventsServiceBase):
         """
         try:
             async with self.session.begin():
+                await self._enforce_anon_limit()
                 await self._ensure_user_exists(self.user_id)
                 await self._insert_events(self.data, self.user_id)
 

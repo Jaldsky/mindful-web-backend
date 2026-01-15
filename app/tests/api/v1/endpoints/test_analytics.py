@@ -13,6 +13,7 @@ from starlette.status import (
 )
 
 from app.main import app
+from app.api.dependencies import ActorContext, get_actor_id_from_token
 from app.schemas import ErrorCode
 from app.schemas.analytics.analytics_error_code import AnalyticsErrorCode
 from app.schemas.analytics import (
@@ -40,11 +41,19 @@ class TestAnalyticsUsageEndpoint(TestCase):
         self.client = TestClient(app)
         self.usage_url = "/api/v1/analytics/usage"
         self.user_id = uuid4()
+        self.auth_headers = {"Authorization": "Bearer test-token"}
         self.valid_params = {
             "from": "05-04-2025",
             "to": "05-04-2025",
             "page": 1,
         }
+        app.dependency_overrides[get_actor_id_from_token] = lambda: ActorContext(
+            actor_id=self.user_id,
+            actor_type="access",
+        )
+
+    def tearDown(self):
+        app.dependency_overrides.clear()
 
     def test_usage_success_response_schema(self):
         """Успешный запрос возвращает статус 200 OK и корректную схему ответа."""
@@ -73,7 +82,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
             response = self.client.get(
                 self.usage_url,
                 params=self.valid_params,
-                headers={"X-User-ID": str(self.user_id)},
+                headers=self.auth_headers,
             )
 
             self.assertEqual(response.status_code, HTTP_200_OK)
@@ -97,7 +106,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
             response = self.client.get(
                 self.usage_url,
                 params=self.valid_params,
-                headers={"X-User-ID": str(self.user_id)},
+                headers=self.auth_headers,
             )
 
             self.assertEqual(response.status_code, HTTP_202_ACCEPTED)
@@ -118,7 +127,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
             response = self.client.get(
                 self.usage_url,
                 params=self.valid_params,
-                headers={"X-User-ID": str(self.user_id)},
+                headers=self.auth_headers,
             )
 
             self.assertEqual(response.status_code, HTTP_503_SERVICE_UNAVAILABLE)
@@ -135,7 +144,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
                 response = client_method(
                     self.usage_url,
                     params=self.valid_params,
-                    headers={"X-User-ID": str(self.user_id)},
+                    headers=self.auth_headers,
                 )
                 self.assertEqual(response.status_code, HTTP_405_METHOD_NOT_ALLOWED)
 
@@ -148,7 +157,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
         response = self.client.post(
             self.usage_url,
             params=self.valid_params,
-            headers={"X-User-ID": str(self.user_id)},
+            headers=self.auth_headers,
         )
         self.assertEqual(response.status_code, HTTP_405_METHOD_NOT_ALLOWED)
         self.assertEqual(response.headers["content-type"], "application/json")
@@ -159,7 +168,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
         response = self.client.get(
             self.usage_url,
             params={"to": "05-04-2025", "page": 1},
-            headers={"X-User-ID": str(self.user_id)},
+            headers=self.auth_headers,
         )
         self.assertEqual(response.status_code, HTTP_400_BAD_REQUEST)
 
@@ -167,7 +176,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
         response = self.client.get(
             self.usage_url,
             params={"from": "05-04-2025", "page": 1},
-            headers={"X-User-ID": str(self.user_id)},
+            headers=self.auth_headers,
         )
         self.assertEqual(response.status_code, HTTP_400_BAD_REQUEST)
 
@@ -176,7 +185,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
         response = self.client.get(
             self.usage_url,
             params={"from": "invalid-date", "to": "05-04-2025", "page": 1},
-            headers={"X-User-ID": str(self.user_id)},
+            headers=self.auth_headers,
         )
         self.assertEqual(response.status_code, HTTP_422_UNPROCESSABLE_ENTITY)
 
@@ -189,21 +198,12 @@ class TestAnalyticsUsageEndpoint(TestCase):
         response = self.client.get(
             self.usage_url,
             params={"from": "05-04-2025", "to": "05-04-2025", "page": 0},
-            headers={"X-User-ID": str(self.user_id)},
+            headers=self.auth_headers,
         )
         self.assertEqual(response.status_code, HTTP_400_BAD_REQUEST)
 
-    def test_usage_invalid_user_id_format(self):
-        """Неверный формат User ID возвращает 422."""
-        response = self.client.get(
-            self.usage_url,
-            params=self.valid_params,
-            headers={"X-User-ID": "invalid-uuid"},
-        )
-        self.assertEqual(response.status_code, HTTP_422_UNPROCESSABLE_ENTITY)
-
-    def test_usage_without_user_id_header(self):
-        """Запрос без заголовка X-User-ID генерирует новый UUID и обрабатывается успешно."""
+    def test_usage_supports_anonymous_actor(self):
+        """Анонимный актор корректно обрабатывается (UUID передается в сервис)."""
         mock_data = {
             "code": "OK",
             "message": "Usage analytics computed",
@@ -219,6 +219,10 @@ class TestAnalyticsUsageEndpoint(TestCase):
             },
             "data": [],
         }
+        app.dependency_overrides[get_actor_id_from_token] = lambda: ActorContext(
+            actor_id=self.user_id,
+            actor_type="anon",
+        )
 
         with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
             mock_service.return_value.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
@@ -226,14 +230,13 @@ class TestAnalyticsUsageEndpoint(TestCase):
             response = self.client.get(
                 self.usage_url,
                 params=self.valid_params,
+                headers=self.auth_headers,
             )
 
-            # Должен успешно обработаться с автоматически сгенерированным UUID
             self.assertEqual(response.status_code, HTTP_200_OK)
-            # Проверяем, что сервис был создан с каким-то user_id
             mock_service.assert_called_once()
             call_kwargs = mock_service.call_args.kwargs
-            self.assertIn("user_id", call_kwargs)
+            self.assertEqual(call_kwargs.get("user_id"), self.user_id)
 
     def test_usage_pagination_links(self):
         """Проверка корректного построения ссылок пагинации."""
@@ -259,7 +262,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
             response = self.client.get(
                 self.usage_url,
                 params=self.valid_params,
-                headers={"X-User-ID": str(self.user_id)},
+                headers=self.auth_headers,
             )
 
             self.assertEqual(response.status_code, HTTP_200_OK)
@@ -294,7 +297,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
             response = self.client.get(
                 self.usage_url,
                 params=self.valid_params,
-                headers={"X-User-ID": str(self.user_id)},
+                headers=self.auth_headers,
             )
 
             self.assertEqual(response.status_code, HTTP_200_OK)
@@ -325,7 +328,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
                 response = self.client.get(
                     self.usage_url,
                     params=self.valid_params,
-                    headers={"X-User-ID": str(self.user_id)},
+                    headers=self.auth_headers,
                 )
                 self.assertEqual(response.status_code, HTTP_200_OK)
 
