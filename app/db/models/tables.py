@@ -44,6 +44,13 @@ class User(Base, CreatedMixin, UpdatedMixin, DeletedMixin):
         index=True,
         comment="Email для авторизации",
     )
+    pending_email: Mapped[str | None] = Column(
+        String(255),
+        unique=False,
+        nullable=True,
+        index=True,
+        comment="Новый email для подтверждения",
+    )
     password: Mapped[str | None] = Column(String(255), nullable=True, comment="Хэш пароля")
     is_verified: Mapped[bool] = Column(
         Boolean,
