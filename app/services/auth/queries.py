@@ -43,6 +43,27 @@ async def fetch_user_by_email(session: AsyncSession, email: Email) -> User | Non
     return result.scalar_one_or_none()
 
 
+async def fetch_user_by_email_or_pending(session: AsyncSession, email: Email) -> User | None:
+    """Функция получения пользователя по email или pending_email.
+
+    Args:
+        session: AsyncSession.
+        email: Email пользователя.
+
+    Returns:
+        Пользователь или None, если не найден.
+    """
+    result = await session.execute(
+        select(User).where(
+            and_(
+                User.deleted_at.is_(None),
+                or_(User.email == email, User.pending_email == email),
+            )
+        )
+    )
+    return result.scalar_one_or_none()
+
+
 async def fetch_user_by_id(session: AsyncSession, user_id: UserId) -> User | None:
     """Функция получения пользователя по user_id.
 
@@ -102,7 +123,7 @@ async def fetch_active_verification_code_row(
 async def fetch_user_with_active_verification_code_by_email(
     session: AsyncSession, email: Email, now: datetime
 ) -> tuple[User | None, VerificationCodeModel | None]:
-    """Функция получения пользователя по email и активного кода подтверждения одним запросом.
+    """Функция получения пользователя по email или pending_email и активного кода подтверждения одним запросом.
 
     Активный код определяется как:
     - used_at IS NULL
@@ -129,7 +150,12 @@ async def fetch_user_with_active_verification_code_by_email(
                 VerificationCodeModel.expires_at > now,
             ),
         )
-        .where(and_(User.email == email, User.deleted_at.is_(None)))
+        .where(
+            and_(
+                User.deleted_at.is_(None),
+                or_(User.email == email, User.pending_email == email),
+            )
+        )
         .order_by(VerificationCodeModel.created_at.desc().nullslast())
         .limit(1)
     )
@@ -172,7 +198,7 @@ async def fetch_latest_unused_verification_code_row(
 async def fetch_user_with_latest_unused_verification_code_by_email(
     session: AsyncSession, email: Email
 ) -> tuple[User | None, VerificationCodeModel | None]:
-    """Функция получения пользователя по email и последней неиспользованной записи кода одним запросом.
+    """Функция получения пользователя по email или pending_email и последней неиспользованной записи кода одним запросом.
 
     Последняя неиспользованная запись определяется как:
     - used_at IS NULL
@@ -200,7 +226,12 @@ async def fetch_user_with_latest_unused_verification_code_by_email(
                 VerificationCodeModel.used_at.is_(None),
             ),
         )
-        .where(and_(User.email == email, User.deleted_at.is_(None)))
+        .where(
+            and_(
+                User.deleted_at.is_(None),
+                or_(User.email == email, User.pending_email == email),
+            )
+        )
         .order_by(VerificationCodeModel.created_at.desc().nullslast())
         .limit(1)
     )
@@ -214,7 +245,7 @@ async def fetch_user_with_latest_unused_verification_code_by_email(
 async def fetch_user_with_latest_verification_code_by_email(
     session: AsyncSession, email: Email
 ) -> tuple[User | None, VerificationCodeModel | None]:
-    """Функция получения пользователя по email и последней записи кода одним запросом.
+    """Функция получения пользователя по email или pending_email и последней записи кода одним запросом.
 
     Args:
         session: AsyncSession.
@@ -229,7 +260,12 @@ async def fetch_user_with_latest_verification_code_by_email(
             VerificationCodeModel,
             VerificationCodeModel.user_id == User.id,
         )
-        .where(and_(User.email == email, User.deleted_at.is_(None)))
+        .where(
+            and_(
+                User.deleted_at.is_(None),
+                or_(User.email == email, User.pending_email == email),
+            )
+        )
         .order_by(VerificationCodeModel.created_at.desc().nullslast())
         .limit(1)
     )
