@@ -20,6 +20,8 @@ from .routes import (
 from ..schemas import ErrorCode, ErrorDetailData
 from ..schemas.general import UnprocessableEntitySchema, InternalServerErrorSchema, BadRequestSchema
 from ..schemas.general.service_unavailable_schema import ServiceUnavailableSchema
+from ..services.auth.cookies import clear_auth_cookies
+from ..services.auth.exceptions import TokenExpiredException, TokenInvalidException
 
 logger = logging.getLogger(__name__)
 
@@ -40,10 +42,13 @@ async def app_exception_handler(request: Request, exc: Exception) -> JSONRespons
     else:
         logger.warning(f"App warning: {exc.message}")
 
-    return JSONResponse(
+    response = JSONResponse(
         status_code=exc.status_code,
         content=exc.get_response_content(),
     )
+    if isinstance(exc, (TokenExpiredException, TokenInvalidException)):
+        clear_auth_cookies(response)
+    return response
 
 
 async def bad_request_error_handler(request: Request, exc: Exception) -> JSONResponse:
