@@ -9,10 +9,12 @@ from jose import jwt
 
 from app.config import JWT_ALGORITHM, JWT_SECRET_KEY
 from app.services.auth.common import (
+    create_anon_token,
     create_tokens,
     decode_token,
     generate_verification_code,
     hash_password,
+    to_utc_datetime,
     verify_password,
 )
 from app.services.auth.common import get_unverified_user_by_email
@@ -80,6 +82,27 @@ class TestAuthCommon(TestCase):
         self.assertEqual(refresh_payload.get("type"), "refresh")
         self.assertEqual(access_payload.get("sub"), str(user_id))
         self.assertEqual(refresh_payload.get("sub"), str(user_id))
+
+    def test_create_anon_token_returns_valid_payload(self):
+        anon_id = uuid4()
+        token = create_anon_token(anon_id)
+        payload = decode_token(token)
+
+        self.assertEqual(payload.get("type"), "anon")
+        self.assertEqual(payload.get("sub"), str(anon_id))
+        self.assertTrue(payload.get("jti"))
+        self.assertGreater(payload.get("exp"), payload.get("iat"))
+
+    def test_to_utc_datetime_handles_naive_and_aware(self):
+        naive = datetime(2024, 1, 1, 12, 0, 0)
+        naive_utc = to_utc_datetime(naive)
+        self.assertEqual(naive_utc.tzinfo, timezone.utc)
+        self.assertEqual(naive_utc.hour, 12)
+
+        local = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone(timedelta(hours=3)))
+        local_utc = to_utc_datetime(local)
+        self.assertEqual(local_utc.tzinfo, timezone.utc)
+        self.assertEqual(local_utc.hour, 9)
 
     def test_decode_token_invalid_raises(self):
         with self.assertRaises(TokenInvalidException):

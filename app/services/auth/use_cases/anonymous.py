@@ -1,0 +1,46 @@
+import logging
+from typing import NoReturn
+from uuid import UUID, uuid4
+
+from ..common import create_anon_token
+from ..exceptions import AuthMessages, AuthServiceException
+from ..types import AccessToken
+
+logger = logging.getLogger(__name__)
+
+
+class AnonymousServiceBase:
+    """Базовый класс сервиса создания анонимной сессии."""
+
+    messages: type[AuthMessages] = AuthMessages
+
+
+class AnonymousService(AnonymousServiceBase):
+    """Сервис создания анонимной сессии."""
+
+    async def exec(self) -> tuple[UUID, AccessToken] | NoReturn:
+        """Метод создания анонимной сессии.
+
+        Процесс включает:
+        1. Генерацию anon_id
+        2. Создание токена анонимной сессии
+
+        Returns:
+            Кортеж (anon_id, anon_token).
+
+        Raises:
+            AuthServiceException: При ошибке генерации anon_id.
+            AuthServiceException: При ошибке создания anon_token.
+        """
+        try:
+            anon_id = uuid4()
+        except Exception:
+            raise AuthServiceException(self.messages.ANON_ID_GENERATION_FAILED)
+
+        try:
+            anon_token: AccessToken = create_anon_token(anon_id)
+        except Exception:
+            raise AuthServiceException(self.messages.ANON_TOKEN_CREATE_FAILED)
+
+        logger.info(f"Anonymous session created: {anon_id}")
+        return anon_id, anon_token

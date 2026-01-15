@@ -22,7 +22,13 @@ from .exceptions import (
 from .normalizers import AuthServiceNormalizers
 from .queries import fetch_user_by_email
 from ...db.models.tables import User
-from ...config import JWT_ACCESS_TOKEN_EXPIRE_MINUTES, JWT_ALGORITHM, JWT_REFRESH_TOKEN_EXPIRE_DAYS, JWT_SECRET_KEY
+from ...config import (
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
+    JWT_ALGORITHM,
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS,
+    JWT_SECRET_KEY,
+    JWT_ANON_TOKEN_EXPIRE_MINUTES,
+)
 
 
 def generate_verification_code(length: int = 6) -> VerificationCode:
@@ -161,3 +167,23 @@ def decode_token(token: AccessToken | RefreshToken) -> TokenPayload:
         raise TokenExpiredException(AuthMessages.TOKEN_EXPIRED)
     except JWTError:
         raise TokenInvalidException(AuthMessages.TOKEN_INVALID)
+
+
+def create_anon_token(anon_id: UUID) -> AccessToken:
+    """Функция создания JWT токена для анонимной сессии.
+
+    Args:
+        anon_id: UUID анонимного пользователя.
+
+    Returns:
+        JWT токен анонимной сессии.
+    """
+    now = datetime.now(timezone.utc)
+    payload: dict[str, Any] = {
+        "sub": str(anon_id),
+        "type": "anon",
+        "jti": uuid4().hex,
+        "iat": int(now.timestamp()),
+        "exp": int((now + timedelta(minutes=JWT_ANON_TOKEN_EXPIRE_MINUTES)).timestamp()),
+    }
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
