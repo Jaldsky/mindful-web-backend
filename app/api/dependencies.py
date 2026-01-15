@@ -1,56 +1,24 @@
-import logging
+from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
-from fastapi import Depends, Header, Query, Request
+from fastapi import Depends, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from ..db.session.provider import Provider
 from ..db.types import DatabaseSession
 from ..db.models.tables import User
-from ..schemas.events import SaveEventsUserIdHeaderSchema
 from ..schemas.analytics import AnalyticsUsageRequestSchema
 from ..services.auth.exceptions import (
     AuthMessages,
     TokenMissingException,
+    TokenInvalidException,
 )
 from ..services.auth.access import authenticate_access_token, extract_user_id_from_access_token
+from ..services.auth.common import decode_token
 from ..services.auth.constants import AUTH_ACCESS_COOKIE_NAME
 from ..services.auth.types import AccessToken
 
-logger = logging.getLogger(__name__)
-
 _bearer = HTTPBearer(auto_error=False)
-
-
-async def get_user_id_from_header(
-    x_user_id: Annotated[
-        str | None,
-        Header(
-            alias="X-User-ID",
-            description="Уникальный идентификатор пользователя (UUID4). "
-            "Если не указан — создаётся временный анонимный профиль",
-            example="f47ac10b-58cc-4372-a567-0e02b2c3d479",
-        ),
-    ] = None,
-) -> UUID:
-    """Функция Dependency Injection для извлечения X-User-ID из HTTP-заголовка.
-
-    Зависимость извлекает X-User-ID из HTTP-заголовка.
-    - Если заголовок отсутствует -> генерируется новый временный UUID4 (анонимный режим).
-    - Если заголовок присутствует, но не является валидным UUID4 -> ошибка 400.
-    - Поддерживается только UUID версии 4.
-
-    Args:
-        x_user_id: Значение HTTP-заголовка X-User-ID, переданное клиентом, None - пользователь анонимный.
-
-    Returns:
-        Валидный идентификатор пользователя UUID4.
-
-    Raises:
-        InvalidUserIdException: При неверном формате User ID (обрабатывается в events.py).
-    """
-    header = SaveEventsUserIdHeaderSchema(**({} if x_user_id is None else {"x_user_id": x_user_id}))
-    return UUID(header.x_user_id)
 
 
 async def get_db_session() -> DatabaseSession:
@@ -161,3 +129,56 @@ async def get_current_user_id(
         raise TokenMissingException(AuthMessages.TOKEN_MISSING)
 
     return extract_user_id_from_access_token(token)
+
+
+@dataclass(slots=True, frozen=True)
+class ActorContext:
+    """Контекст пользователя/анонимной сессии, полученный из JWT."""
+
+    actor_id: UUID
+    actor_type: str
+
+
+async def get_actor_id_from_token(
+    request: Request,
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
+    db: DatabaseSession = Depends(get_db_session),
+) -> ActorContext:
+    """Функция получения идентификатора пользователя/анонимной сессии из JWT.
+
+    Поддерживает токены:
+    - access: валидируется, пользователь должен существовать
+    - anon: валидируется по подписи/TTL, возвращается anon_id из sub
+
+    Args:
+        request: HTTP-запрос.
+        credentials: Bearer-токен из заголовка Authorization.
+        db: Сессия базы данных.
+
+    Returns:
+        ActorContext с actor_id и actor_type (access/anon).
+
+    Raises:
+        TokenMissingException: Если заголовок Authorization отсутствует.
+        TokenInvalidException: Если токен невалиден/не поддерживается/содержит некорректный sub.
+        TokenExpiredException: Если токен истёк.
+        UserNotFoundException: Если пользователь не найден в системе.
+    """
+    token = _extract_access_token(credentials, request)
+    if token is None:
+        raise TokenMissingException(AuthMessages.TOKEN_MISSING)
+
+    payload = decode_token(token)
+    token_type = payload.get("type")
+
+    if token_type == "access":
+        user = await authenticate_access_token(db, token)
+        return ActorContext(actor_id=user.id, actor_type="access")
+
+    if token_type == "anon":
+        try:
+            return ActorContext(actor_id=UUID(str(payload.get("sub"))), actor_type="anon")
+        except (TypeError, ValueError):
+            raise TokenInvalidException(AuthMessages.TOKEN_INVALID)
+
+    raise TokenInvalidException(AuthMessages.TOKEN_INVALID)

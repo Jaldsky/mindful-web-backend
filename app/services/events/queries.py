@@ -1,4 +1,4 @@
-from sqlalchemy import insert as sa_insert
+from sqlalchemy import insert as sa_insert, select, func
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,3 +24,15 @@ async def bulk_insert_attention_events(session: AsyncSession, values: list[dict]
         values: Данные для вставки ([{"user_id": ..., "domain": ..., "event_type": ..., "timestamp": ...}]).
     """
     await session.execute(sa_insert(AttentionEvent), values)
+
+
+async def count_attention_events_by_user_id(session: AsyncSession, user_id) -> int:
+    """Функция подсчёта количества событий по user_id.
+
+    Args:
+        session: AsyncSession.
+        user_id: ID пользователя/анонимной сессии.
+    """
+    stmt = select(func.count()).select_from(AttentionEvent).where(AttentionEvent.user_id == user_id)
+    result = await session.scalar(stmt)
+    return int(result or 0)

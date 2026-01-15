@@ -39,9 +39,19 @@ class TimestampInFutureException(UnprocessableEntityException):
 class EmptyEventsListException(UnprocessableEntityException):
     """Пустой список событий (422)."""
 
+    error_code = EventsErrorCode.EMPTY_EVENTS_LIST
+
 
 class TooManyEventsException(UnprocessableEntityException):
     """Слишком много событий (422)."""
+
+    error_code = EventsErrorCode.TOO_MANY_EVENTS
+
+
+class AnonEventsLimitExceededException(UnprocessableEntityException):
+    """Слишком много событий (422)."""
+
+    error_code = EventsErrorCode.ANON_EVENTS_LIMIT_EXCEEDED
 
 
 # Исключения для 500
@@ -83,3 +93,4 @@ class EventsServiceMessages:
     DATA_INTEGRITY_ERROR = "Data integrity issue when saving events!"
     DATA_SAVE_ERROR = "Database error while saving events!"
     UNEXPECTED_ERROR = "An unexpected error occurred while processing events!"
+    ANON_EVENTS_LIMIT_EXCEEDED = "Anon events limit exceeded"

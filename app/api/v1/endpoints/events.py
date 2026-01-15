@@ -1,9 +1,8 @@
-from uuid import UUID
 from fastapi import APIRouter, Depends, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from ...dependencies import get_user_id_from_header, get_db_session
+from ...dependencies import get_actor_id_from_token, get_db_session, ActorContext
 from ....schemas.events import (
     SaveEventsMethodNotAllowedSchema,
     SaveEventsRequestSchema,
@@ -50,20 +49,20 @@ router = APIRouter(prefix="/events", tags=["events"])
     summary="Отправка и сохранение событий",
     description=(
         "Принимает события от расширения браузера. "
-        "Расширение должно передавать заголовок X-User-ID (UUID4). "
-        "Если заголовок отсутствует - создаётся временный анонимный профиль."
+        "Расширение должно передавать Authorization: Bearer <token>. "
+        "Допускаются токены access (зарегистрированный пользователь) или anon (анонимная сессия)."
     ),
 )
 async def save_events(
     payload: SaveEventsRequestSchema = Body(..., description="Данные событий"),
-    user_id: UUID = Depends(get_user_id_from_header),
+    actor: ActorContext = Depends(get_actor_id_from_token),
     db: AsyncSession = Depends(get_db_session),
 ):
     """Ручка для приема событий от браузерного расширения.
 
     Args:
         payload: Схема с данными событий.
-        user_id: Идентификатор пользователя из заголовка X-User-ID.
+        actor: Контекст пользователя или анонимной сессии из JWT.
         db: Сессия базы данных.
 
     Returns:
@@ -73,7 +72,12 @@ async def save_events(
         EventsValidationException: При ошибках бизнес-валидации (422).
         EventsServerException: При серверных ошибках (500).
     """
-    await SaveEventsService(session=db, data=payload.data, user_id=user_id).exec()
+    await SaveEventsService(
+        session=db,
+        data=payload.data,
+        user_id=actor.actor_id,
+        actor_type=actor.actor_type,
+    ).exec()
 
     return SaveEventsResponseSchema(
         code="CREATED",
