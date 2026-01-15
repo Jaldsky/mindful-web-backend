@@ -16,6 +16,7 @@ from .routes import (
     AUTH_RESEND_CODE_PATH,
     AUTH_VERIFY_PATH,
     AUTH_LOGOUT_PATH,
+    AUTH_ANONYMOUS_PATH,
     USER_PROFILE_PATH,
     USER_PROFILE_USERNAME_PATH,
     USER_PROFILE_EMAIL_PATH,
@@ -92,6 +93,7 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
         auth_register_method_not_allowed_response,
         auth_resend_code_method_not_allowed_response,
         auth_verify_method_not_allowed_response,
+        auth_anonymous_method_not_allowed_response,
     )
     from ..services.user.http_handler import (
         user_profile_method_not_allowed_response,
@@ -125,6 +127,9 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
 
     if str(request.url.path) == AUTH_LOGOUT_PATH:
         return auth_logout_method_not_allowed_response()
+
+    if str(request.url.path) == AUTH_ANONYMOUS_PATH:
+        return auth_anonymous_method_not_allowed_response()
 
     if str(request.url.path) == USER_PROFILE_PATH:
         return user_profile_method_not_allowed_response()
