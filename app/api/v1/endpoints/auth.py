@@ -4,6 +4,10 @@ from starlette import status
 
 from ...dependencies import get_db_session
 from ....schemas.auth import (
+    # Anonymous
+    AnonymousResponseSchema,
+    AnonymousMethodNotAllowedSchema,
+    AnonymousInternalServerErrorSchema,
     # Register
     RegisterRequestSchema,
     RegisterResponseSchema,
@@ -50,6 +54,7 @@ from ....schemas.auth import (
 )
 from ....schemas.general import ServiceUnavailableSchema
 from ....services.auth import (
+    AnonymousService,
     LoginService,
     RefreshTokensService,
     RegisterService,
@@ -61,6 +66,39 @@ from ....services.auth.exceptions import AuthMessages, TokenMissingException
 from ....services.auth.constants import AUTH_REFRESH_COOKIE_NAME
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.post(
+    "/anonymous",
+    response_model=AnonymousResponseSchema,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_201_CREATED: {
+            "model": AnonymousResponseSchema,
+            "description": "Анонимная сессия создана",
+        },
+        status.HTTP_405_METHOD_NOT_ALLOWED: {
+            "model": AnonymousMethodNotAllowedSchema,
+            "description": "Поддерживается только POST метод",
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "model": AnonymousInternalServerErrorSchema,
+            "description": "Внутренняя ошибка сервера",
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "model": ServiceUnavailableSchema,
+            "description": "Сервис не доступен",
+        },
+    },
+    summary="Создание анонимной сессии",
+    description="Возвращает идентификатор анонимного пользователя для расширения.",
+)
+async def create_anonymous() -> AnonymousResponseSchema:
+    anon_id, anon_token = await AnonymousService().exec()
+    return AnonymousResponseSchema(
+        anon_id=str(anon_id),
+        anon_token=anon_token,
+    )
 
 
 @router.post(

@@ -1,4 +1,9 @@
 from .auth_error_code import AuthErrorCode
+from .anonymous import (
+    AnonymousResponseSchema,
+    AnonymousMethodNotAllowedSchema,
+    AnonymousInternalServerErrorSchema,
+)
 from .register import (
     RegisterRequestSchema,
     RegisterResponseSchema,
@@ -52,6 +57,10 @@ from .logout import (
 __all__ = (
     # Common
     "AuthErrorCode",
+    # Anonymous
+    "AnonymousResponseSchema",
+    "AnonymousMethodNotAllowedSchema",
+    "AnonymousInternalServerErrorSchema",
     # Register
     "RegisterRequestSchema",
     "RegisterResponseSchema",
