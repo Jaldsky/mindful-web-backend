@@ -1,152 +1,152 @@
-# 🌐 Mindful-Web
-*Aware presence in the digital world*
+# 🌐 Mindful Web Backend
+*FastAPI backend for mindful internet tracking*
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115%2B-black)](https://fastapi.tiangolo.com/)
+[![Tests](https://img.shields.io/badge/tests-50%2B-green)]()
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue)](https://www.docker.com/)
 
-> **Mindful-Web** is an open-source tool for mindful internet use.
+> Production-ready FastAPI backend for authentication, event tracking, and analytics.
+
+## 🔗 Project Links
+
+| Component | Repository | Description |
+|-----------|-----------|-------------|
+| 🔌 **Extensions** | [mindful-web-extensions](https://github.com/Jaldsky/mindful-web-extensions) | Browser extensions (Chrome) |
+| ⚙️ **Backend** | [mindful-web-backend](https://github.com/Jaldsky/mindful-web-backend) | FastAPI backend server |
+| 🖥️ **Frontend** | [mindful-web-frontend](https://github.com/Jaldsky/mindful-web-frontend) | React dashboard and analytics |
 
 ---
 
-## 🌍 About / О проекте
-### 🇬🇧 English
-Mindful-Web is an open-source tool for anyone who wants to understand where their time online goes and reclaim
-control over their attention.
+## ✨ Key Features
 
-### 🇷🇺 Русский
-Mindful-Web — это open-source инструмент для тех, кто хочет понимать, куда уходит их время в интернете, и возвращать
-контроль над своим вниманием.
-
-## ✨ Features
-
-- 🕒 **Full domain-level time tracking**
-- 📊 **Daily & weekly usage reports**
-- 💡 **Personalized suggestions** based on your habits
-- 🔒 **Privacy-first**: only domains, never full URLs
-- 🐳 **Docker-ready**: easy deployment with Docker Compose
-- 🔄 **Auto-migrations**: database migrations applied automatically
-
-## 🛠️ Tech Stack
-
-- **Backend**: Python 3.11+, FastAPI, SQLAlchemy
-- **Database**: PostgreSQL with Alembic migrations
-- **Task Queue**: Celery + Redis
-- **Infrastructure**: Docker, Docker Compose
-- **Development**: Poetry, Invoke, Ruff
-- **CI/CD**: GitHub Actions (tests, linting, build)
+- 🔐 **Authentication** — JWT tokens, email verification, anonymous sessions
+- 📊 **Event Tracking** — Batch processing, PostgreSQL storage, optimized queries
+- 📈 **Analytics** — Celery jobs for domain usage computation
+- 📧 **Email Service** — SMTP integration with verification codes
+- 👤 **User Management** — Profile, username/email updates
+- 🐳 **Docker-Ready** — Complete orchestration with 6 services
+- 🧪 **Well-Tested** — tests covering all services
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Clone the repo
-```bash
-git clone https://github.com/Jaldsky/mindful-web.git
-cd mindful-web
-```
+### 1. Prerequisites
+- Docker & Docker Compose
+- Python 3.11+ (for local development)
 
-### 2. Set up environment variables
-Create `.env` file in the project root:
+### 2. Environment Setup
+Create `.env` file:
 ```bash
 # Database
 POSTGRES_USER=root
 POSTGRES_PASSWORD=root
 POSTGRES_DB=wmb
+
+# Application
+SECRET_KEY=$(openssl rand -hex 32)
+
+# Email (optional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
 ```
 
-### 3. Build and start all services
+### 3. Deploy
 ```bash
-# Build base image
-poetry run invoke build-base
-
-# Start all services (migrations will be applied automatically)
+# Build and start all services
 poetry run invoke compose --build
+
+# Check health
+curl http://localhost:8000/health
 ```
 
-### 4. Check that it works
-Open in your browser:<br>
-🔗 **API Documentation**: http://localhost:8000/docs<br>
-🔗 **Health Check**: http://localhost:8000/health
+### 4. Access
+- **API Docs**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
 ---
 
 ## 🛠️ Development
 
-### Local Development Setup
+### Tech Stack
+- **Backend**: Python 3.11+, FastAPI 0.115+, SQLAlchemy 2.0
+- **Database**: PostgreSQL with Alembic migrations
+- **Queue**: Celery 5.5+ + Redis 6.4+
+- **Email**: aiosmtplib + Jinja2
+- **Security**: bcrypt, python-jose (JWT)
+- **Testing**: unittest
 
-#### 1. Install dependencies
+### Local Development
 ```bash
-# Install Poetry
-curl -sSL https://install.python-poetry.org | python3 -
-
-# Install project dependencies
+# Install dependencies
 poetry install
-```
 
-#### 2. Start local services
-```bash
-# Start database and Redis
+# Start services
 poetry run invoke compose "up db redis" -d
-
-# Run migrations
 poetry run invoke migrate-apply --local
-
-# Start development server
 poetry run invoke dev
+
+# Run tests
+poetry run invoke tests
+
+# Linting
+poetry run invoke lint
+poetry run invoke format
 ```
 
-### Available Commands
-
-```bash
-# Development
-poetry run invoke dev                    # Start development server
-poetry run invoke worker                 # Start Celery worker
-poetry run invoke beat                   # Start Celery beat scheduler
-poetry run invoke tests                  # Run tests
-poetry run invoke lint                   # Run linter
-poetry run invoke format                 # Format code
-
-# Database
-poetry run invoke migrate-create "msg" --local    # Create migration
-poetry run invoke migrate-apply --local           # Apply migrations
-poetry run invoke migrate-current --local         # Current revision
-poetry run invoke migrate-history --local         # Migration history
-poetry run invoke migrate-down --local            # Rollback migration
-
-# Docker
-poetry run invoke build-base                     # Build base Docker image
-poetry run invoke compose                        # Docker Compose commands
-```
+### Docker Services
+| Service | Port | Description |
+|---------|------|-------------|
+| `app` | 8000 | FastAPI application |
+| `db` | 5432 | PostgreSQL database |
+| `redis` | 6379 | Redis cache/queue |
+| `worker` | - | Celery worker |
+| `beat` | - | Celery scheduler |
+| `migrate` | - | Auto migrations |
 
 ---
 
-## 🐳 Docker Services
+## 📡 API Endpoints
 
-| Service   | Description             | Port    |
-|-----------|-------------------------|---------|
-| `app`     | FastAPI application     | 8000    |
-| `db`      | PostgreSQL database     | 5432    |
-| `redis`   | Redis cache/queue       | 6379    |
-| `worker`  | Celery worker           | -       |
-| `beat`    | Celery scheduler        | -       |
-| `migrate` | Database migrations     | -       |
+### Authentication (`/api/v1/auth/`)
+- `POST /register` — Register with email verification
+- `POST /login` — Login with username/email
+- `POST /verify` — Verify email with 6-digit code
+- `POST /refresh` — Refresh access token
+- `POST /anonymous` — Create anonymous session
+
+### Events & Analytics (`/api/v1/`)
+- `POST /events/save` — Save batch of attention events
+- `GET /analytics/usage` — Get domain usage statistics
+
+### User (`/api/v1/user/`)
+- `GET /profile` — Get user profile
+- `PUT /profile/username` — Update username
+- `PUT /profile/email` — Update email
+
+### Health
+- `GET /health` — Health check
 
 ---
 
-## 🔧 Configuration
+## 🗄️ Database Schema
 
-### Environment Variables
+**Core Tables:**
+- `users` — User accounts (UUID, username, email, password)
+- `verification_codes` — Email verification (6-digit, expiring)
+- `attention_events` — Activity tracking (domain, event_type, timestamp)
+- `domain_categories` — Domain classification
+- `domain_to_category` — Domain-category mapping
 
-| Variable            | Default              | Description          |
-|---------------------|----------------------|----------------------|
-| `POSTGRES_USER`     | root                 | Database user        |
-| `POSTGRES_PASSWORD` | root                 | Database password    |
-| `POSTGRES_DB`       | wmb                  | Database name        |
-| `POSTGRES_HOST`     | db                   | Database host        |
-| `POSTGRES_PORT`     | 5432                 | Database port        |
-| `REDIS_URL`         | redis://redis:6379/0 | Redis connection URL |
+**Features:**
+- UUID-based user identification
+- Soft delete support
+- Optimized indexes for analytics
+- Foreign key cascades
 
 ---
 
@@ -156,25 +156,46 @@ poetry run invoke compose                        # Docker Compose commands
 # Run all tests
 poetry run invoke tests
 
-# Run specific test file
-poetry run python -m unittest app.tests.db.manager_test
+# Run specific test
+poetry run python -m unittest app.tests.services.auth.use_cases.test_register
+
+# Coverage
+poetry run python -m unittest discover -s app/tests -p "test_*.py"
+```
+
+**Test Structure:** tests covering API, services, database, and common utilities.
+
+---
+
+## 🔧 Configuration
+
+**Required Environment Variables:**
+```bash
+POSTGRES_USER=root
+POSTGRES_PASSWORD=root
+POSTGRES_DB=wmb
+SECRET_KEY=your-secret-key
+```
+
+**Optional:**
+```bash
+# Token lifetimes
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+REFRESH_TOKEN_EXPIRE_DAYS=7
+
+# Email
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email
+SMTP_PASSWORD=your-password
 ```
 
 ---
 
-## 📝 Contributing
+<div align="center">
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes
-4. Run tests: `poetry run invoke tests`
-5. Run linter: `poetry run invoke lint`
-6. Commit your changes: `git commit -m 'Add amazing feature'`
-7. Push to the branch: `git push origin feature/amazing-feature`
-8. Open a Pull Request
+**[🔌 Extensions](https://github.com/Jaldsky/mindful-web-extensions)** • **[🖥️ Frontend](https://github.com/Jaldsky/mindful-web-frontend)** • **[⚙️ Backend](https://github.com/Jaldsky/mindful-web-backend)**
 
----
+Restore control over your attention! 🧘‍♀️
 
-## 📄 License
-
-This project is licensed under the MIT License.
+</div>
