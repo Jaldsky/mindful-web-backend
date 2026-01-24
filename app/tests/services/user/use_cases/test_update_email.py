@@ -10,7 +10,13 @@ from sqlalchemy import text
 from app.db.models.base import Base
 from app.db.models.tables import User, VerificationCode
 from app.db.session.manager import ManagerAsync
-from app.services.auth.exceptions import EmailAlreadyExistsException, EmailSendFailedException, UserNotFoundException
+from app import config as app_config
+from app.services.auth.exceptions import (
+    EmailAlreadyExistsException,
+    EmailSendFailedException,
+    TooManyAttemptsException,
+    UserNotFoundException,
+)
 from app.services.user.use_cases.update_email import UpdateEmailService
 
 
@@ -26,15 +32,25 @@ class TestUpdateEmailService(TestCase):
         original_user_created = User.created_at.property.columns[0].server_default
         original_user_updated = User.updated_at.property.columns[0].server_default
         original_code_created = VerificationCode.created_at.property.columns[0].server_default
+        original_verification_cooldown = app_config.VERIFICATION_CODE_REQUEST_COOLDOWN_SECONDS
         User.created_at.property.columns[0].server_default = None
         User.updated_at.property.columns[0].server_default = None
         VerificationCode.created_at.property.columns[0].server_default = None
-        return original_user_created, original_user_updated, original_code_created
+        app_config.VERIFICATION_CODE_REQUEST_COOLDOWN_SECONDS = 0
+        return (
+            original_user_created,
+            original_user_updated,
+            original_code_created,
+            original_verification_cooldown,
+        )
 
-    def _restore_server_defaults(self, original_user_created, original_user_updated, original_code_created):
+    def _restore_server_defaults(
+        self, original_user_created, original_user_updated, original_code_created, original_verification_cooldown
+    ):
         User.created_at.property.columns[0].server_default = original_user_created
         User.updated_at.property.columns[0].server_default = original_user_updated
         VerificationCode.created_at.property.columns[0].server_default = original_code_created
+        app_config.VERIFICATION_CODE_REQUEST_COOLDOWN_SECONDS = original_verification_cooldown
 
     def test_exec_updates_email_and_sends_code(self):
         from app.services.email import EmailService
@@ -254,6 +270,44 @@ class TestUpdateEmailService(TestCase):
                     self.assertEqual(refreshed.pending_email, "second@example.com")
                     result = await session.execute(text("SELECT COUNT(*) FROM verification_codes"))
                     self.assertEqual(result.scalar(), 2)
+
+            with unittest.mock.patch.object(EmailService, "send_verification_code", new_callable=AsyncMock):
+                self._run_async(_test())
+        finally:
+            self._restore_server_defaults(*originals)
+
+    def test_exec_rate_limited_for_rapid_requests(self):
+        from app.services.email import EmailService
+
+        originals = self._patch_server_defaults_for_sqlite()
+        try:
+            app_config.VERIFICATION_CODE_REQUEST_COOLDOWN_SECONDS = 60
+
+            async def _test():
+                manager = ManagerAsync(logger=self.logger, database_url=self.database_url)
+                engine = manager.get_engine()
+                async with engine.begin() as conn:
+                    await conn.run_sync(Base.metadata.create_all)
+
+                now = datetime.now(timezone.utc)
+                async with manager.get_session() as session:
+                    user = User(
+                        username="user_one",
+                        email="old@example.com",
+                        password="hash",
+                        is_verified=True,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                    session.add(user)
+                    await session.commit()
+
+                async with manager.get_session() as session:
+                    await UpdateEmailService(session=session, user_id=user.id, email="first@example.com").exec()
+
+                async with manager.get_session() as session:
+                    with self.assertRaises(TooManyAttemptsException):
+                        await UpdateEmailService(session=session, user_id=user.id, email="second@example.com").exec()
 
             with unittest.mock.patch.object(EmailService, "send_verification_code", new_callable=AsyncMock):
                 self._run_async(_test())
