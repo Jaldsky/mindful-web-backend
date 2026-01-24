@@ -5,17 +5,19 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...auth.common import generate_verification_code
+from ...auth.common import generate_verification_code, to_utc_datetime
 from ...auth.exceptions import (
     AuthMessages,
     AuthServiceException,
     EmailAlreadyExistsException,
     EmailSendFailedException,
+    TooManyAttemptsException,
     UserNotFoundException,
 )
-from ...auth.queries import fetch_user_by_email_or_pending
+from ...auth.queries import fetch_active_verification_code_row, fetch_user_by_email_or_pending
 from ..queries import fetch_user_by_id
 from ...types import Email, VerificationCode, UserId
+from .... import config as app_config
 from ....config import VERIFICATION_CODE_EXPIRE_MINUTES
 from ....db.models.tables import VerificationCode as VerificationCodeModel
 from ....db.models.tables import User
@@ -124,6 +126,28 @@ class UpdateEmailService(UpdateEmailServiceBase):
         user.updated_at = now
         return user
 
+    async def _ensure_update_not_rate_limited(self, user_id: UserId, now: datetime) -> None | NoReturn:
+        """Приватный метод проверки cooldown между отправками при смене email.
+
+        Args:
+            user_id: ID пользователя.
+            now: Текущее время (UTC).
+
+        Raises:
+            TooManyAttemptsException: Если отправка слишком частая.
+        """
+        active_code_row = await fetch_active_verification_code_row(self.session, user_id, now)
+        if not active_code_row:
+            return
+        base_ts = active_code_row.last_sent_at or active_code_row.created_at
+        if base_ts is None:
+            return
+        base_ts_utc = to_utc_datetime(base_ts)
+        now_utc = to_utc_datetime(now)
+        cooldown_until = base_ts_utc + timedelta(seconds=app_config.VERIFICATION_CODE_REQUEST_COOLDOWN_SECONDS)
+        if now_utc < cooldown_until:
+            raise TooManyAttemptsException(self.messages.TOO_MANY_ATTEMPTS)
+
     async def _create_verification_code(self, user_id: UserId) -> VerificationCode:
         """Приватный метод создания кода подтверждения для пользователя.
 
@@ -136,7 +160,15 @@ class UpdateEmailService(UpdateEmailServiceBase):
         code: VerificationCode = generate_verification_code()
         now = datetime.now(timezone.utc)
         expires_at: datetime = now + timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
-        self.session.add(VerificationCodeModel(user_id=user_id, code=code, expires_at=expires_at, created_at=now))
+        self.session.add(
+            VerificationCodeModel(
+                user_id=user_id,
+                code=code,
+                expires_at=expires_at,
+                created_at=now,
+                last_sent_at=now,
+            )
+        )
         return code
 
     async def _send_verification_email(self, email: Email, code: VerificationCode) -> None | NoReturn:
@@ -160,10 +192,11 @@ class UpdateEmailService(UpdateEmailServiceBase):
         Процесс включает:
         1. Получение пользователя по user_id
         2. Проверку уникальности email
-        3. Сохранение pending_email для подтверждения
-        4. Создание кода подтверждения
-        5. Отправку письма с кодом
-        6. Коммит транзакции
+        3. Проверку cooldown на повторную отправку кода
+        4. Сохранение pending_email для подтверждения
+        5. Создание кода подтверждения
+        6. Отправку письма с кодом
+        7. Коммит транзакции
 
         Returns:
             ProfileData: Обновлённые данные профиля пользователя.
@@ -171,6 +204,7 @@ class UpdateEmailService(UpdateEmailServiceBase):
         Raises:
             UserNotFoundException: Если пользователь не найден в системе (401).
             EmailAlreadyExistsException: Если email уже занят (409).
+            TooManyAttemptsException: Если отправка кода слишком частая (422).
             EmailSendFailedException: Если не удалось отправить email (500).
             AuthServiceException: При неожиданной ошибке.
         """
@@ -182,6 +216,7 @@ class UpdateEmailService(UpdateEmailServiceBase):
                     username=user.username,
                     email=user.email,
                 )
+            await self._ensure_update_not_rate_limited(user.id, datetime.now(timezone.utc))
             user = self._apply_email_update(user)
             code = await self._create_verification_code(user.id)
             await self._send_verification_email(self.email, code)
@@ -192,7 +227,12 @@ class UpdateEmailService(UpdateEmailServiceBase):
                 username=user.username,
                 email=user.email,
             )
-        except (UserNotFoundException, EmailAlreadyExistsException, EmailSendFailedException):
+        except (
+            UserNotFoundException,
+            EmailAlreadyExistsException,
+            EmailSendFailedException,
+            TooManyAttemptsException,
+        ):
             await self.session.rollback()
             raise
         except Exception:

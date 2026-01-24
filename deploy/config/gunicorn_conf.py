@@ -28,7 +28,7 @@ keepalive = int(os.getenv("GUNICORN_KEEPALIVE", 4))
 
 # Настройки логгирования
 # Логи доступа, запись в stdout
-accesslog = os.getenv("GUNICORN_ACCESSLOG", "-")
+accesslog = os.getenv("GUNICORN_ACCESSLOG")
 # Логи ошибок, запись в stdout
 errorlog = os.getenv("GUNICORN_ERRORLOG", "-")
 # Уровень логирования, debug, info, warning, error, critical
