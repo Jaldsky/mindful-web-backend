@@ -8,7 +8,7 @@ DATE_FORMATS = [
 
 DEFAULT_PAGE_SIZE: int = 20
 
-CORS_ALLOW_ORIGINS: list[str] = os.getenv("CORS_ALLOW_ORIGINS", "chrome-extension://*").split(",")
+CORS_ALLOW_ORIGINS: list[str] = os.getenv("CORS_ALLOW_ORIGINS").split(",")
 
 # Database
 POSTGRES_HOST: str = os.getenv("POSTGRES_HOST", "mwb-db")

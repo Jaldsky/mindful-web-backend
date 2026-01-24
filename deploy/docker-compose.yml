@@ -7,7 +7,7 @@ services:
       - "8025:8025"  # Для дебага, web ui для просмотра писем
     restart: unless-stopped
     networks:
-      - mwb-net
+      - mw-net
 
   mwb-db:
     image: postgres:16-alpine
@@ -25,7 +25,7 @@ services:
       retries: 10
     restart: unless-stopped
     networks:
-      - mwb-net
+      - mw-net
 
   mwb-redis:
     image: redis:7-alpine
@@ -42,7 +42,7 @@ services:
       start_period: 10s
     restart: unless-stopped
     networks:
-      - mwb-net
+      - mw-net
 
   mwb-build-image:
     build:
@@ -63,7 +63,7 @@ services:
     command: ["python", "-m", "invoke", "migrate-apply"]
     restart: "no"
     networks:
-      - mwb-net
+      - mw-net
 
   mwb-worker:
     image: mwb-service:latest
@@ -77,7 +77,7 @@ services:
     command: ["python", "-m", "invoke", "worker"]
     restart: unless-stopped
     networks:
-      - mwb-net
+      - mw-net
 
   mwb-beat:
     image: mwb-service:latest
@@ -91,7 +91,7 @@ services:
     command: [".venv/bin/python", "-m", "invoke", "beat"]
     restart: unless-stopped
     networks:
-      - mwb-net
+      - mw-net
 
   mwb-app:
     image: mwb-service:latest
@@ -107,11 +107,11 @@ services:
     command: ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-c", "deploy/config/gunicorn_conf.py", "app.main:app"]
     restart: unless-stopped
     networks:
-      - mwb-net
+      - mw-net
 
 volumes:
   mwb-pgdata:
 
 networks:
-  mwb-net:
+  mw-net:
     driver: bridge
