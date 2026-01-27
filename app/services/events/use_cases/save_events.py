@@ -157,18 +157,22 @@ class SaveEventsService(SaveEventsServiceBase):
             UnexpectedEventsException: При неожиданной ошибке.
         """
         try:
-            async with self.session.begin():
-                await self._enforce_anon_limit()
-                await self._ensure_user_exists(self.user_id)
-                await self._insert_events(self.data, self.user_id)
+            await self._enforce_anon_limit()
+            await self._ensure_user_exists(self.user_id)
+            await self._insert_events(self.data, self.user_id)
+            await self.session.commit()
 
             logger.info(f"Successfully added events for user {self.user_id}")
 
         except (UserCreationFailedException, EventsInsertFailedException):
+            await self.session.rollback()
             raise
         except IntegrityError:
+            await self.session.rollback()
             raise DataIntegrityViolationException(self.messages.DATA_INTEGRITY_ERROR)
         except SQLAlchemyError:
+            await self.session.rollback()
             raise TransactionFailedException(self.messages.DATA_SAVE_ERROR)
         except Exception:
+            await self.session.rollback()
             raise UnexpectedEventsException(self.messages.UNEXPECTED_ERROR)
