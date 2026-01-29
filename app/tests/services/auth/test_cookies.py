@@ -8,8 +8,18 @@ from app.config import (
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
     JWT_REFRESH_TOKEN_EXPIRE_DAYS,
 )
-from app.services.auth.cookies import clear_auth_cookies, set_auth_cookies
-from app.services.auth.constants import AUTH_ACCESS_COOKIE_NAME, AUTH_COOKIE_SAMESITE, AUTH_REFRESH_COOKIE_NAME
+from app.services.auth.cookies import (
+    clear_auth_cookies,
+    set_auth_cookies,
+    set_anon_cookie,
+    clear_anon_cookie,
+)
+from app.services.auth.constants import (
+    AUTH_ACCESS_COOKIE_NAME,
+    AUTH_COOKIE_SAMESITE,
+    AUTH_REFRESH_COOKIE_NAME,
+    AUTH_ANON_COOKIE_NAME,
+)
 
 
 class TestSetAuthCookies(TestCase):
@@ -65,3 +75,37 @@ class TestClearAuthCookies(TestCase):
 
         self.assertIn("Max-Age=0", access_cookie)
         self.assertIn("Max-Age=0", refresh_cookie)
+
+
+class TestSetAnonCookie(TestCase):
+    def test_sets_anon_cookie(self):
+        response = Response()
+
+        set_anon_cookie(response, "anon-token")
+
+        set_cookie_headers = response.headers.getlist("set-cookie")
+        self.assertEqual(len(set_cookie_headers), 1)
+
+        anon_cookie = set_cookie_headers[0]
+        self.assertTrue(anon_cookie.startswith(f"{AUTH_ANON_COOKIE_NAME}="))
+        self.assertIn("anon-token", anon_cookie)
+        self.assertIn("Path=/", anon_cookie)
+        self.assertIn(f"SameSite={AUTH_COOKIE_SAMESITE}", anon_cookie)
+        if AUTH_COOKIE_HTTPONLY:
+            self.assertIn("HttpOnly", anon_cookie)
+        if AUTH_COOKIE_SECURE:
+            self.assertIn("Secure", anon_cookie)
+
+
+class TestClearAnonCookie(TestCase):
+    def test_clears_anon_cookie(self):
+        response = Response()
+
+        clear_anon_cookie(response)
+
+        set_cookie_headers = response.headers.getlist("set-cookie")
+        self.assertEqual(len(set_cookie_headers), 1)
+
+        anon_cookie = set_cookie_headers[0]
+        self.assertTrue(anon_cookie.startswith(f"{AUTH_ANON_COOKIE_NAME}="))
+        self.assertIn("Max-Age=0", anon_cookie)
