@@ -5,4 +5,4 @@ MIME_ENCODING_UTF8: str = "utf-8"
 
 # Константы для шаблонов
 VERIFICATION_CODE_TEMPLATE: str = "verification_code.html"
-VERIFICATION_EMAIL_SUBJECT: str = "Mindful-Web: Подтверждение email"
+VERIFICATION_EMAIL_SUBJECT: str = "🧘 Mindful-Web: Подтверждение email"

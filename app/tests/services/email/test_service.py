@@ -40,7 +40,11 @@ class TestEmailServiceSendVerificationCode(TestCase):
 
         self._run_async(service.send_verification_code(to_email="  Test@Example.COM  ", code=" 123456 "))
 
-        renderer.render.assert_called_once_with(VERIFICATION_CODE_TEMPLATE, context={"code": "123456"})
+        renderer.render.assert_called_once()
+        call_args = renderer.render.call_args
+        self.assertEqual(call_args[0][0], VERIFICATION_CODE_TEMPLATE)
+        self.assertEqual(call_args[1]["context"]["code"], "123456")
+        self.assertIn("expire_minutes", call_args[1]["context"])
         transport.send.assert_awaited_once()
 
         args, kwargs = transport.send.await_args

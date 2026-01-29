@@ -1,31 +1,123 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧘 Mindful-Web — Подтверждение email</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-        .code { font-size: 32px; font-weight: bold; color: #667eea; text-align: center; padding: 20px; background: white; border-radius: 8px; margin: 20px 0; letter-spacing: 8px; }
-        .footer { text-align: center; color: #888; font-size: 12px; margin-top: 20px; }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #ddd;
+        }
+        .header {
+            background-color: #4CAF50;
+            color: #ffffff;
+            padding: 24px 24px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0 0 4px;
+            font-size: 32px;
+            font-weight: 700;
+        }
+        .header p {
+            margin: 0;
+            font-size: 14px;
+            opacity: 0.95;
+        }
+        .content {
+            padding: 24px;
+            background: #f8f9fa;
+        }
+        .content p {
+            margin: 0 0 12px;
+            font-size: 16px;
+            color: #333;
+        }
+        .content p:last-of-type {
+            margin-bottom: 0;
+        }
+        .code-box {
+            font-size: 28px;
+            font-weight: 700;
+            color: #4CAF50;
+            text-align: center;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            margin: 20px 0;
+            letter-spacing: 8px;
+            border: 1px solid #ddd;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+        .footer {
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            padding: 20px 24px;
+            background: #ffffff;
+            border-top: 1px solid #eee;
+        }
+        .footer p {
+            margin: 0;
+        }
+        .preheader {
+            display: none;
+            max-height: 0;
+            overflow: hidden;
+            mso-hide: all;
+        }
+        a.brand-link {
+            color: inherit;
+            text-decoration: none;
+        }
+        .content a.brand-link {
+            color: #4CAF50;
+            text-decoration: underline;
+        }
+        .footer a.brand-link {
+            color: #666;
+            text-decoration: none;
+        }
+        .footer a.brand-link:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
+    <div class="preheader">Ваш код подтверждения для входа в Mindful-Web: {{ code }}</div>
     <div class="container">
-        <div class="header">
-            <h1>🧘 Mindful-Web</h1>
-            <p>Подтверждение email</p>
-        </div>
-        <div class="content">
-            <p>Здравствуйте!</p>
-            <p>Ваш код подтверждения:</p>
-            <div class="code">{{ code }}</div>
-            <p>Код действителен в течение <strong>15 минут</strong>.</p>
-            <p>Если вы не регистрировались на Mindful-Web, просто проигнорируйте это письмо.</p>
-        </div>
-        <div class="footer">
-            <p>С уважением, команда Mindful-Web</p>
+        <div class="card">
+            <div class="header">
+                <h1><a href="https://mindful-web.app" class="brand-link">🧘 Mindful Web</a></h1>
+                <p>Подтверждение email</p>
+            </div>
+            <div class="content">
+                <p>Здравствуйте!</p>
+                <p>Ваш код подтверждения:</p>
+                <div class="code-box">{{ code }}</div>
+                <p>Код действителен в течение <strong>{{ expire_minutes }} минут</strong>.</p>
+                <p>Если вы не регистрировались на <a href="https://mindful-web.app" class="brand-link">mindful-web.app</a>, просто проигнорируйте это письмо.</p>
+            </div>
+            <div class="footer">
+                <p>С уважением, команда <a href="https://mindful-web.app" class="brand-link">mindful-web.app</a></p>
+            </div>
         </div>
     </div>
 </body>
