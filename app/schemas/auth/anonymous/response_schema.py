@@ -7,4 +7,3 @@ class AnonymousResponseSchema(BaseModel):
     code: str = Field(default="CREATED", description="Код ответа")
     message: str = Field(default="Anonymous session created", description="Сообщение")
     anon_id: str = Field(..., description="Идентификатор анонимного пользователя")
-    anon_token: str = Field(..., description="JWT токен анонимной сессии")

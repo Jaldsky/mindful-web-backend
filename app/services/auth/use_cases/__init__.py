@@ -4,6 +4,7 @@ from .login import LoginService
 from .refresh import RefreshTokensService
 from .resend_code import ResendVerificationCodeService
 from .verify import VerifyEmailService
+from .session import SessionService
 
 __all__ = [
     "AnonymousService",
@@ -12,4 +13,5 @@ __all__ = [
     "RefreshTokensService",
     "ResendVerificationCodeService",
     "VerifyEmailService",
+    "SessionService",
 ]

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Body, Depends, Request, Response
+from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
@@ -8,6 +9,10 @@ from ....schemas.auth import (
     AnonymousResponseSchema,
     AnonymousMethodNotAllowedSchema,
     AnonymousInternalServerErrorSchema,
+    # Session
+    SessionResponseSchema,
+    SessionMethodNotAllowedSchema,
+    SessionInternalServerErrorSchema,
     # Register
     RegisterRequestSchema,
     RegisterResponseSchema,
@@ -60,10 +65,17 @@ from ....services.auth import (
     RegisterService,
     ResendVerificationCodeService,
     VerifyEmailService,
+    SessionService,
 )
-from ....services.auth.cookies import set_auth_cookies, clear_auth_cookies
+from ....services.auth.cookies import (
+    set_auth_cookies,
+    clear_auth_cookies,
+    set_anon_cookie,
+    clear_anon_cookie,
+)
 from ....services.auth.exceptions import AuthMessages, TokenMissingException
-from ....services.auth.constants import AUTH_REFRESH_COOKIE_NAME
+from ....services.auth.constants import AUTH_ACCESS_COOKIE_NAME, AUTH_REFRESH_COOKIE_NAME, AUTH_ANON_COOKIE_NAME
+from ....services.auth.common import decode_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -91,13 +103,72 @@ router = APIRouter(prefix="/auth", tags=["auth"])
         },
     },
     summary="Создание анонимной сессии",
-    description="Возвращает идентификатор анонимного пользователя для расширения.",
+    description="Возвращает идентификатор анонимного пользователя.",
 )
-async def create_anonymous() -> AnonymousResponseSchema:
+async def create_anonymous(
+    request: Request,
+    response: Response,
+) -> AnonymousResponseSchema:
+    anon_token = request.cookies.get(AUTH_ANON_COOKIE_NAME)
+    if anon_token:
+        try:
+            payload = decode_token(anon_token)
+            if payload.get("type") == "anon":
+                anon_id = UUID(str(payload.get("sub")))
+                set_anon_cookie(response, anon_token)
+                return AnonymousResponseSchema(
+                    anon_id=str(anon_id),
+                )
+        except Exception:
+            "Если cookie истекла или невалидна, то создаем новую"
+
     anon_id, anon_token = await AnonymousService().exec()
-    return AnonymousResponseSchema(
-        anon_id=str(anon_id),
+    set_anon_cookie(response, anon_token)
+    return AnonymousResponseSchema(anon_id=str(anon_id))
+
+
+@router.get(
+    "/session",
+    response_model=SessionResponseSchema,
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_200_OK: {
+            "model": SessionResponseSchema,
+            "description": "Статус текущей сессии",
+        },
+        status.HTTP_405_METHOD_NOT_ALLOWED: {
+            "model": SessionMethodNotAllowedSchema,
+            "description": "Поддерживается только GET метод",
+        },
+        status.HTTP_500_INTERNAL_SERVER_ERROR: {
+            "model": SessionInternalServerErrorSchema,
+            "description": "Внутренняя ошибка сервера",
+        },
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "model": ServiceUnavailableSchema,
+            "description": "Сервис не доступен",
+        },
+    },
+    summary="Проверка текущей сессии",
+    description="Проверяет наличие активной сессии в cookies. Не создаёт новую сессию.",
+)
+async def get_session(
+    request: Request,
+    db: AsyncSession = Depends(get_db_session),
+) -> SessionResponseSchema:
+    access_token = request.cookies.get(AUTH_ACCESS_COOKIE_NAME)
+    anon_token = request.cookies.get(AUTH_ANON_COOKIE_NAME)
+
+    session_state = await SessionService(
+        session=db,
+        access_token=access_token,
         anon_token=anon_token,
+    ).exec()
+
+    return SessionResponseSchema(
+        status=session_state.status,
+        user_id=str(session_state.user_id) if session_state.user_id else None,
+        anon_id=str(session_state.anon_id) if session_state.anon_id else None,
     )
 
 
@@ -357,6 +428,7 @@ async def login(
         password=payload.password,
     ).exec()
 
+    clear_anon_cookie(response)
     set_auth_cookies(response, access_token, refresh_token)
 
     return LoginResponseSchema(
@@ -392,4 +464,5 @@ async def login(
 )
 async def logout(response: Response) -> LogoutResponseSchema:
     clear_auth_cookies(response)
+    clear_anon_cookie(response)
     return LogoutResponseSchema()

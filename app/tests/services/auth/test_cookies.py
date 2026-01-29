@@ -7,6 +7,7 @@ from app.config import (
     AUTH_COOKIE_SECURE,
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES,
     JWT_REFRESH_TOKEN_EXPIRE_DAYS,
+    AUTH_COOKIE_SAMESITE,
 )
 from app.services.auth.cookies import (
     clear_auth_cookies,
@@ -16,7 +17,6 @@ from app.services.auth.cookies import (
 )
 from app.services.auth.constants import (
     AUTH_ACCESS_COOKIE_NAME,
-    AUTH_COOKIE_SAMESITE,
     AUTH_REFRESH_COOKIE_NAME,
     AUTH_ANON_COOKIE_NAME,
 )
