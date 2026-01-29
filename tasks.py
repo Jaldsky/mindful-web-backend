@@ -162,7 +162,7 @@ def docker_compose_up(ctx, rebuild=False, env_file=".env"):
     base_image_tag = "latest"
 
     project_root = _get_project_root()
-    compose_file = os.path.join(project_root, "deploy", "docker-compose.yml")
+    compose_file = os.path.join(project_root, "deploy", "docker-compose.local.yml")
     env_file_path = os.path.join(project_root, env_file)
 
     logger.info("🐳 Запуск Docker Compose...")
