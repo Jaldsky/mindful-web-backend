@@ -61,7 +61,7 @@ SMTP_PASSWORD=your-app-password
 poetry run invoke compose --build
 
 # Check health
-curl http://localhost:8000/health
+curl http://localhost:8000/api/v1/healthcheck
 ```
 
 ### 4. Access
@@ -117,6 +117,7 @@ poetry run invoke format
 - `POST /login` — Login with username/email
 - `POST /verify` — Verify email with 6-digit code
 - `POST /refresh` — Refresh access token
+- `GET /session` — Get current session status
 - `POST /anonymous` — Create anonymous session
 
 ### Events & Analytics (`/api/v1/`)
@@ -125,11 +126,12 @@ poetry run invoke format
 
 ### User (`/api/v1/user/`)
 - `GET /profile` — Get user profile
-- `PUT /profile/username` — Update username
-- `PUT /profile/email` — Update email
+- `PATCH /profile/username` — Update username
+- `PATCH /profile/email` — Update email
 
 ### Health
-- `GET /health` — Health check
+- `GET /healthcheck` — Health check
+- `GET /healthcheck/database` — Database health check
 
 ---
 
