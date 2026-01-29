@@ -13,6 +13,7 @@ from .renderer import TemplateRenderer, TemplateRendererSettings
 from .smtp import EmailServiceSettings, SMTPTransport
 from .normalizers import EmailServiceNormalizers
 from .validators import EmailServiceValidators
+from ...config import VERIFICATION_CODE_EXPIRE_MINUTES
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,10 @@ class EmailService:
         if from_email is not None:
             EmailServiceValidators.validate_email(normalized_sender)
 
-        html = self._renderer.render(VERIFICATION_CODE_TEMPLATE, context={"code": normalized_code})
+        html = self._renderer.render(
+            VERIFICATION_CODE_TEMPLATE,
+            context={"code": normalized_code, "expire_minutes": VERIFICATION_CODE_EXPIRE_MINUTES},
+        )
         message = EmailMessageBuilder.build_html_message(
             to_email=normalized_to,
             subject=VERIFICATION_EMAIL_SUBJECT,
