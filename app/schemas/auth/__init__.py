@@ -53,6 +53,11 @@ from .logout import (
     LogoutMethodNotAllowedSchema,
     LogoutInternalServerErrorSchema,
 )
+from .session import (
+    SessionResponseSchema,
+    SessionMethodNotAllowedSchema,
+    SessionInternalServerErrorSchema,
+)
 
 __all__ = (
     # Common
@@ -104,4 +109,8 @@ __all__ = (
     "LogoutResponseSchema",
     "LogoutMethodNotAllowedSchema",
     "LogoutInternalServerErrorSchema",
+    # Session
+    "SessionResponseSchema",
+    "SessionMethodNotAllowedSchema",
+    "SessionInternalServerErrorSchema",
 )
