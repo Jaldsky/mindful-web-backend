@@ -1,28 +1,22 @@
+# Production Docker Compose
+# Запуск из корня backend: docker compose -f deploy/docker-compose.prod.yml --env-file .env up -d
+# Сборка: docker compose -f deploy/docker-compose.prod.yml --env-file .env up -d --build
+
 services:
-
-  mwb-mailhog:
-    image: mailhog/mailhog:latest
-    ports:
-      - "1025:1025"
-      - "8025:8025"  # Для дебага, web ui для просмотра писем
-    restart: unless-stopped
-    networks:
-      - mw-net
-
   mwb-db:
     image: postgres:16-alpine
     env_file:
-      - ../.env
+      - ../.env.prod
     ports:
-      - "5432:5432"  # Для дебага
+      - "5432:5432"
     volumes:
       - mwb-pgdata:/var/lib/postgresql/data
     healthcheck:
       test: >
         /bin/sh -c 'pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"'
-      interval: 5s
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
     restart: unless-stopped
     networks:
       - mw-net
@@ -30,13 +24,11 @@ services:
   mwb-redis:
     image: redis:7-alpine
     env_file:
-      - ../.env
-    ports:
-      - "6379:6379"  # Для дебага
-    command: redis-server --requirepass $REDIS_PASSWORD
+      - ../.env.prod
+    command: redis-server --requirepass $$REDIS_PASSWORD
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "$REDIS_PASSWORD", "ping"]
-      interval: 5s
+      test: ["CMD", "redis-cli", "-a", "$$REDIS_PASSWORD", "ping"]
+      interval: 10s
       timeout: 3s
       retries: 5
       start_period: 10s
@@ -54,7 +46,7 @@ services:
   mwb-migrate:
     image: mwb-service:latest
     env_file:
-      - ../.env
+      - ../.env.prod
     depends_on:
       mwb-db:
         condition: service_healthy
@@ -68,7 +60,7 @@ services:
   mwb-worker:
     image: mwb-service:latest
     env_file:
-      - ../.env
+      - ../.env.prod
     depends_on:
       mwb-redis:
         condition: service_healthy
@@ -82,7 +74,7 @@ services:
   mwb-beat:
     image: mwb-service:latest
     env_file:
-      - ../.env
+      - ../.env.prod
     depends_on:
       mwb-redis:
         condition: service_healthy
@@ -98,7 +90,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ../.env
+      - ../.env.prod
     depends_on:
       mwb-migrate:
         condition: service_completed_successfully
