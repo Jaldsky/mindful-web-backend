@@ -112,8 +112,72 @@ class SMTPTransport:
         """
         self._settings = settings
 
+    def _determine_tls_mode(self) -> tuple[bool, bool]:
+        """Приватный метод определения режима TLS соединения.
+
+        Определяет тип TLS соединения на основе настроек:
+        - Порт 465: прямое TLS/SSL соединение (use_tls=True в конструкторе SMTP)
+        - Порт 587 и другие: STARTTLS (use_tls=False, затем starttls() вручную)
+        - use_tls=False: без шифрования
+
+        Returns:
+            Кортеж (use_direct_tls, use_starttls)
+        """
+        use_direct_tls = self._settings.use_tls and self._settings.port == 465
+        use_starttls = self._settings.use_tls and not use_direct_tls
+        return use_direct_tls, use_starttls
+
+    async def _establish_tls_connection(self, client: aiosmtplib.SMTP) -> None:
+        """Приватный метод установки TLS соединения через STARTTLS.
+
+        Процесс включает:
+        1. Проверку необходимости отправки EHLO
+        2. Проверку поддержки STARTTLS сервером
+        3. Установку TLS соединения
+        4. Обработку случая, когда TLS уже установлен
+
+        Args:
+            client: SMTP клиент для установки TLS.
+
+        Raises:
+            aiosmtplib.SMTPException: При ошибке установки TLS.
+        """
+        try:
+            if client.is_ehlo_or_helo_needed:
+                await client.ehlo()
+
+            if client.supports_extension("starttls"):
+                await client.starttls()
+            else:
+                logger.warning(f"SMTP server {self._settings.host}:{self._settings.port} does not support STARTTLS")
+        except aiosmtplib.SMTPException as e:
+            error_message = str(e)
+            if "already using TLS" in error_message or "Connection already using TLS" in error_message:
+                logger.debug(f"TLS already established for {self._settings.host}:{self._settings.port}")
+            else:
+                raise
+
+    async def _authenticate(self, client: aiosmtplib.SMTP) -> None:
+        """Приватный метод аутентификации на SMTP сервере.
+
+        Args:
+            client: SMTP клиент для аутентификации.
+
+        Raises:
+            aiosmtplib.SMTPAuthenticationError: При ошибке аутентификации.
+        """
+        if self._settings.user and self._settings.password:
+            await client.login(self._settings.user, self._settings.password)
+
     async def send(self, message: MIMEMultipart, *, sender: Email, recipient: Email) -> None:
         """Метод отправки письма через SMTP сервер.
+
+        Процесс отправки включает:
+        1. Определение режима TLS соединения
+        2. Подключение к SMTP серверу
+        3. Установку TLS соединения (если требуется)
+        4. Аутентификацию на сервере (если требуется)
+        5. Отправку письма
 
         Args:
             message: MIME сообщение для отправки.
@@ -123,16 +187,22 @@ class SMTPTransport:
         Raises:
             EmailSendFailedException: При ошибке подключения, аутентификации или отправки email.
         """
+        use_direct_tls, use_starttls = self._determine_tls_mode()
+
         try:
             async with aiosmtplib.SMTP(
                 hostname=self._settings.host,
                 port=self._settings.port,
                 timeout=self._settings.timeout,
-                use_tls=self._settings.use_tls,
+                use_tls=use_direct_tls,
+                start_tls=False,
             ) as client:
-                if self._settings.user and self._settings.password:
-                    await client.login(self._settings.user, self._settings.password)
+                if use_starttls:
+                    await self._establish_tls_connection(client)
+
+                await self._authenticate(client)
                 await client.send_message(message, sender=sender, recipients=recipient)
+
             logger.info(f"Email sent via SMTP: from {sender} to {recipient}")
         except aiosmtplib.SMTPConnectError:
             raise EmailSendFailedException(self.messages.SMTP_CONNECTION_ERROR)
