@@ -9,6 +9,7 @@ from ...schemas.auth import (
     ResendCodeMethodNotAllowedSchema,
     VerifyMethodNotAllowedSchema,
     AnonymousMethodNotAllowedSchema,
+    SessionMethodNotAllowedSchema,
 )
 
 
@@ -73,3 +74,12 @@ def auth_anonymous_method_not_allowed_response() -> JSONResponse:
         JSONResponse с ошибкой 405 Method Not Allowed.
     """
     return method_not_allowed_response(AnonymousMethodNotAllowedSchema, allowed_method="POST")
+
+
+def auth_session_method_not_allowed_response() -> JSONResponse:
+    """Функция возврата ответа 405 Method Not Allowed для GET /auth/session.
+
+    Returns:
+        JSONResponse с ошибкой 405 Method Not Allowed.
+    """
+    return method_not_allowed_response(SessionMethodNotAllowedSchema, allowed_method="GET")

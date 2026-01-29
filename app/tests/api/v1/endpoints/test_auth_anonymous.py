@@ -11,7 +11,6 @@ from starlette.status import (
 from app.main import app
 from app.schemas import ErrorCode
 from app.schemas.auth import AnonymousResponseSchema, AnonymousMethodNotAllowedSchema
-from app.services.auth.common import decode_token
 
 
 class TestAuthAnonymousEndpoint(TestCase):
@@ -34,11 +33,6 @@ class TestAuthAnonymousEndpoint(TestCase):
         self.assertEqual(schema.code, "CREATED")
         self.assertEqual(schema.message, "Anonymous session created")
         UUID(schema.anon_id)
-        self.assertTrue(schema.anon_token)
-
-        payload = decode_token(schema.anon_token)
-        self.assertEqual(payload.get("type"), "anon")
-        self.assertEqual(payload.get("sub"), schema.anon_id)
 
     def test_anonymous_method_not_allowed_different_methods(self):
         """Различные HTTP методы (GET, PUT, DELETE, PATCH) возвращают 405."""

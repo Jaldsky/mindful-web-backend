@@ -15,7 +15,7 @@ from ..services.auth.exceptions import (
 )
 from ..services.auth.access import authenticate_access_token, extract_user_id_from_access_token
 from ..services.auth.common import decode_token
-from ..services.auth.constants import AUTH_ACCESS_COOKIE_NAME
+from ..services.auth.constants import AUTH_ACCESS_COOKIE_NAME, AUTH_ANON_COOKIE_NAME
 from ..services.auth.types import AccessToken
 
 _bearer = HTTPBearer(auto_error=False)
@@ -69,6 +69,24 @@ def _extract_access_token(
     if credentials is not None:
         return credentials.credentials
     return request.cookies.get(AUTH_ACCESS_COOKIE_NAME)
+
+
+def _extract_actor_token(
+    credentials: HTTPAuthorizationCredentials | None,
+    request: Request,
+) -> AccessToken | None:
+    """Функция извлечения токена доступа или анонимной сессии из заголовка или куки.
+
+    Args:
+        credentials: Bearer-токен из заголовка Authorization.
+        request: HTTP-запрос для доступа к куки.
+
+    Returns:
+        JWT токен доступа или анонимной сессии или None.
+    """
+    if credentials is not None:
+        return credentials.credentials
+    return request.cookies.get(AUTH_ACCESS_COOKIE_NAME) or request.cookies.get(AUTH_ANON_COOKIE_NAME)
 
 
 async def get_current_user(
@@ -164,7 +182,7 @@ async def get_actor_id_from_token(
         TokenExpiredException: Если токен истёк.
         UserNotFoundException: Если пользователь не найден в системе.
     """
-    token = _extract_access_token(credentials, request)
+    token = _extract_actor_token(credentials, request)
     if token is None:
         raise TokenMissingException(AuthMessages.TOKEN_MISSING)
 
