@@ -6,6 +6,10 @@ DATE_FORMATS = [
     "%Y-%m-%d",  # YYYY-MM-DD
 ]
 
+# Localization
+DEFAULT_LOCALE = "en"
+ACCEPT_LANGUAGE_HEADER = "Accept-Language"
+
 DEFAULT_PAGE_SIZE: int = 20
 
 CORS_ALLOW_ORIGINS: list[str] = os.getenv("CORS_ALLOW_ORIGINS").split(",")

@@ -1,8 +1,117 @@
+import asyncio
+from types import SimpleNamespace
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 from fastapi.testclient import TestClient
+from starlette.responses import Response
+
 from app.main import app
+from app.common.middleware import locale_middleware
+from app.config import DEFAULT_LOCALE
+
+
+class TestLocaleMiddleware(TestCase):
+    """Тесты для locale_middleware."""
+
+    def _run_async(self, coro):
+        return asyncio.run(coro)
+
+    def test_locale_from_accept_language_single_tag(self):
+        """Заголовок с одним тегом — request.state.locale равен этому тегу."""
+        request = MagicMock()
+        request.headers.get = MagicMock(return_value="ru")
+        request.state = SimpleNamespace()
+        captured = []
+
+        async def call_next(req):
+            captured.append(getattr(req.state, "locale", None))
+            return Response()
+
+        self._run_async(locale_middleware(request, call_next))
+        self.assertEqual(len(captured), 1)
+        self.assertEqual(captured[0], "ru")
+
+    def test_locale_from_accept_language_with_quality(self):
+        """Заголовок en-US,en;q=0.9 — берётся первый тег en-US."""
+        request = MagicMock()
+        request.headers.get = MagicMock(return_value="en-US,en;q=0.9,ru;q=0.8")
+        request.state = SimpleNamespace()
+        captured = []
+
+        async def call_next(req):
+            captured.append(getattr(req.state, "locale", None))
+            return Response()
+
+        self._run_async(locale_middleware(request, call_next))
+        self.assertEqual(captured[0], "en-US")
+
+    def test_locale_default_when_header_missing(self):
+        """Нет заголовка — request.state.locale равен default_locale (en)."""
+        request = MagicMock()
+        request.headers.get = MagicMock(return_value=None)
+        request.state = SimpleNamespace()
+        captured = []
+
+        async def call_next(req):
+            captured.append(getattr(req.state, "locale", None))
+            return Response()
+
+        self._run_async(locale_middleware(request, call_next))
+        self.assertEqual(captured[0], DEFAULT_LOCALE)
+
+    def test_locale_default_when_header_empty(self):
+        """Пустой или пробельный заголовок — request.state.locale равен default_locale."""
+        request = MagicMock()
+        request.state = SimpleNamespace()
+        captured = []
+
+        async def call_next(req):
+            captured.append(getattr(req.state, "locale", None))
+            return Response()
+
+        for raw in ("", "   "):
+            with self.subTest(raw=repr(raw)):
+                request.headers.get = MagicMock(return_value=raw)
+                captured.clear()
+                self._run_async(locale_middleware(request, call_next))
+                self.assertEqual(captured[0], DEFAULT_LOCALE)
+
+    def test_locale_default_when_parsed_empty(self):
+        """Заголовок без валидного тега (только запятые/точка с запятой) — default_locale."""
+        request = MagicMock()
+        request.headers.get = MagicMock(return_value="; , ")
+        request.state = SimpleNamespace()
+        captured = []
+
+        async def call_next(req):
+            captured.append(getattr(req.state, "locale", None))
+            return Response()
+
+        self._run_async(locale_middleware(request, call_next))
+        self.assertEqual(captured[0], DEFAULT_LOCALE)
+
+    def test_locale_uses_custom_header_and_default(self):
+        """Кастомные header и default_locale передаются в middleware."""
+        request = MagicMock()
+        request.headers.get = MagicMock(return_value=None)
+        request.state = SimpleNamespace()
+        captured = []
+
+        async def call_next(req):
+            captured.append(getattr(req.state, "locale", None))
+            return Response()
+
+        self._run_async(
+            locale_middleware(
+                request,
+                call_next,
+                header="x-custom-lang",
+                default_locale="de",
+            )
+        )
+        request.headers.get.assert_called_once_with("x-custom-lang")
+        self.assertEqual(captured[0], "de")
 
 
 class TestMiddleware(TestCase):
