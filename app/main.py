@@ -13,7 +13,7 @@ from .api.handlers import (
 )
 from .exceptions import AppException
 from .common.logging import setup_logging
-from .common.middleware import log_requests_middleware
+from .common.middleware import log_requests_middleware, locale_middleware
 from .config import CORS_ALLOW_ORIGINS
 
 setup_logging()
@@ -34,6 +34,7 @@ app.add_middleware(
 )
 
 app.middleware("http")(log_requests_middleware)
+app.middleware("http")(locale_middleware)
 
 # Custom exceptions
 app.add_exception_handler(AppException, app_exception_handler)
