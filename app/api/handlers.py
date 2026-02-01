@@ -31,8 +31,38 @@ from ..services.auth.exceptions import TokenExpiredException, TokenInvalidExcept
 logger = logging.getLogger(__name__)
 
 
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Обработчик необработанных исключений.
+
+    Args:
+        request: Объект входящего HTTP-запроса.
+        exc: Необработанное исключение Exception.
+
+    Returns:
+        JSONResponse со статусом 500 и телом InternalServerErrorSchema.
+    """
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+
+    error_schema = InternalServerErrorSchema(
+        code=ErrorCode.INTERNAL_ERROR,
+        message="Internal server error",
+    )
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content=error_schema.model_dump(mode="json"),
+    )
+
+
 async def app_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Универсальный обработчик для всех AppException."""
+    """Универсальный обработчик для всех AppException.
+
+    Args:
+        request: Объект входящего HTTP-запроса.
+        exc: Исключение приложения AppException.
+
+    Returns:
+        JSONResponse со статусом и телом из exc или 500 при неверном типе.
+    """
     if not isinstance(exc, AppException):
         error_schema = InternalServerErrorSchema(
             code=ErrorCode.INTERNAL_ERROR, message="Unknown exception type handled by app_exception_handler"
@@ -57,8 +87,15 @@ async def app_exception_handler(request: Request, exc: Exception) -> JSONRespons
 
 
 async def bad_request_error_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Обработчик для ошибки 400 Bad Request."""
+    """Обработчик для ошибки 400 Bad Request.
 
+    Args:
+        request: Объект входящего HTTP-запроса.
+        exc: Ошибка валидации запроса RequestValidationError.
+
+    Returns:
+        JSONResponse со статусом 400 и телом BadRequestSchema с деталями валидации.
+    """
     error_details = None
     if isinstance(exc, RequestValidationError):
         error_details = [
@@ -83,7 +120,15 @@ async def bad_request_error_handler(request: Request, exc: Exception) -> JSONRes
 
 
 async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Обработчик для ошибки 405 Method Not Allowed."""
+    """Обработчик для ошибки 405 Method Not Allowed.
+
+    Args:
+        request: Объект входящего HTTP-запроса.
+        exc: Исключение.
+
+    Returns:
+        JSONResponse со статусом 405 и схемой ошибки.
+    """
     from ..services.healthcheck import healthcheck_method_not_allowed_response
     from ..services.events.http_handler import save_events_method_not_allowed_response
     from ..services.analytics.http_handler import analytics_usage_method_not_allowed_response
@@ -145,32 +190,35 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
     if str(request.url.path) == USER_PROFILE_EMAIL_PATH:
         return user_profile_email_method_not_allowed_response()
 
-    detail = "Method not allowed"
     if isinstance(exc, StarletteHTTPException) and exc.detail:
-        detail = str(exc.detail)
+        logger.warning(f"Method not allowed: {exc.detail}")
 
     return JSONResponse(
         status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
-        content={"detail": detail},
+        content={"detail": "Method not allowed"},
     )
 
 
 async def unprocessable_entity_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Обработчик для ошибки 422 Unprocessable Entity (Starlette)."""
+    """Обработчик для ошибки 422 Unprocessable Entity.
+
+    Args:
+        request: Объект входящего HTTP-запроса.
+        exc: Исключение с кодом 422.
+
+    Returns:
+        JSONResponse со статусом 422 и телом UnprocessableEntitySchema.
+    """
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     message = "Business validation failed"
     error_code = ErrorCode.BUSINESS_VALIDATION_ERROR
     error_details = None
 
     if isinstance(exc, StarletteHTTPException) and exc.status_code == status_code:
-        if isinstance(exc.detail, dict):
-            return JSONResponse(status_code=status_code, content=exc.detail)
-        if exc.detail:
-            message = str(exc.detail)
-    elif hasattr(exc, "__str__"):
-        message = str(exc)
-
-    logger.warning(f"Unprocessable entity: {message}")
+        if isinstance(exc.detail, str) and exc.detail:
+            message = exc.detail
+        elif isinstance(exc.detail, dict):
+            logger.warning(f"Unprocessable entity (dict detail): {exc.detail}")
 
     error_schema = UnprocessableEntitySchema(
         code=error_code,
@@ -184,7 +232,15 @@ async def unprocessable_entity_handler(request: Request, exc: Exception) -> JSON
 
 
 async def internal_server_error_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Обработчик для ошибки 500 Internal Server Error (Generic)."""
+    """Обработчик для ошибки 500 Internal Server Error.
+
+    Args:
+        request: Объект входящего HTTP-запроса.
+        exc: Исключение.
+
+    Returns:
+        JSONResponse со статусом 500 и телом InternalServerErrorSchema.
+    """
     from sqlalchemy.exc import ArgumentError, SQLAlchemyError
     from ..db.exceptions import DatabaseManagerException
 
@@ -195,12 +251,7 @@ async def internal_server_error_handler(request: Request, exc: Exception) -> JSO
         error_code = ErrorCode.DATABASE_ERROR
         message = "Database error"
 
-    if isinstance(exc, StarletteHTTPException) and exc.detail:
-        message = str(exc.detail)
-    elif hasattr(exc, "__str__"):
-        message = str(exc)
-
-    logger.error(f"Internal server error: {message}", exc_info=True)
+    logger.error(f"Internal server error: {exc}", exc_info=True)
 
     error_schema = InternalServerErrorSchema(
         code=error_code,
@@ -213,12 +264,18 @@ async def internal_server_error_handler(request: Request, exc: Exception) -> JSO
 
 
 async def service_unavailable_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Обработчик для ошибки 503 Service Unavailable."""
+    """Обработчик для ошибки 503 Service Unavailable.
+
+    Args:
+        request: Объект входящего HTTP-запроса.
+        exc: Исключение.
+
+    Returns:
+        JSONResponse со статусом 503 и телом ServiceUnavailableSchema.
+    """
     message = "Service is not available"
     if isinstance(exc, StarletteHTTPException) and exc.detail:
-        message = str(exc.detail)
-
-    logger.error(f"Service unavailable: {message}")
+        logger.error(f"Service unavailable: {exc.detail}", exc_info=True)
 
     error_schema = ServiceUnavailableSchema(
         code=ErrorCode.SERVICE_UNAVAILABLE,
