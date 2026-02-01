@@ -10,6 +10,7 @@ from .api.handlers import (
     internal_server_error_handler,
     unprocessable_entity_handler,
     app_exception_handler,
+    unhandled_exception_handler,
 )
 from .exceptions import AppException
 from .common.logging import setup_logging
@@ -45,6 +46,9 @@ app.add_exception_handler(405, method_not_allowed_handler)
 app.add_exception_handler(422, unprocessable_entity_handler)
 app.add_exception_handler(500, internal_server_error_handler)
 app.add_exception_handler(503, service_unavailable_handler)
+
+# Unhandled exception
+app.add_exception_handler(Exception, unhandled_exception_handler)
 
 app.include_router(healthcheck.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
