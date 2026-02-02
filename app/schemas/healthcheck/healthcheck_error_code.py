@@ -1,4 +1,4 @@
-from ...common.common import StringEnum
+from ...core.common import StringEnum
 
 
 class HealthcheckErrorCode(StringEnum):

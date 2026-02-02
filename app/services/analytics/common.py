@@ -1,6 +1,6 @@
 import os
 
-from ...common.common import read_text_file
+from ...core.common import read_text_file
 
 
 def load_compute_domain_usage_sql() -> str:

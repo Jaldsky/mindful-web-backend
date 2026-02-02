@@ -9,7 +9,7 @@ import uvicorn
 from invoke import task
 from pathlib import Path
 
-from app.common.logging import setup_logging
+from app.core.logging import setup_logging
 
 logger = setup_logging()
 

@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from starlette.responses import Response
 
 from app.main import app
-from app.common.middleware import locale_middleware
+from app.core.middleware import locale_middleware
 from app.config import DEFAULT_LOCALE
 
 

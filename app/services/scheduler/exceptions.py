@@ -1,6 +1,6 @@
 from fastapi import status
 from app.exceptions import AppException
-from ...common.common import StringEnum
+from ...core.common import StringEnum
 from ...db.types import ExceptionMessage
 
 
