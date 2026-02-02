@@ -4,6 +4,7 @@ Invoke tasks for the mindful-web application.
 """
 
 import os
+import sys
 import shlex
 import uvicorn
 from invoke import task
@@ -98,7 +99,7 @@ def tests(ctx):
         ctx: Контекст invoke.
     """
     logger.info("🧪 Запуск тестов...")
-    cmd = ["python", "-m", "unittest", "discover", '--pattern="*test*.py"']
+    cmd = [sys.executable, "-m", "unittest", "discover", "--pattern=*test*.py"]
     _run_safe_command(ctx, cmd)
 
 
