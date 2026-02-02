@@ -77,18 +77,18 @@ class VerifyEmailService(VerifyEmailServiceBase):
         """
         user, verification = await fetch_user_with_latest_verification_code_by_email(self.session, self.email)
         if not user:
-            raise UserNotFoundException(self.messages.USER_NOT_FOUND)
+            raise UserNotFoundException("auth.errors.user_not_found")
         is_pending_email = user.pending_email is not None and user.pending_email == self.email
         if user.is_verified and not is_pending_email:
-            raise EmailAlreadyVerifiedException(self.messages.EMAIL_ALREADY_VERIFIED)
+            raise EmailAlreadyVerifiedException("auth.errors.email_already_verified")
         if not verification:
-            raise VerificationCodeInvalidException(self.messages.CODE_INVALID)
+            raise VerificationCodeInvalidException("auth.errors.code_invalid")
 
         if verification.used_at is not None:
             attempts = int(getattr(verification, "attempts", 0) or 0)
             if attempts >= VERIFICATION_CODE_MAX_ATTEMPTS:
-                raise TooManyAttemptsException(self.messages.TOO_MANY_ATTEMPTS)
-            raise VerificationCodeInvalidException(self.messages.CODE_INVALID)
+                raise TooManyAttemptsException("auth.errors.too_many_attempts")
+            raise VerificationCodeInvalidException("auth.errors.code_invalid")
 
         return user, verification, is_pending_email
 
@@ -105,7 +105,7 @@ class VerifyEmailService(VerifyEmailServiceBase):
         expires_at_utc = to_utc_datetime(verification.expires_at)
         now_utc = to_utc_datetime(now)
         if expires_at_utc < now_utc:
-            raise VerificationCodeExpiredException(self.messages.CODE_EXPIRED)
+            raise VerificationCodeExpiredException("auth.errors.code_expired")
 
     async def _handle_attempt_limit(self, verification: VerificationCodeModel, now: datetime) -> None | NoReturn:
         """Приватный метод проверки лимита попыток ввода кода.
@@ -123,7 +123,7 @@ class VerifyEmailService(VerifyEmailServiceBase):
         if attempts >= VERIFICATION_CODE_MAX_ATTEMPTS:
             verification.used_at = now
             await self.session.commit()
-            raise TooManyAttemptsException(self.messages.TOO_MANY_ATTEMPTS)
+            raise TooManyAttemptsException("auth.errors.too_many_attempts")
 
     async def _verify_code_match(self, verification: VerificationCodeModel, now: datetime) -> None | NoReturn:
         """Приватный метод проверки совпадения кода и обработки неверного кода.
@@ -146,8 +146,8 @@ class VerifyEmailService(VerifyEmailServiceBase):
         await self.session.commit()
 
         if reached_limit:
-            raise TooManyAttemptsException(self.messages.TOO_MANY_ATTEMPTS)
-        raise VerificationCodeInvalidException(self.messages.CODE_INVALID)
+            raise TooManyAttemptsException("auth.errors.too_many_attempts")
+        raise VerificationCodeInvalidException("auth.errors.code_invalid")
 
     async def exec(self) -> None | NoReturn:
         """Функция подтверждения email по ранее отправленному коду.
@@ -197,4 +197,4 @@ class VerifyEmailService(VerifyEmailServiceBase):
             raise
         except Exception:
             await self.session.rollback()
-            raise AuthServiceException(self.messages.AUTH_SERVICE_ERROR)
+            raise AuthServiceException("auth.errors.auth_service_error")

@@ -33,7 +33,7 @@ class TestLocaleMiddleware(TestCase):
         self.assertEqual(captured[0], "ru")
 
     def test_locale_from_accept_language_with_quality(self):
-        """Заголовок en-US,en;q=0.9 — берётся первый тег en-US."""
+        """Заголовок en-US,en;q=0.9 — берётся первый тег en-US (нормализация в схеме)."""
         request = MagicMock()
         request.headers.get = MagicMock(return_value="en-US,en;q=0.9,ru;q=0.8")
         request.state = SimpleNamespace()
@@ -118,7 +118,7 @@ class TestMiddleware(TestCase):
     def setUp(self):
         self.client = TestClient(app)
 
-    @patch("app.common.middleware.logger")
+    @patch("app.core.middleware.logger")
     def test_middleware_logs_successful_request(self, mock_logger: MagicMock):
         response = self.client.get("/api/v1/healthcheck")
 
@@ -137,7 +137,7 @@ class TestMiddleware(TestCase):
         assert "Method: GET" in response_log
         assert "Duration:" in response_log
 
-    @patch("app.common.middleware.logger")
+    @patch("app.core.middleware.logger")
     def test_middleware_logs_error_request(self, mock_logger: MagicMock):
         response = self.client.get("/non-existent-path")
 

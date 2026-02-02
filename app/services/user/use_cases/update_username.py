@@ -76,7 +76,7 @@ class UpdateUsernameService(UpdateUsernameServiceBase):
         """
         user = await fetch_user_by_id(self.session, self.user_id)
         if not user:
-            raise UserNotFoundException(self.messages.USER_NOT_FOUND)
+            raise UserNotFoundException("user.errors.user_not_found")
         return user
 
     async def _ensure_username_available(self, user_id: UUID) -> None | NoReturn:
@@ -90,7 +90,7 @@ class UpdateUsernameService(UpdateUsernameServiceBase):
         """
         existing = await fetch_user_by_username(self.session, self.username)
         if existing and existing.id != user_id:
-            raise UsernameAlreadyExistsException(self.messages.USERNAME_EXISTS)
+            raise UsernameAlreadyExistsException("user.errors.username_exists")
 
     def _apply_username_update(self, user: User) -> bool:
         """Приватный метод обновления логина пользователя.
@@ -140,4 +140,4 @@ class UpdateUsernameService(UpdateUsernameServiceBase):
             raise
         except Exception:
             await self.session.rollback()
-            raise AuthServiceException(self.messages.AUTH_SERVICE_ERROR)
+            raise AuthServiceException("user.errors.auth_service_error")

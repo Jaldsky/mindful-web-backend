@@ -29,4 +29,4 @@ class DatabaseHealthcheckService:
         is_available = await check_database_connection(self.session)
 
         if not is_available:
-            raise HealthcheckServiceUnavailableException("Database is not available")
+            raise HealthcheckServiceUnavailableException("healthcheck.errors.database_unavailable")

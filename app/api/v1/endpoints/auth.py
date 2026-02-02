@@ -73,7 +73,7 @@ from ....services.auth.cookies import (
     set_anon_cookie,
     clear_anon_cookie,
 )
-from ....services.auth.exceptions import AuthMessages, TokenMissingException
+from ....services.auth.exceptions import TokenMissingException
 from ....services.auth.constants import AUTH_ACCESS_COOKIE_NAME, AUTH_REFRESH_COOKIE_NAME, AUTH_ANON_COOKIE_NAME
 from ....services.auth.common import decode_token
 
@@ -365,7 +365,7 @@ async def refresh(
     if not refresh_token:
         refresh_token = request.cookies.get(AUTH_REFRESH_COOKIE_NAME)
     if not refresh_token:
-        raise TokenMissingException(AuthMessages.TOKEN_MISSING)
+        raise TokenMissingException("auth.errors.token_missing")
 
     access_token, refresh_token = await RefreshTokensService(
         session=db,

@@ -33,7 +33,7 @@ class AnalyticsServiceValidators:
         if isinstance(date_, date):
             return date_
         if not isinstance(date_, str):
-            raise InvalidDateFormatException(cls.messages.INVALID_DATE_FORMAT)
+            raise InvalidDateFormatException("analytics.errors.invalid_date_format")
 
         for fmt in DATE_FORMATS:
             try:
@@ -41,7 +41,7 @@ class AnalyticsServiceValidators:
             except ValueError:
                 continue
 
-        raise InvalidDateFormatException(cls.messages.INVALID_DATE_FORMAT)
+        raise InvalidDateFormatException("analytics.errors.invalid_date_format")
 
     @classmethod
     def validate_time_range(cls, from_date: Date, to_date: Date) -> None | NoReturn:
@@ -55,7 +55,7 @@ class AnalyticsServiceValidators:
             InvalidTimeRangeException: Диапазон не корректен.
         """
         if to_date < from_date:
-            raise InvalidTimeRangeException(cls.messages.INVALID_TIME_RANGE)
+            raise InvalidTimeRangeException("analytics.errors.invalid_time_range")
 
     @classmethod
     def validate_page(cls, page: Page) -> None | NoReturn:
@@ -69,7 +69,7 @@ class AnalyticsServiceValidators:
         """
 
         if not isinstance(page, int):
-            raise InvalidPageException(cls.messages.INVALID_PAGE_TYPE)
+            raise InvalidPageException("analytics.errors.invalid_page_type")
 
         if page < MIN_PAGE:
-            raise InvalidPageException(cls.messages.INVALID_PAGE)
+            raise InvalidPageException("analytics.errors.invalid_page")

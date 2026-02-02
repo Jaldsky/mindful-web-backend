@@ -4,7 +4,7 @@ from unittest.mock import patch
 from uuid import UUID
 
 from app.services.auth.common import decode_token
-from app.services.auth.exceptions import AuthMessages, AuthServiceException
+from app.services.auth.exceptions import AuthServiceException
 from app.services.auth.use_cases import AnonymousService
 
 
@@ -31,7 +31,7 @@ class TestAnonymousService(TestCase):
                 with self.assertRaises(AuthServiceException) as ctx:
                     await service.exec()
 
-            self.assertEqual(ctx.exception.message, AuthMessages.ANON_ID_GENERATION_FAILED)
+            self.assertEqual(ctx.exception.message, "auth.errors.anon_id_generation_failed")
 
         self._run_async(_test())
 
@@ -42,6 +42,6 @@ class TestAnonymousService(TestCase):
                 with self.assertRaises(AuthServiceException) as ctx:
                     await service.exec()
 
-            self.assertEqual(ctx.exception.message, AuthMessages.ANON_TOKEN_CREATE_FAILED)
+            self.assertEqual(ctx.exception.message, "auth.errors.anon_token_create_failed")
 
         self._run_async(_test())

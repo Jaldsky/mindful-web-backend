@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import (
     HTTP_200_OK,
@@ -7,6 +7,7 @@ from starlette.status import (
     HTTP_503_SERVICE_UNAVAILABLE,
 )
 
+from ....core.localizer import localize_key
 from ...dependencies import get_db_session
 from ....schemas.general import (
     InternalServerErrorSchema,
@@ -48,11 +49,9 @@ router = APIRouter(prefix="/healthcheck", tags=["healthcheck"])
     summary="Проверка доступности сервиса",
     description="Проверка работоспособности сервиса",
 )
-async def check_service_health() -> HealthcheckResponseSchema:
-    return HealthcheckResponseSchema(
-        code="OK",
-        message="Service is available",
-    )
+async def check_service_health(request: Request) -> HealthcheckResponseSchema:
+    message = localize_key(request, "healthcheck.messages.service_available", "Service is available")
+    return HealthcheckResponseSchema(code="OK", message=message)
 
 
 @router.get(
@@ -79,10 +78,10 @@ async def check_service_health() -> HealthcheckResponseSchema:
     description="Проверяет подключение к базе данных и ее работоспособность",
 )
 async def check_database_health(
+    request: Request,
     db: AsyncSession = Depends(get_db_session),
 ) -> DatabaseHealthcheckResponseSchema:
     await DatabaseHealthcheckService(session=db).exec()
-    return DatabaseHealthcheckResponseSchema(
-        code="OK",
-        message="Database is available",
-    )
+
+    message = localize_key(request, "healthcheck.messages.database_available", "Database is available")
+    return DatabaseHealthcheckResponseSchema(code="OK", message=message)

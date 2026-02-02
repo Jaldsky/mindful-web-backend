@@ -5,6 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from ..core.localizer import localize_key
 from ..exceptions import AppException
 from .routes import (
     ANALYTICS_USAGE_PATH,
@@ -77,10 +78,18 @@ async def app_exception_handler(request: Request, exc: Exception) -> JSONRespons
     else:
         logger.warning(f"App warning: {exc.message}")
 
-    response = JSONResponse(
-        status_code=exc.status_code,
-        content=exc.get_response_content(),
-    )
+    content = exc.get_response_content()
+    key = getattr(exc, "message", None)
+    if key:
+        params = getattr(exc, "translation_params", None) or {}
+        translated_message = localize_key(request, key, content["message"], **{k: str(v) for k, v in params.items()})
+        if isinstance(translated_message, str):
+            content["message"] = translated_message
+            for detail in content.get("details") or []:
+                if isinstance(detail, dict) and "message" in detail:
+                    detail["message"] = translated_message
+
+    response = JSONResponse(status_code=exc.status_code, content=content)
     if isinstance(exc, (TokenExpiredException, TokenInvalidException)):
         clear_auth_cookies(response)
     return response
@@ -101,15 +110,20 @@ async def bad_request_error_handler(request: Request, exc: Exception) -> JSONRes
         error_details = [
             ErrorDetailData(
                 field=".".join(str(loc) for loc in err.get("loc", ())),
-                message=err.get("msg", ""),
+                message=localize_key(
+                    request,
+                    f"validation.{err.get('type', '')}",
+                    err.get("msg", ""),
+                    **{k: str(v) for k, v in (err.get("ctx") or {}).items()},
+                ),
                 value=err.get("input"),
             )
             for err in exc.errors()
         ] or None
 
-    error_schema = BadRequestSchema(
-        code=ErrorCode.VALIDATION_ERROR, message="Payload validation failed", details=error_details
-    )
+    message = localize_key(request, "validation.payload_validation_failed", "Payload validation failed")
+
+    error_schema = BadRequestSchema(code=ErrorCode.VALIDATION_ERROR, message=message, details=error_details)
 
     logger.warning(f"Validation error: {error_schema.message}")
 
@@ -149,53 +163,55 @@ async def method_not_allowed_handler(request: Request, exc: Exception) -> JSONRe
     )
 
     if str(request.url.path) == HEALTHCHECK_PATH:
-        return healthcheck_method_not_allowed_response()
+        return healthcheck_method_not_allowed_response(request)
 
     if str(request.url.path) == SEND_EVENTS_PATH:
-        return save_events_method_not_allowed_response()
+        return save_events_method_not_allowed_response(request)
 
     if str(request.url.path) == ANALYTICS_USAGE_PATH:
-        return analytics_usage_method_not_allowed_response()
+        return analytics_usage_method_not_allowed_response(request)
 
     if str(request.url.path) == AUTH_REGISTER_PATH:
-        return auth_register_method_not_allowed_response()
+        return auth_register_method_not_allowed_response(request)
 
     if str(request.url.path) == AUTH_LOGIN_PATH:
-        return auth_login_method_not_allowed_response()
+        return auth_login_method_not_allowed_response(request)
 
     if str(request.url.path) == AUTH_REFRESH_PATH:
-        return auth_refresh_method_not_allowed_response()
+        return auth_refresh_method_not_allowed_response(request)
 
     if str(request.url.path) == AUTH_VERIFY_PATH:
-        return auth_verify_method_not_allowed_response()
+        return auth_verify_method_not_allowed_response(request)
 
     if str(request.url.path) == AUTH_RESEND_CODE_PATH:
-        return auth_resend_code_method_not_allowed_response()
+        return auth_resend_code_method_not_allowed_response(request)
 
     if str(request.url.path) == AUTH_LOGOUT_PATH:
-        return auth_logout_method_not_allowed_response()
+        return auth_logout_method_not_allowed_response(request)
 
     if str(request.url.path) == AUTH_ANONYMOUS_PATH:
-        return auth_anonymous_method_not_allowed_response()
+        return auth_anonymous_method_not_allowed_response(request)
 
     if str(request.url.path) == AUTH_SESSION_PATH:
-        return auth_session_method_not_allowed_response()
+        return auth_session_method_not_allowed_response(request)
 
     if str(request.url.path) == USER_PROFILE_PATH:
-        return user_profile_method_not_allowed_response()
+        return user_profile_method_not_allowed_response(request)
 
     if str(request.url.path) == USER_PROFILE_USERNAME_PATH:
-        return user_profile_username_method_not_allowed_response()
+        return user_profile_username_method_not_allowed_response(request)
 
     if str(request.url.path) == USER_PROFILE_EMAIL_PATH:
-        return user_profile_email_method_not_allowed_response()
+        return user_profile_email_method_not_allowed_response(request)
 
     if isinstance(exc, StarletteHTTPException) and exc.detail:
         logger.warning(f"Method not allowed: {exc.detail}")
 
+    detail = localize_key(request, "general.method_not_allowed", "Method not allowed")
+
     return JSONResponse(
         status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
-        content={"detail": "Method not allowed"},
+        content={"detail": detail},
     )
 
 
@@ -209,25 +225,28 @@ async def unprocessable_entity_handler(request: Request, exc: Exception) -> JSON
     Returns:
         JSONResponse со статусом 422 и телом UnprocessableEntitySchema.
     """
-    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
-    message = "Business validation failed"
-    error_code = ErrorCode.BUSINESS_VALIDATION_ERROR
-    error_details = None
+    _UNPROCESSABLE_ENTITY_DEFAULT_KEY = "general.business_validation_failed"
+    _UNPROCESSABLE_ENTITY_DEFAULT_FALLBACK = "Business validation failed"
 
-    if isinstance(exc, StarletteHTTPException) and exc.status_code == status_code:
+    message_key = _UNPROCESSABLE_ENTITY_DEFAULT_KEY
+    if isinstance(exc, StarletteHTTPException) and exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
         if isinstance(exc.detail, str) and exc.detail:
-            message = exc.detail
+            message_key = exc.detail
         elif isinstance(exc.detail, dict):
-            logger.warning(f"Unprocessable entity (dict detail): {exc.detail}")
+            logger.warning("Unprocessable entity (dict detail): %s", exc.detail)
 
-    error_schema = UnprocessableEntitySchema(
-        code=error_code,
-        message=message,
-        details=error_details,
+    fallback = (
+        _UNPROCESSABLE_ENTITY_DEFAULT_FALLBACK if message_key == _UNPROCESSABLE_ENTITY_DEFAULT_KEY else message_key
     )
+    message = localize_key(request, message_key, fallback)
+
     return JSONResponse(
-        status_code=status_code,
-        content=error_schema.model_dump(mode="json"),
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content=UnprocessableEntitySchema(
+            code=ErrorCode.BUSINESS_VALIDATION_ERROR,
+            message=message,
+            details=None,
+        ).model_dump(mode="json"),
     )
 
 

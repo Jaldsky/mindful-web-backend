@@ -7,10 +7,7 @@ from datetime import date, datetime, time, timezone
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.services.analytics import ComputeDomainUsageService
-from app.services.analytics.exceptions import (
-    AnalyticsUsageMessages,
-    AnalyticsServiceException,
-)
+from app.services.analytics.exceptions import AnalyticsServiceException
 from app.schemas.analytics.usage.response_ok_schema import AnalyticsUsageResponseOkSchema
 from app.services.exceptions import ServiceDatabaseErrorException
 
@@ -87,7 +84,7 @@ class TestUsageService(TestCase):
                 ).exec()
             )
 
-        self.assertEqual(AnalyticsUsageMessages.DATABASE_QUERY_ERROR, cm.exception.message)
+        self.assertEqual("analytics.errors.database_query_error", cm.exception.message)
 
     @patch("app.services.analytics.jobs.compute_domain_usage.logger")
     @patch("app.services.analytics.common.load_compute_domain_usage_sql")
@@ -110,7 +107,7 @@ class TestUsageService(TestCase):
                 ).exec()
             )
 
-        self.assertEqual(AnalyticsUsageMessages.UNEXPECTED_ERROR, cm.exception.message)
+        self.assertEqual("analytics.errors.unexpected_error", cm.exception.message)
 
     @patch("app.services.analytics.jobs.compute_domain_usage.logger")
     def test_normalize_pagination(self, _):

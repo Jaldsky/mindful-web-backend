@@ -12,7 +12,6 @@ from ..exceptions import (
     AnonEventsLimitExceededException,
     DataIntegrityViolationException,
     EventsInsertFailedException,
-    EventsServiceMessages,
     TransactionFailedException,
     UnexpectedEventsException,
     UserCreationFailedException,
@@ -38,7 +37,6 @@ class SaveEventsData:
 class SaveEventsServiceBase:
     """Базовый класс для сервиса сохранения событий."""
 
-    messages: type[EventsServiceMessages] = EventsServiceMessages
     session: AsyncSession
     _data: SaveEventsData
 
@@ -104,7 +102,10 @@ class SaveEventsService(SaveEventsServiceBase):
         try:
             await insert_user_if_not_exists(self.session, user_id)
         except Exception:
-            raise UserCreationFailedException(self.messages.GET_OR_CREATE_USER_ERROR.format(user_id=user_id))
+            raise UserCreationFailedException(
+                "events.messages.get_or_create_user_error",
+                translation_params={"user_id": str(user_id)},
+            )
 
     async def _insert_events(self, data: list[SaveEventData], user_id: UUID) -> None | NoReturn:
         """Приватный метод добавления событий в базу данных.
@@ -127,7 +128,7 @@ class SaveEventsService(SaveEventsServiceBase):
                 for event in data
             ]
         except Exception:
-            raise EventsInsertFailedException(self.messages.ADD_EVENTS_ERROR)
+            raise EventsInsertFailedException("events.messages.add_events_error")
 
         await bulk_insert_attention_events(self.session, values)
 
@@ -139,7 +140,7 @@ class SaveEventsService(SaveEventsServiceBase):
         existing_count = await count_attention_events_by_user_id(self.session, self.user_id)
         total_count = existing_count + len(self.data)
         if total_count > 100:
-            raise AnonEventsLimitExceededException(self.messages.ANON_EVENTS_LIMIT_EXCEEDED)
+            raise AnonEventsLimitExceededException("events.errors.anon_events_limit_exceeded")
 
     async def exec(self) -> None | NoReturn:
         """Метод сохранения событий в базе данных.
@@ -169,10 +170,10 @@ class SaveEventsService(SaveEventsServiceBase):
             raise
         except IntegrityError:
             await self.session.rollback()
-            raise DataIntegrityViolationException(self.messages.DATA_INTEGRITY_ERROR)
+            raise DataIntegrityViolationException("events.messages.data_integrity_error")
         except SQLAlchemyError:
             await self.session.rollback()
-            raise TransactionFailedException(self.messages.DATA_SAVE_ERROR)
+            raise TransactionFailedException("events.messages.data_save_error")
         except Exception:
             await self.session.rollback()
-            raise UnexpectedEventsException(self.messages.UNEXPECTED_ERROR)
+            raise UnexpectedEventsException("events.messages.unexpected_error")

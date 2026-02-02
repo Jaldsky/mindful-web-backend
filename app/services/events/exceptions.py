@@ -83,14 +83,3 @@ class UnexpectedEventsException(InternalServerErrorException):
     """Неожиданная ошибка обработки событий (500)."""
 
     error_code = EventsErrorCode.TRANSACTION_FAILED
-
-
-class EventsServiceMessages:
-    """Сообщения events-сервиса."""
-
-    GET_OR_CREATE_USER_ERROR = "Unable to create/find user {user_id}!"
-    ADD_EVENTS_ERROR = "Failed to insert event into the events table!"
-    DATA_INTEGRITY_ERROR = "Data integrity issue when saving events!"
-    DATA_SAVE_ERROR = "Database error while saving events!"
-    UNEXPECTED_ERROR = "An unexpected error occurred while processing events!"
-    ANON_EVENTS_LIMIT_EXCEEDED = "Anon events limit exceeded"
