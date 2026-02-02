@@ -9,6 +9,7 @@ DATE_FORMATS = [
 # Localization
 DEFAULT_LOCALE = "en"
 ACCEPT_LANGUAGE_HEADER = "Accept-Language"
+SUPPORTED_LOCALES: tuple[str, ...] = ("en", "ru")
 
 DEFAULT_PAGE_SIZE: int = 20
 

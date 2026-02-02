@@ -6,6 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from ..config import ACCEPT_LANGUAGE_HEADER
 from ..db.session.provider import Provider
+from ..schemas.accept_language_header_schema import AcceptLanguageHeaderSchema
 from ..db.types import DatabaseSession
 from ..db.models.tables import User
 from ..schemas.analytics import AnalyticsUsageRequestSchema
@@ -19,24 +20,24 @@ _bearer = HTTPBearer(auto_error=False)
 
 
 def get_accept_language(
+    request: Request,
     accept_language: Annotated[
         str,
-        Header(
-            alias=ACCEPT_LANGUAGE_HEADER,
-            description="Локализация ответа запроса",
-            examples=["en", "ru", "en-US"],
-        ),
+        Header(alias=ACCEPT_LANGUAGE_HEADER, description="Локализация ответа запроса"),
     ] = "en",
 ) -> str:
     """Функция Dependency Injection для заголовка Accept-Language.
 
     Args:
-        accept_language: Значение заголовка Accept-Language из запроса.
+        request: HTTP-запрос.
+        accept_language: Значение заголовка Accept-Language.
 
     Returns:
-        Строка локали.
+        Нормализованная строка локали.
     """
-    return accept_language
+    schema = AcceptLanguageHeaderSchema(accept_language=accept_language)
+    request.state.locale = schema.accept_language
+    return schema.accept_language
 
 
 async def get_db_session() -> DatabaseSession:
