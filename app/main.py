@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
+from .api.dependencies import get_accept_language
 from .api.v1.endpoints import healthcheck, auth, user, events, analytics
 from .api.handlers import (
     method_not_allowed_handler,
@@ -24,6 +25,7 @@ app = FastAPI(
     title="Mindful-Web service",
     description="Track your web usage and get mindful insights",
     version="0.1.0",
+    dependencies=[Depends(get_accept_language)],
 )
 
 app.add_middleware(

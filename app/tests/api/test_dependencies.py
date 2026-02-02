@@ -5,7 +5,7 @@ from fastapi.security import HTTPAuthorizationCredentials
 from starlette.requests import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.dependencies import get_db_session, _extract_access_token
+from app.api.dependencies import get_accept_language, get_db_session, _extract_access_token
 from app.services.auth.constants import AUTH_ACCESS_COOKIE_NAME
 from app.db.session.provider import Provider
 
@@ -61,6 +61,19 @@ class TestGetDbSession(TestCase):
         gen = get_db_session()
         self.assertTrue(hasattr(gen, "__aiter__"))
         self.assertTrue(hasattr(gen, "__anext__"))
+
+
+class TestGetAcceptLanguage(TestCase):
+    """Тесты для dependency get_accept_language."""
+
+    def test_returns_default_when_no_header(self):
+        """Без аргумента возвращается en."""
+        self.assertEqual(get_accept_language(), "en")
+
+    def test_returns_passed_value(self):
+        """Переданное значение заголовка возвращается как есть."""
+        self.assertEqual(get_accept_language("ru"), "ru")
+        self.assertEqual(get_accept_language("en-US"), "en-US")
 
 
 class TestExtractAccessToken(TestCase):
