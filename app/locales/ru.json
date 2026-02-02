@@ -1,0 +1,108 @@
+{
+  "general": {
+    "unsupported_locale": "Неподдерживаемая локаль. Поддерживаются: {supported}",
+    "method_not_allowed": "Метод не разрешён",
+    "method_not_allowed_only_method": "Метод не разрешён. Для этого ресурса допускается только метод {allowed_method}.",
+    "business_validation_failed": "Ошибка бизнес-валидации"
+  },
+  "validation": {
+    "payload_validation_failed": "Ошибка валидации запроса",
+    "string_type": "Должна быть строка",
+    "int_type": "Должно быть целое число",
+    "float_type": "Должно быть число",
+    "bool_type": "Должно быть true или false",
+    "list_type": "Должен быть список",
+    "dict_type": "Должен быть объект",
+    "missing": "Обязательное поле",
+    "datetime_parsing": "Некорректный формат даты и времени",
+    "greater_than_equal": "Значение должно быть не меньше {limit_value}",
+    "less_than_equal": "Значение должно быть не больше {limit_value}",
+    "min_length": "Минимум {min_length} символ(ов)",
+    "max_length": "Максимум {max_length} символ(ов)"
+  },
+  "auth": {
+    "errors": {
+      "token_expired": "Токен истёк",
+      "token_invalid": "Токен недействителен",
+      "token_missing": "Токен отсутствует",
+      "user_not_found": "Пользователь не найден",
+      "email_already_verified": "Email уже подтверждён",
+      "too_many_attempts": "Слишком много попыток. Попробуйте позже",
+      "code_invalid": "Код подтверждения неверный",
+      "code_expired": "Код подтверждения истёк",
+      "username_exists": "Пользователь с таким логином уже существует",
+      "email_exists": "Пользователь с таким email уже существует",
+      "invalid_credentials": "Неверные учётные данные",
+      "email_not_verified": "Email не подтверждён",
+      "auth_service_error": "Ошибка сервиса авторизации",
+      "email_send_failed": "Не удалось отправить письмо с кодом",
+      "anon_id_generation_failed": "Не удалось сгенерировать анонимную сессию",
+      "anon_token_create_failed": "Не удалось создать токен анонимной сессии",
+      "resend_code_db_stage_error": "Ошибка при повторной отправке кода (БД)",
+      "resend_code_email_stage_error": "Ошибка при отправке кода на email",
+      "verification_code_format_invalid": "Код должен состоять из 6 цифр",
+      "email_cannot_be_empty": "Email не может быть пустым",
+      "invalid_email_format": "Некорректный формат email",
+      "username_length_invalid": "Некорректная длина логина",
+      "username_invalid_chars": "Логин: только строчные буквы, цифры и подчёркивание",
+      "username_cannot_start_or_end_with_underscore": "Логин не может начинаться или заканчиваться подчёркиванием",
+      "password_length_invalid": "Некорректная длина пароля",
+      "password_must_contain_letter": "Пароль должен содержать букву",
+      "password_must_contain_digit": "Пароль должен содержать цифру"
+    }
+  },
+  "user": {
+    "errors": {
+      "user_not_found": "Пользователь не найден",
+      "username_exists": "Логин уже занят",
+      "email_exists": "Email уже используется",
+      "too_many_attempts": "Слишком много попыток. Попробуйте позже",
+      "email_send_failed": "Не удалось отправить письмо",
+      "auth_service_error": "Ошибка сервиса авторизации"
+    }
+  },
+  "analytics": {
+    "errors": {
+      "unexpected_error": "Произошла непредвиденная ошибка при обработке аналитики",
+      "database_query_error": "Ошибка запроса к базе данных при получении аналитики",
+      "invalid_date_format": "Некорректный формат даты",
+      "invalid_time_range": "Конечная дата должна быть позже начальной",
+      "invalid_page_type": "Номер страницы должен быть целым числом",
+      "invalid_page": "Номер страницы не меньше 1"
+    }
+  },
+  "healthcheck": {
+    "errors": { "database_unavailable": "База данных недоступна" },
+    "messages": { "service_available": "Сервис доступен", "database_available": "База данных доступна" }
+  },
+  "events": {
+    "errors": {
+      "invalid_user_id": "X-User-ID должен быть валидной строкой UUID4",
+      "invalid_event_type": "Тип события должен быть active или inactive",
+      "invalid_domain_format": "Некорректный формат домена",
+      "domain_must_be_non_empty_string": "Домен должен быть непустой строкой",
+      "domain_must_contain_dot": "Некорректный формат домена: должна быть хотя бы одна точка",
+      "domain_invalid_chars": "Домен содержит недопустимые символы",
+      "domain_cannot_start_or_end": "Домен не может начинаться или заканчиваться точкой или дефисом",
+      "invalid_domain_length": "Домен некорректен или слишком длинный после нормализации",
+      "invalid_timestamp_format": "Некорректный формат временной метки",
+      "timestamp_in_future": "Временная метка не может быть в будущем",
+      "empty_events_list": "Список событий не может быть пустым",
+      "too_many_events": "Список событий не может содержать более 100 элементов",
+      "anon_events_limit_exceeded": "Превышен лимит событий для анонимного пользователя",
+      "user_creation_failed": "Не удалось создать или найти пользователя",
+      "events_insert_failed": "Не удалось сохранить события",
+      "data_integrity_violation": "Ошибка целостности данных при сохранении событий",
+      "transaction_failed": "Ошибка базы данных при сохранении событий"
+    },
+    "messages": {
+      "events_saved": "События успешно сохранены",
+      "get_or_create_user_error": "Не удалось создать/найти пользователя {user_id}!",
+      "add_events_error": "Ошибка вставки события в таблицу событий!",
+      "data_integrity_error": "Нарушение целостности данных при сохранении событий!",
+      "data_save_error": "Ошибка базы данных при сохранении событий!",
+      "unexpected_error": "Произошла непредвиденная ошибка при обработке событий!",
+      "anon_events_limit_exceeded": "Превышен лимит событий для анонимного пользователя"
+    }
+  }
+}

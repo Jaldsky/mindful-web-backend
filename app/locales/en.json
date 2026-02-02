@@ -1,0 +1,108 @@
+{
+  "general": {
+    "unsupported_locale": "Unsupported locale. Supported: {supported}",
+    "method_not_allowed": "Method not allowed",
+    "method_not_allowed_only_method": "Method not allowed. Only {allowed_method} method is supported for this endpoint.",
+    "business_validation_failed": "Business validation failed"
+  },
+  "validation": {
+    "payload_validation_failed": "Payload validation failed",
+    "string_type": "Input should be a valid string",
+    "int_type": "Input should be a valid integer",
+    "float_type": "Input should be a valid number",
+    "bool_type": "Input should be a valid boolean",
+    "list_type": "Input should be a valid list",
+    "dict_type": "Input should be a valid dictionary",
+    "missing": "Field required",
+    "datetime_parsing": "Invalid datetime format",
+    "greater_than_equal": "Value must be greater than or equal to {limit_value}",
+    "less_than_equal": "Value must be less than or equal to {limit_value}",
+    "min_length": "Value must have at least {min_length} character(s)",
+    "max_length": "Value must have at most {max_length} character(s)"
+  },
+  "auth": {
+    "errors": {
+      "token_expired": "Token has expired",
+      "token_invalid": "Token is invalid",
+      "token_missing": "Token is missing",
+      "user_not_found": "User not found",
+      "email_already_verified": "Email is already verified",
+      "too_many_attempts": "Too many attempts. Please try again later",
+      "code_invalid": "Verification code is invalid",
+      "code_expired": "Verification code has expired",
+      "username_exists": "User with this username already exists",
+      "email_exists": "User with this email already exists",
+      "invalid_credentials": "Invalid credentials",
+      "email_not_verified": "Email is not verified",
+      "auth_service_error": "Authentication service error",
+      "email_send_failed": "Failed to send verification email",
+      "anon_id_generation_failed": "Failed to generate anonymous session id",
+      "anon_token_create_failed": "Failed to create anonymous session token",
+      "resend_code_db_stage_error": "Resend code failed due to a database error",
+      "resend_code_email_stage_error": "Resend code failed while sending verification email",
+      "verification_code_format_invalid": "Verification code must be exactly 6 digits",
+      "email_cannot_be_empty": "Email cannot be empty",
+      "invalid_email_format": "Invalid email format",
+      "username_length_invalid": "Username length is invalid",
+      "username_invalid_chars": "Username must contain only lowercase letters, numbers, and underscores",
+      "username_cannot_start_or_end_with_underscore": "Username cannot start or end with underscore",
+      "password_length_invalid": "Password length is invalid",
+      "password_must_contain_letter": "Password must contain at least one letter",
+      "password_must_contain_digit": "Password must contain at least one digit"
+    }
+  },
+  "user": {
+    "errors": {
+      "user_not_found": "User not found",
+      "username_exists": "Username already in use",
+      "email_exists": "Email already in use",
+      "too_many_attempts": "Too many attempts. Please try again later",
+      "email_send_failed": "Failed to send verification email",
+      "auth_service_error": "Authentication service error"
+    }
+  },
+  "analytics": {
+    "errors": {
+      "unexpected_error": "An unexpected error occurred while processing analytics",
+      "database_query_error": "Failed to query database for usage analytics",
+      "invalid_date_format": "Invalid date format",
+      "invalid_time_range": "End time must be after start time",
+      "invalid_page_type": "Page must be a valid integer",
+      "invalid_page": "Page must be greater than or equal to 1"
+    }
+  },
+  "healthcheck": {
+    "errors": { "database_unavailable": "Database is not available" },
+    "messages": { "service_available": "Service is available", "database_available": "Database is available" }
+  },
+  "events": {
+    "errors": {
+      "invalid_user_id": "X-User-ID must be a valid UUID4 string",
+      "invalid_event_type": "Event must be either active or inactive",
+      "invalid_domain_format": "Invalid domain format",
+      "domain_must_be_non_empty_string": "Domain must be a non-empty string",
+      "domain_must_contain_dot": "Invalid domain format: must contain at least one dot",
+      "domain_invalid_chars": "Domain contains invalid characters",
+      "domain_cannot_start_or_end": "Domain cannot start or end with dot or dash",
+      "invalid_domain_length": "Domain is invalid or too long after normalization",
+      "invalid_timestamp_format": "Invalid timestamp format",
+      "timestamp_in_future": "Timestamp cannot be in the future",
+      "empty_events_list": "Events list cannot be empty",
+      "too_many_events": "Events list cannot contain more than 100 events",
+      "anon_events_limit_exceeded": "Anonymous events limit exceeded",
+      "user_creation_failed": "Unable to create or find user",
+      "events_insert_failed": "Failed to save events",
+      "data_integrity_violation": "Data integrity error while saving events",
+      "transaction_failed": "Database error while saving events"
+    },
+    "messages": {
+      "events_saved": "Events successfully saved",
+      "get_or_create_user_error": "Unable to create/find user {user_id}!",
+      "add_events_error": "Failed to insert event into the events table!",
+      "data_integrity_error": "Data integrity issue when saving events!",
+      "data_save_error": "Database error while saving events!",
+      "unexpected_error": "An unexpected error occurred while processing events!",
+      "anon_events_limit_exceeded": "Anonymous events limit exceeded"
+    }
+  }
+}
