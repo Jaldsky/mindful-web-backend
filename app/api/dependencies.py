@@ -1,24 +1,42 @@
 from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
-from fastapi import Depends, Query, Request
+from fastapi import Depends, Header, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from ..config import ACCEPT_LANGUAGE_HEADER
 from ..db.session.provider import Provider
 from ..db.types import DatabaseSession
 from ..db.models.tables import User
 from ..schemas.analytics import AnalyticsUsageRequestSchema
-from ..services.auth.exceptions import (
-    AuthMessages,
-    TokenMissingException,
-    TokenInvalidException,
-)
+from ..services.auth.exceptions import TokenMissingException, TokenInvalidException
 from ..services.auth.access import authenticate_access_token, extract_user_id_from_access_token
 from ..services.auth.common import decode_token
 from ..services.auth.constants import AUTH_ACCESS_COOKIE_NAME, AUTH_ANON_COOKIE_NAME
 from ..services.auth.types import AccessToken
 
 _bearer = HTTPBearer(auto_error=False)
+
+
+def get_accept_language(
+    accept_language: Annotated[
+        str,
+        Header(
+            alias=ACCEPT_LANGUAGE_HEADER,
+            description="Локализация ответа запроса",
+            examples=["en", "ru", "en-US"],
+        ),
+    ] = "en",
+) -> str:
+    """Функция Dependency Injection для заголовка Accept-Language.
+
+    Args:
+        accept_language: Значение заголовка Accept-Language из запроса.
+
+    Returns:
+        Строка локали.
+    """
+    return accept_language
 
 
 async def get_db_session() -> DatabaseSession:
