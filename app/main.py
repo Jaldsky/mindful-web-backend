@@ -14,9 +14,10 @@ from .api.handlers import (
     unhandled_exception_handler,
 )
 from .exceptions import AppException
-from .common.logging import setup_logging
-from .common.middleware import log_requests_middleware, locale_middleware
+from .core.middleware import log_requests_middleware, locale_middleware
 from .config import CORS_ALLOW_ORIGINS
+from .core.lifespan import lifespan
+from .core.logging import setup_logging
 
 setup_logging()
 

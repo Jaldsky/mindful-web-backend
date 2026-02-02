@@ -1,6 +1,6 @@
 from fastapi.responses import JSONResponse
 
-from ...common.http_responses import method_not_allowed_response
+from ...core.http_responses import method_not_allowed_response
 from ...schemas.healthcheck import (
     HealthcheckMethodNotAllowedSchema,
     DatabaseHealthcheckMethodNotAllowedSchema,

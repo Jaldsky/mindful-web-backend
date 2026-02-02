@@ -2,7 +2,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from .common_meta_schema import CommonMetaSchema
-from ..common.common import StringEnum
+from ..core.common import StringEnum
 
 
 class ErrorCode(StringEnum):

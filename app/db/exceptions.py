@@ -1,5 +1,5 @@
 from .types import ExceptionMessage
-from ..common.common import FormException, StringEnum
+from ..core.common import FormException, StringEnum
 
 
 class DatabaseManagerException(FormException):

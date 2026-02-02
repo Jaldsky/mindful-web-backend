@@ -3,7 +3,7 @@ from io import StringIO
 from unittest import TestCase, mock
 from unittest.mock import patch, MagicMock
 
-from app.common.logging import setup_logging
+from app.core.logging import setup_logging
 
 
 class TestLogging(TestCase):

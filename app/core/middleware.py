@@ -19,7 +19,8 @@ async def locale_middleware(
     """Функция для Middleware выставления локализации из заголовка Accept-Language.
 
     Парсит первый тег языка (формат: en-US,en;q=0.9,ru;q=0.8 -> en-US) и кладёт
-    в request.state.locale. Если заголовка нет или он пустой — используется default_locale.
+    в request.state.locale. Нормализация и валидация — в AcceptLanguageHeaderSchema
+    (dependency get_accept_language). Если заголовка нет или он пустой — default_locale.
 
     Args:
         request: Объект входящего HTTP-запроса.
