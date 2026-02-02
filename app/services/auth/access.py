@@ -2,11 +2,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .common import decode_token
-from .exceptions import (
-    AuthMessages,
-    TokenInvalidException,
-    UserNotFoundException,
-)
+from .exceptions import TokenInvalidException, UserNotFoundException
 from .queries import fetch_user_by_id
 from .types import AccessToken
 from ...db.models.tables import User
@@ -28,12 +24,12 @@ def extract_user_id_from_access_token(token: AccessToken) -> UUID:
     payload = decode_token(token)
 
     if payload.get("type") != "access":
-        raise TokenInvalidException(AuthMessages.TOKEN_INVALID)
+        raise TokenInvalidException("auth.errors.token_invalid")
 
     try:
         return UUID(str(payload.get("sub")))
     except (TypeError, ValueError):
-        raise TokenInvalidException(AuthMessages.TOKEN_INVALID)
+        raise TokenInvalidException("auth.errors.token_invalid")
 
 
 async def authenticate_access_token(session: AsyncSession, token: AccessToken) -> User:
@@ -61,6 +57,6 @@ async def authenticate_access_token(session: AsyncSession, token: AccessToken) -
 
     user = await fetch_user_by_id(session, user_id)
     if not user:
-        raise UserNotFoundException(AuthMessages.USER_NOT_FOUND)
+        raise UserNotFoundException("auth.errors.user_not_found")
 
     return user

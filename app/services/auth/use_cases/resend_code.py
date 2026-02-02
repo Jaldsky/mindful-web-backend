@@ -84,7 +84,7 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
         now_utc = to_utc_datetime(current_datetime)
         cooldown_until = base_ts_utc + timedelta(seconds=VERIFICATION_CODE_RESEND_COOLDOWN_SECONDS)
         if now_utc < cooldown_until:
-            raise TooManyAttemptsException(self.messages.TOO_MANY_ATTEMPTS)
+            raise TooManyAttemptsException("auth.errors.too_many_attempts")
 
     async def _pick_or_create_code(
         self,
@@ -167,7 +167,7 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
         try:
             await EmailService().send_verification_code(to_email=email, code=code)
         except Exception:
-            raise EmailSendFailedException(self.messages.EMAIL_SEND_FAILED)
+            raise EmailSendFailedException("auth.errors.email_send_failed")
 
     async def exec(self) -> None | NoReturn:
         """Метод повторной отправки кода подтверждения.
@@ -200,10 +200,10 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
                     self.session, self.email, now
                 )
                 if not user:
-                    raise UserNotFoundException(self.messages.USER_NOT_FOUND)
+                    raise UserNotFoundException("auth.errors.user_not_found")
                 is_pending_email = user.pending_email is not None and user.pending_email == self.email
                 if user.is_verified and not is_pending_email:
-                    raise EmailAlreadyVerifiedException(self.messages.EMAIL_ALREADY_VERIFIED)
+                    raise EmailAlreadyVerifiedException("auth.errors.email_already_verified")
 
                 code, code_row_id = await self._pick_or_create_code(user.id, now, active_code_row)
         except (
@@ -214,17 +214,17 @@ class ResendVerificationCodeService(ResendVerificationCodeServiceBase):
         ):
             raise
         except Exception:
-            raise AuthServiceException(self.messages.RESEND_CODE_DB_STAGE_ERROR)
+            raise AuthServiceException("auth.errors.resend_code_db_stage_error")
 
         if code is None:
-            raise AuthServiceException(self.messages.RESEND_CODE_DB_STAGE_ERROR)
+            raise AuthServiceException("auth.errors.resend_code_db_stage_error")
 
         try:
             await self._send_verification_email(self.email, code)
         except EmailSendFailedException:
             raise
         except Exception:
-            raise AuthServiceException(self.messages.RESEND_CODE_EMAIL_STAGE_ERROR)
+            raise AuthServiceException("auth.errors.resend_code_email_stage_error")
 
         if code_row_id is not None:
             try:

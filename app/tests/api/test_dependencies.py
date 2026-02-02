@@ -5,6 +5,8 @@ from fastapi.security import HTTPAuthorizationCredentials
 from starlette.requests import Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from types import SimpleNamespace
+
 from app.api.dependencies import get_accept_language, get_db_session, _extract_access_token
 from app.services.auth.constants import AUTH_ACCESS_COOKIE_NAME
 from app.db.session.provider import Provider
@@ -64,16 +66,28 @@ class TestGetDbSession(TestCase):
 
 
 class TestGetAcceptLanguage(TestCase):
-    """Тесты для dependency get_accept_language."""
+    """Тесты для dependency get_accept_language (Header Accept-Language + схема внутри)."""
 
-    def test_returns_default_when_no_header(self):
-        """Без аргумента возвращается en."""
-        self.assertEqual(get_accept_language(), "en")
+    def test_returns_default_and_sets_locale_when_no_header(self):
+        """Без заголовка (None) возвращается en и request.state.locale = en."""
+        request = SimpleNamespace(state=SimpleNamespace())
+        result = get_accept_language(request, None)
+        self.assertEqual(result, "en")
+        self.assertEqual(request.state.locale, "en")
 
-    def test_returns_passed_value(self):
-        """Переданное значение заголовка возвращается как есть."""
-        self.assertEqual(get_accept_language("ru"), "ru")
-        self.assertEqual(get_accept_language("en-US"), "en-US")
+    def test_returns_ru_and_sets_locale(self):
+        """Заголовок ru — возвращается ru и request.state.locale = ru."""
+        request = SimpleNamespace(state=SimpleNamespace())
+        result = get_accept_language(request, "ru")
+        self.assertEqual(result, "ru")
+        self.assertEqual(request.state.locale, "ru")
+
+    def test_normalizes_en_us_to_en(self):
+        """Заголовок en-US нормализуется в en (схема внутри dependency)."""
+        request = SimpleNamespace(state=SimpleNamespace())
+        result = get_accept_language(request, "en-US")
+        self.assertEqual(result, "en")
+        self.assertEqual(request.state.locale, "en")
 
 
 class TestExtractAccessToken(TestCase):

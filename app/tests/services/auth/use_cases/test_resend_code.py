@@ -14,7 +14,6 @@ from app.services.auth.exceptions import (
     AuthServiceException,
     EmailAlreadyVerifiedException,
     EmailSendFailedException,
-    AuthMessages,
     InvalidEmailFormatException,
     TooManyAttemptsException,
     UserNotFoundException,
@@ -588,7 +587,7 @@ class TestResendVerificationCodeServiceExec(TestCase):
                             with self.assertRaises(AuthServiceException) as ctx:
                                 await service.exec()
 
-                    self.assertEqual(ctx.exception.message, AuthMessages.RESEND_CODE_DB_STAGE_ERROR)
+                    self.assertEqual(ctx.exception.message, "auth.errors.resend_code_db_stage_error")
 
             self._run_async(_test_session())
         finally:
@@ -630,7 +629,7 @@ class TestResendVerificationCodeServiceExec(TestCase):
                             with self.assertRaises(AuthServiceException) as ctx:
                                 await service.exec()
 
-                    self.assertEqual(ctx.exception.message, AuthMessages.RESEND_CODE_EMAIL_STAGE_ERROR)
+                    self.assertEqual(ctx.exception.message, "auth.errors.resend_code_email_stage_error")
 
             self._run_async(_test_session())
         finally:

@@ -4,7 +4,7 @@ from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...auth.exceptions import AuthMessages, UserNotFoundException
+from ...auth.exceptions import UserNotFoundException
 from ..queries import fetch_user_by_id
 from ...types import Email, Username
 
@@ -68,7 +68,7 @@ class ProfileService(ProfileServiceBase):
         """
         user = await fetch_user_by_id(self.session, self.user_id)
         if not user:
-            raise UserNotFoundException(AuthMessages.USER_NOT_FOUND)
+            raise UserNotFoundException("user.errors.user_not_found")
 
         return ProfileData(
             username=user.username,

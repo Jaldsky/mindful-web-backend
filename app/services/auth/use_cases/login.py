@@ -77,15 +77,15 @@ class LoginService(LoginServiceBase):
         user = await fetch_user_by_username(self.session, self.username)
 
         if user is None or user.password is None:
-            raise InvalidCredentialsException(self.messages.INVALID_CREDENTIALS)
+            raise InvalidCredentialsException("auth.errors.invalid_credentials")
 
         password_hash: PasswordHash = cast(PasswordHash, user.password)
 
         if not verify_password(self.password, password_hash):
-            raise InvalidCredentialsException(self.messages.INVALID_CREDENTIALS)
+            raise InvalidCredentialsException("auth.errors.invalid_credentials")
 
         if not user.is_verified:
-            raise EmailNotVerifiedException(self.messages.EMAIL_NOT_VERIFIED)
+            raise EmailNotVerifiedException("auth.errors.email_not_verified")
 
         return user
 
@@ -113,4 +113,4 @@ class LoginService(LoginServiceBase):
         except (InvalidCredentialsException, EmailNotVerifiedException):
             raise
         except Exception:
-            raise AuthServiceException(self.messages.AUTH_SERVICE_ERROR)
+            raise AuthServiceException("auth.errors.auth_service_error")

@@ -89,7 +89,7 @@ class SessionService(SessionServiceBase):
         except (TokenInvalidException, TokenExpiredException, UserNotFoundException):
             return None
         except Exception:
-            raise AuthServiceException(self.messages.AUTH_SERVICE_ERROR)
+            raise AuthServiceException("auth.errors.auth_service_error")
 
     async def _get_anonymous_state(self) -> SessionState | None | NoReturn:
         """Приватный метод проверки anon токена.
@@ -111,7 +111,7 @@ class SessionService(SessionServiceBase):
         except (TokenInvalidException, TokenExpiredException, ValueError, TypeError):
             return None
         except Exception:
-            raise AuthServiceException(self.messages.AUTH_SERVICE_ERROR)
+            raise AuthServiceException("auth.errors.auth_service_error")
 
     async def exec(self) -> SessionState | NoReturn:
         """Метод проверки текущей сессии.

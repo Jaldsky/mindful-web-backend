@@ -232,6 +232,6 @@ class ComputeDomainUsageService(ComputeDomainUsageServiceBase):
                 data=data,
             )
         except SQLAlchemyError:
-            raise ServiceDatabaseErrorException(self.messages.DATABASE_QUERY_ERROR)
+            raise ServiceDatabaseErrorException("analytics.errors.database_query_error")
         except Exception:
-            raise AnalyticsServiceException(self.messages.UNEXPECTED_ERROR)
+            raise AnalyticsServiceException("analytics.errors.unexpected_error")

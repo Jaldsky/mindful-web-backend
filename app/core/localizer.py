@@ -151,15 +151,17 @@ class Localizer:
         return self._store.get(key, locale=locale, **params)
 
 
-def localize_key(request: Request, key: str, fallback: str) -> str:
+def localize_key(request: Request, key: str, fallback: str, **params: str | int) -> str:
     """Функция локализации по ключу.
 
     Если локализатора нет или ключ не найден, то возвращает fallback.
+    Параметры подставляются в строку перевода {name}.
 
     Args:
         request: HTTP-запрос.
         key: Ключ перевода.
         fallback: Строка по умолчанию при отсутствии локализатора или ключа.
+        **params: Плейсхолдеры для подстановки в строку.
 
     Returns:
         Переведённая строка или fallback.
@@ -169,7 +171,7 @@ def localize_key(request: Request, key: str, fallback: str) -> str:
         return fallback
 
     locale: str = getattr(request.state, "locale", "en")
-    translated: str = localizer.get(key, locale=locale)
+    translated: str = localizer.get(key, locale=locale, **params)
     if translated == key or not isinstance(translated, str):
         return fallback
 

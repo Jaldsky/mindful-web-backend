@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends, Body, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
+from ....core.localizer import localize_key
 from ...dependencies import get_actor_id_from_token, get_db_session, ActorContext
 from ....schemas.events import (
     SaveEventsMethodNotAllowedSchema,
@@ -54,6 +55,7 @@ router = APIRouter(prefix="/events", tags=["events"])
     ),
 )
 async def save_events(
+    request: Request,
     payload: SaveEventsRequestSchema = Body(..., description="Данные событий"),
     actor: ActorContext = Depends(get_actor_id_from_token),
     db: AsyncSession = Depends(get_db_session),
@@ -61,6 +63,7 @@ async def save_events(
     """Ручка для приема событий от браузерного расширения.
 
     Args:
+        request: HTTP-запрос.
         payload: Схема с данными событий.
         actor: Контекст пользователя или анонимной сессии из JWT.
         db: Сессия базы данных.
@@ -79,7 +82,5 @@ async def save_events(
         actor_type=actor.actor_type,
     ).exec()
 
-    return SaveEventsResponseSchema(
-        code="CREATED",
-        message="Events successfully saved",
-    )
+    message = localize_key(request, "events.messages.events_saved", "Events successfully saved")
+    return SaveEventsResponseSchema(code="CREATED", message=message)

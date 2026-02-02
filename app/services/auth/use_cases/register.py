@@ -118,9 +118,9 @@ class RegisterService(RegisterServiceBase):
 
         for user in existing_users:
             if user.username == self.username:
-                raise UsernameAlreadyExistsException(self.messages.USERNAME_EXISTS)
+                raise UsernameAlreadyExistsException("auth.errors.username_exists")
             if user.email == self.email:
-                raise EmailAlreadyExistsException(self.messages.EMAIL_EXISTS)
+                raise EmailAlreadyExistsException("auth.errors.email_exists")
 
     async def _create_user(self) -> User:
         """Приватный метод создания пользователя.
@@ -159,7 +159,7 @@ class RegisterService(RegisterServiceBase):
         try:
             await EmailService().send_verification_code(to_email=email, code=code)
         except Exception:
-            raise EmailSendFailedException(self.messages.EMAIL_SEND_FAILED)
+            raise EmailSendFailedException("auth.errors.email_send_failed")
 
     async def exec(self) -> User | NoReturn:
         """Метод регистрации пользователя.
@@ -207,4 +207,4 @@ class RegisterService(RegisterServiceBase):
             raise
         except Exception:
             await self.session.rollback()
-            raise AuthServiceException(self.messages.AUTH_SERVICE_ERROR)
+            raise AuthServiceException("auth.errors.auth_service_error")

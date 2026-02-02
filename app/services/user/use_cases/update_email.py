@@ -83,7 +83,7 @@ class UpdateEmailService(UpdateEmailServiceBase):
         """
         user = await fetch_user_by_id(self.session, self.user_id)
         if not user:
-            raise UserNotFoundException(self.messages.USER_NOT_FOUND)
+            raise UserNotFoundException("user.errors.user_not_found")
         return user
 
     async def _ensure_email_available(self, user_id: UserId) -> None | NoReturn:
@@ -97,7 +97,7 @@ class UpdateEmailService(UpdateEmailServiceBase):
         """
         existing = await fetch_user_by_email_or_pending(self.session, self.email)
         if existing and existing.id != user_id:
-            raise EmailAlreadyExistsException(self.messages.EMAIL_EXISTS)
+            raise EmailAlreadyExistsException("user.errors.email_exists")
 
     def _is_email_update_required(self, user: User) -> bool:
         """Приватный метод проверки необходимости обновления email.
@@ -146,7 +146,7 @@ class UpdateEmailService(UpdateEmailServiceBase):
         now_utc = to_utc_datetime(now)
         cooldown_until = base_ts_utc + timedelta(seconds=app_config.VERIFICATION_CODE_REQUEST_COOLDOWN_SECONDS)
         if now_utc < cooldown_until:
-            raise TooManyAttemptsException(self.messages.TOO_MANY_ATTEMPTS)
+            raise TooManyAttemptsException("user.errors.too_many_attempts")
 
     async def _create_verification_code(self, user_id: UserId) -> VerificationCode:
         """Приватный метод создания кода подтверждения для пользователя.
@@ -184,7 +184,7 @@ class UpdateEmailService(UpdateEmailServiceBase):
         try:
             await EmailService().send_verification_code(to_email=email, code=code)
         except Exception:
-            raise EmailSendFailedException(self.messages.EMAIL_SEND_FAILED)
+            raise EmailSendFailedException("user.errors.email_send_failed")
 
     async def exec(self) -> ProfileData | NoReturn:
         """Метод обновления email пользователя.
@@ -237,4 +237,4 @@ class UpdateEmailService(UpdateEmailServiceBase):
             raise
         except Exception:
             await self.session.rollback()
-            raise AuthServiceException(self.messages.AUTH_SERVICE_ERROR)
+            raise AuthServiceException("user.errors.auth_service_error")

@@ -16,9 +16,11 @@ class AppException(Exception):
         error_code: str | None = None,
         status_code: int | None = None,
         details: Any = None,
+        translation_params: dict[str, Any] | None = None,
     ):
         super().__init__(message)
         self.message = message
+        self.translation_params = translation_params or {}
         if error_code:
             self.error_code = error_code
         if status_code:
@@ -45,3 +47,10 @@ class AppException(Exception):
             "message": self.message,
             "details": details_data,
         }
+
+
+class UnsupportedLocaleException(AppException):
+    """Неподдерживаемая локаль в заголовке Accept-Language (400)."""
+
+    status_code: int = status.HTTP_400_BAD_REQUEST
+    error_code: str = ErrorCode.VALIDATION_ERROR

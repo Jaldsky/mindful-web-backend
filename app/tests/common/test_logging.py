@@ -14,7 +14,7 @@ class TestLogging(TestCase):
         root_logger = logging.getLogger()
         root_logger.setLevel(logging.WARNING)
 
-        app_logger = logging.getLogger("app.common.logging")
+        app_logger = logging.getLogger("app.core.logging")
         app_logger.setLevel(logging.NOTSET)
         app_logger.propagate = True
 
@@ -23,12 +23,12 @@ class TestLogging(TestCase):
         while root_logger.handlers:
             root_logger.removeHandler(root_logger.handlers[0])
 
-        app_logger = logging.getLogger("app.common.logging")
+        app_logger = logging.getLogger("app.core.logging")
         while app_logger.handlers:
             app_logger.removeHandler(app_logger.handlers[0])
 
-    @patch("app.common.logging.logging.getLogger")
-    @patch("app.common.logging.logging.basicConfig")
+    @patch("app.core.logging.logging.getLogger")
+    @patch("app.core.logging.logging.basicConfig")
     def test_setup_logging_default_params(self, mock_basic_config: MagicMock, mock_get_logger: MagicMock):
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
@@ -40,11 +40,11 @@ class TestLogging(TestCase):
             format="[%(levelname)s][%(name)s]:%(message)s",
             handlers=[mock.ANY],
         )
-        mock_get_logger.assert_called_once_with("app.common.logging")
+        mock_get_logger.assert_called_once_with("app.core.logging")
         self.assertEqual(logger, mock_logger)
 
-    @patch("app.common.logging.logging.getLogger")
-    @patch("app.common.logging.logging.basicConfig")
+    @patch("app.core.logging.logging.getLogger")
+    @patch("app.core.logging.logging.basicConfig")
     def test_setup_logging_custom_params(self, mock_basic_config: MagicMock, mock_get_logger: MagicMock):
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
@@ -58,12 +58,12 @@ class TestLogging(TestCase):
             handlers=[mock.ANY],
             force=True,
         )
-        mock_get_logger.assert_called_once_with("app.common.logging")
+        mock_get_logger.assert_called_once_with("app.core.logging")
         self.assertEqual(logger, mock_logger)
 
     def test_logging_format_applied_correctly(self):
         """Интеграционный тест: проверяем, что сообщения логируются в нужном формате."""
-        logger = logging.getLogger("app.common.logging")
+        logger = logging.getLogger("app.core.logging")
         root_logger = logging.getLogger()
 
         while logger.handlers:
@@ -86,13 +86,13 @@ class TestLogging(TestCase):
         handler.flush()
 
         log_output = log_buffer.getvalue().strip()
-        expected = f"[INFO][app.common.logging]:{test_message}"
+        expected = f"[INFO][app.core.logging]:{test_message}"
         self.assertEqual(log_output, expected)
 
     def test_logging_respects_custom_format(self):
         """Проверяем кастомный формат."""
         custom_format = "[LOG] %(levelname)s - %(message)s"
-        logger = logging.getLogger("app.common.logging")
+        logger = logging.getLogger("app.core.logging")
         root_logger = logging.getLogger()
 
         while logger.handlers:
@@ -122,7 +122,7 @@ class TestLogging(TestCase):
         logging.basicConfig игнорируется после первого вызова,
         но наша функция всё равно должна возвращать логгер.
         """
-        logger1 = logging.getLogger("app.common.logging")
+        logger1 = logging.getLogger("app.core.logging")
         root_logger = logging.getLogger()
 
         while logger1.handlers:
@@ -149,12 +149,12 @@ class TestLogging(TestCase):
         handler.flush()
 
         output = log_buffer.getvalue()
-        self.assertIn("[INFO][app.common.logging]:First", output)
-        self.assertIn("[ERROR][app.common.logging]:Second", output)
+        self.assertIn("[INFO][app.core.logging]:First", output)
+        self.assertIn("[ERROR][app.core.logging]:Second", output)
 
     def test_kwargs_passed_to_basic_config(self):
         """Проверяем, что **kwargs передаются в basicConfig."""
-        with patch("app.common.logging.logging.basicConfig") as mock_basic_config:
+        with patch("app.core.logging.logging.basicConfig") as mock_basic_config:
             setup_logging(force=True, datefmt="%Y-%m-%d")
             mock_basic_config.assert_called_once_with(
                 level=logging.INFO,
