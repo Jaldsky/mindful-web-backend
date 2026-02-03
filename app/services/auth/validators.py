@@ -1,4 +1,4 @@
-from typing import ClassVar, NoReturn
+from typing import NoReturn
 
 from email_validator import EmailNotValidError
 
@@ -9,7 +9,6 @@ from .constants import (
     MIN_USERNAME_LENGTH,
 )
 from .exceptions import (
-    AuthMessages,
     InvalidEmailFormatException,
     InvalidPasswordFormatException,
     TokenInvalidException,
@@ -23,8 +22,6 @@ from ..validators import validate_email_format
 
 class AuthServiceValidators:
     """Валидаторы для auth-сервиса."""
-
-    messages: ClassVar[type[AuthMessages]] = AuthMessages
 
     @classmethod
     def validate_username(cls, username: Username) -> None | NoReturn:
