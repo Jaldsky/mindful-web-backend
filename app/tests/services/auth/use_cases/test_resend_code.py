@@ -42,8 +42,9 @@ class TestResendVerificationCodeServiceMethods(TestCase):
 
         self.session.add = Mock(side_effect=mock_add)
 
-        service = ResendVerificationCodeService(session=self.session, email="test@example.com")
-        code = self._run_async(service._create_verification_code(user_id))
+        service = ResendVerificationCodeService()
+        row = self._run_async(service._create_verification_code_row(self.session, user_id))
+        code = row.code
 
         self.assertIsInstance(code, str)
         self.assertEqual(len(code), 6)
@@ -55,7 +56,7 @@ class TestResendVerificationCodeServiceMethods(TestCase):
         """Тест ошибки отправки email."""
         from app.services.email import EmailService
 
-        service = ResendVerificationCodeService(session=self.session, email="test@example.com")
+        service = ResendVerificationCodeService()
         with unittest.mock.patch("app.services.auth.use_cases.resend_code.logger"):
             with unittest.mock.patch.object(
                 EmailService, "send_verification_code", new_callable=AsyncMock
@@ -68,7 +69,7 @@ class TestResendVerificationCodeServiceMethods(TestCase):
         """Тест успешной отправки email."""
         from app.services.email import EmailService
 
-        service = ResendVerificationCodeService(session=self.session, email="test@example.com")
+        service = ResendVerificationCodeService()
         with unittest.mock.patch.object(EmailService, "send_verification_code", new_callable=AsyncMock) as mock_send:
             self._run_async(service._send_verification_email("test@example.com", "123456"))
             mock_send.assert_awaited_once_with(to_email="test@example.com", code="123456")
@@ -126,8 +127,8 @@ class TestResendVerificationCodeServiceExec(TestCase):
 
                 with unittest.mock.patch.object(EmailService, "send_verification_code", new_callable=AsyncMock):
                     async with manager.get_session() as session:
-                        service = ResendVerificationCodeService(session=session, email="test@example.com")
-                        ok = await service.exec()
+                        service = ResendVerificationCodeService()
+                        ok = await service.exec(session=session, email="test@example.com")
                         self.assertIsNone(ok)
 
                 async with manager.get_session() as session:
@@ -169,8 +170,8 @@ class TestResendVerificationCodeServiceExec(TestCase):
 
                 with unittest.mock.patch.object(EmailService, "send_verification_code", new_callable=AsyncMock):
                     async with manager.get_session() as session:
-                        service = ResendVerificationCodeService(session=session, email="new@example.com")
-                        ok = await service.exec()
+                        service = ResendVerificationCodeService()
+                        ok = await service.exec(session=session, email="new@example.com")
                         self.assertIsNone(ok)
 
                 async with manager.get_session() as session:
@@ -192,9 +193,12 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     await conn.run_sync(Base.metadata.create_all)
 
                 async with manager.get_session() as session:
-                    service = ResendVerificationCodeService(session=session, email="missing@example.com")
+                    service = ResendVerificationCodeService()
                     with self.assertRaises(UserNotFoundException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            email="missing@example.com",
+                        )
 
                 async with manager.get_session() as session:
                     result = await session.execute(text("SELECT COUNT(*) FROM verification_codes"))
@@ -230,9 +234,12 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = ResendVerificationCodeService(session=session, email="test@example.com")
+                    service = ResendVerificationCodeService()
                     with self.assertRaises(EmailAlreadyVerifiedException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            email="test@example.com",
+                        )
 
                 async with manager.get_session() as session:
                     result = await session.execute(text("SELECT COUNT(*) FROM verification_codes"))
@@ -284,8 +291,8 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     EmailService, "send_verification_code", new_callable=AsyncMock
                 ) as mock_send:
                     async with manager.get_session() as session:
-                        service = ResendVerificationCodeService(session=session, email="test@example.com")
-                        ok = await service.exec()
+                        service = ResendVerificationCodeService()
+                        ok = await service.exec(session=session, email="test@example.com")
                         self.assertIsNone(ok)
 
                     mock_send.assert_awaited_once_with(to_email="test@example.com", code="111111")
@@ -350,8 +357,8 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     ) as mock_send,
                 ):
                     async with manager.get_session() as session:
-                        service = ResendVerificationCodeService(session=session, email="test@example.com")
-                        ok = await service.exec()
+                        service = ResendVerificationCodeService()
+                        ok = await service.exec(session=session, email="test@example.com")
                         self.assertIsNone(ok)
 
                     mock_send.assert_awaited_once_with(to_email="test@example.com", code="333333")
@@ -416,8 +423,8 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     ) as mock_send,
                 ):
                     async with manager.get_session() as session:
-                        service = ResendVerificationCodeService(session=session, email="test@example.com")
-                        ok = await service.exec()
+                        service = ResendVerificationCodeService()
+                        ok = await service.exec(session=session, email="test@example.com")
                         self.assertIsNone(ok)
 
                     mock_send.assert_awaited_once_with(to_email="test@example.com", code="444444")
@@ -477,9 +484,12 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     EmailService, "send_verification_code", new_callable=AsyncMock
                 ) as mock_send:
                     async with manager.get_session() as session:
-                        service = ResendVerificationCodeService(session=session, email="test@example.com")
+                        service = ResendVerificationCodeService()
                         with self.assertRaises(TooManyAttemptsException):
-                            await service.exec()
+                            await service.exec(
+                                session=session,
+                                email="test@example.com",
+                            )
 
                     mock_send.assert_not_awaited()
 
@@ -538,9 +548,12 @@ class TestResendVerificationCodeServiceExec(TestCase):
                         mock_send.side_effect = Exception("SMTP error")
 
                         async with manager.get_session() as session:
-                            service = ResendVerificationCodeService(session=session, email="test@example.com")
+                            service = ResendVerificationCodeService()
                             with self.assertRaises(EmailSendFailedException):
-                                await service.exec()
+                                await service.exec(
+                                    session=session,
+                                    email="test@example.com",
+                                )
 
                 async with manager.get_session() as session:
                     result = await session.execute(text("SELECT COUNT(*) FROM verification_codes"))
@@ -577,7 +590,7 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = ResendVerificationCodeService(session=session, email="test@example.com")
+                    service = ResendVerificationCodeService()
 
                     with unittest.mock.patch("app.services.auth.use_cases.resend_code.logger"):
                         with unittest.mock.patch.object(
@@ -585,7 +598,10 @@ class TestResendVerificationCodeServiceExec(TestCase):
                         ) as mock_pick:
                             mock_pick.side_effect = Exception("DB stage boom")
                             with self.assertRaises(AuthServiceException) as ctx:
-                                await service.exec()
+                                await service.exec(
+                                    session=session,
+                                    email="test@example.com",
+                                )
 
                     self.assertEqual(ctx.exception.message, "auth.errors.resend_code_db_stage_error")
 
@@ -620,14 +636,17 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = ResendVerificationCodeService(session=session, email="test@example.com")
+                    service = ResendVerificationCodeService()
                     with unittest.mock.patch("app.services.auth.use_cases.resend_code.logger"):
                         with unittest.mock.patch.object(
                             service, "_send_verification_email", new_callable=AsyncMock
                         ) as mock_send:
                             mock_send.side_effect = Exception("Email stage boom")
                             with self.assertRaises(AuthServiceException) as ctx:
-                                await service.exec()
+                                await service.exec(
+                                    session=session,
+                                    email="test@example.com",
+                                )
 
                     self.assertEqual(ctx.exception.message, "auth.errors.resend_code_email_stage_error")
 
@@ -664,13 +683,16 @@ class TestResendVerificationCodeServiceExec(TestCase):
 
                 with unittest.mock.patch.object(EmailService, "send_verification_code", new_callable=AsyncMock):
                     async with manager.get_session() as session:
-                        service = ResendVerificationCodeService(session=session, email="test@example.com")
+                        service = ResendVerificationCodeService()
                         with unittest.mock.patch("app.services.auth.use_cases.resend_code.logger"):
                             with unittest.mock.patch.object(
                                 service, "_touch_last_sent_at", new_callable=AsyncMock
                             ) as mock_touch:
                                 mock_touch.side_effect = Exception("last_sent_at update boom")
-                                ok = await service.exec()
+                                ok = await service.exec(
+                                    session=session,
+                                    email="test@example.com",
+                                )
                                 self.assertIsNone(ok)
 
             self._run_async(_test_session())
@@ -726,8 +748,8 @@ class TestResendVerificationCodeServiceExec(TestCase):
                     ) as mock_send,
                 ):
                     async with manager.get_session() as session:
-                        service = ResendVerificationCodeService(session=session, email="test@example.com")
-                        ok = await service.exec()
+                        service = ResendVerificationCodeService()
+                        ok = await service.exec(session=session, email="test@example.com")
                         self.assertIsNone(ok)
 
                     mock_send.assert_awaited_once_with(to_email="test@example.com", code="666666")

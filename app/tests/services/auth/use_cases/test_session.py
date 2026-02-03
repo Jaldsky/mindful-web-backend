@@ -19,13 +19,16 @@ class TestSessionService(TestCase):
         async def _test():
             user_id = uuid4()
             session = AsyncMock(spec=AsyncSession)
-            service = SessionService(session=session, access_token="access", anon_token=None)
-
+            service = SessionService()
             with patch(
                 "app.services.auth.use_cases.session.authenticate_access_token",
                 new=AsyncMock(return_value=SimpleNamespace(id=user_id)),
             ):
-                state = await service.exec()
+                state = await service.exec(
+                    session=session,
+                    access_token="access",
+                    anon_token=None,
+                )
 
             self.assertEqual(state.status, "authenticated")
             self.assertEqual(str(state.user_id), str(user_id))
@@ -38,9 +41,12 @@ class TestSessionService(TestCase):
             anon_id = uuid4()
             anon_token = create_anon_token(anon_id)
             session = AsyncMock(spec=AsyncSession)
-            service = SessionService(session=session, access_token=None, anon_token=anon_token)
-
-            state = await service.exec()
+            service = SessionService()
+            state = await service.exec(
+                session=session,
+                access_token=None,
+                anon_token=anon_token,
+            )
             self.assertEqual(state.status, "anonymous")
             self.assertEqual(str(state.anon_id), str(anon_id))
             self.assertIsNone(state.user_id)
@@ -52,13 +58,16 @@ class TestSessionService(TestCase):
             anon_id = uuid4()
             anon_token = create_anon_token(anon_id)
             session = AsyncMock(spec=AsyncSession)
-            service = SessionService(session=session, access_token="bad", anon_token=anon_token)
-
+            service = SessionService()
             with patch(
                 "app.services.auth.use_cases.session.authenticate_access_token",
                 new=AsyncMock(side_effect=TokenInvalidException(AuthMessages.TOKEN_INVALID)),
             ):
-                state = await service.exec()
+                state = await service.exec(
+                    session=session,
+                    access_token="bad",
+                    anon_token=anon_token,
+                )
 
             self.assertEqual(state.status, "anonymous")
             self.assertEqual(str(state.anon_id), str(anon_id))
@@ -69,13 +78,16 @@ class TestSessionService(TestCase):
     def test_exec_returns_none_when_tokens_invalid(self):
         async def _test():
             session = AsyncMock(spec=AsyncSession)
-            service = SessionService(session=session, access_token="bad", anon_token="bad")
-
+            service = SessionService()
             with patch(
                 "app.services.auth.use_cases.session.authenticate_access_token",
                 new=AsyncMock(side_effect=TokenInvalidException(AuthMessages.TOKEN_INVALID)),
             ):
-                state = await service.exec()
+                state = await service.exec(
+                    session=session,
+                    access_token="bad",
+                    anon_token="bad",
+                )
 
             self.assertEqual(state.status, "none")
             self.assertIsNone(state.user_id)

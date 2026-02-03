@@ -81,8 +81,12 @@ class TestVerifyEmailServiceExec(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = VerifyEmailService(session=session, email="test@example.com", code="123456")
-                    ok = await service.exec()
+                    service = VerifyEmailService()
+                    ok = await service.exec(
+                        session=session,
+                        email="test@example.com",
+                        code="123456",
+                    )
                     self.assertIsNone(ok)
 
                 async with manager.get_session() as session:
@@ -141,8 +145,12 @@ class TestVerifyEmailServiceExec(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = VerifyEmailService(session=session, email="new@example.com", code="123456")
-                    ok = await service.exec()
+                    service = VerifyEmailService()
+                    ok = await service.exec(
+                        session=session,
+                        email="new@example.com",
+                        code="123456",
+                    )
                     self.assertIsNone(ok)
 
                 async with manager.get_session() as session:
@@ -166,9 +174,13 @@ class TestVerifyEmailServiceExec(TestCase):
                     await conn.run_sync(Base.metadata.create_all)
 
                 async with manager.get_session() as session:
-                    service = VerifyEmailService(session=session, email="missing@example.com", code="123456")
+                    service = VerifyEmailService()
                     with self.assertRaises(UserNotFoundException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            email="missing@example.com",
+                            code="123456",
+                        )
 
             self._run_async(_test_session())
         finally:
@@ -211,9 +223,13 @@ class TestVerifyEmailServiceExec(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = VerifyEmailService(session=session, email="first@example.com", code="123456")
+                    service = VerifyEmailService()
                     with self.assertRaises(UserNotFoundException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            email="first@example.com",
+                            code="123456",
+                        )
 
             self._run_async(_test_session())
         finally:
@@ -243,9 +259,13 @@ class TestVerifyEmailServiceExec(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = VerifyEmailService(session=session, email="test@example.com", code="123456")
+                    service = VerifyEmailService()
                     with self.assertRaises(EmailAlreadyVerifiedException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            email="test@example.com",
+                            code="123456",
+                        )
 
             self._run_async(_test_session())
         finally:
@@ -287,9 +307,13 @@ class TestVerifyEmailServiceExec(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = VerifyEmailService(session=session, email="test@example.com", code="222222")
+                    service = VerifyEmailService()
                     with self.assertRaises(VerificationCodeInvalidException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            email="test@example.com",
+                            code="222222",
+                        )
 
             self._run_async(_test_session())
         finally:
@@ -331,9 +355,13 @@ class TestVerifyEmailServiceExec(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = VerifyEmailService(session=session, email="test@example.com", code="123456")
+                    service = VerifyEmailService()
                     with self.assertRaises(VerificationCodeExpiredException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            email="test@example.com",
+                            code="123456",
+                        )
 
             self._run_async(_test_session())
         finally:
@@ -388,9 +416,13 @@ class TestVerifyEmailServiceExec(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = VerifyEmailService(session=session, email="test@example.com", code="000000")
+                    service = VerifyEmailService()
                     with self.assertRaises(VerificationCodeInvalidException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            email="test@example.com",
+                            code="000000",
+                        )
 
                 async with manager.get_session() as session:
                     result = await session.execute(
@@ -440,9 +472,13 @@ class TestVerifyEmailServiceExec(TestCase):
 
                 with unittest.mock.patch("app.services.auth.use_cases.verify.VERIFICATION_CODE_MAX_ATTEMPTS", 10):
                     async with manager.get_session() as session:
-                        service = VerifyEmailService(session=session, email="test@example.com", code="000000")
+                        service = VerifyEmailService()
                         with self.assertRaises(TooManyAttemptsException):
-                            await service.exec()
+                            await service.exec(
+                                session=session,
+                                email="test@example.com",
+                                code="000000",
+                            )
 
                 async with manager.get_session() as session:
                     result = await session.execute(
@@ -500,9 +536,13 @@ class TestVerifyEmailServiceExec(TestCase):
 
                 with unittest.mock.patch("app.services.auth.use_cases.verify.VERIFICATION_CODE_MAX_ATTEMPTS", 10):
                     async with manager.get_session() as session:
-                        service = VerifyEmailService(session=session, email="test@example.com", code="123456")
+                        service = VerifyEmailService()
                         with self.assertRaises(TooManyAttemptsException):
-                            await service.exec()
+                            await service.exec(
+                                session=session,
+                                email="test@example.com",
+                                code="123456",
+                            )
 
             self._run_async(_test_session())
         finally:
@@ -546,9 +586,13 @@ class TestVerifyEmailServiceExec(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = VerifyEmailService(session=session, email="test@example.com", code="123456")
+                    service = VerifyEmailService()
                     with self.assertRaises(VerificationCodeInvalidException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            email="test@example.com",
+                            code="123456",
+                        )
 
             self._run_async(_test_session())
         finally:

@@ -12,21 +12,16 @@ logger = logging.getLogger(__name__)
 class DatabaseHealthcheckService:
     """Сервис проверки доступности базы данных."""
 
-    def __init__(self, session: AsyncSession) -> None:
-        """Инициализация сервиса.
+    async def exec(self, session: AsyncSession) -> None | NoReturn:
+        """Проверка доступности базы данных.
 
         Args:
             session: Сессия базы данных для проверки подключения.
-        """
-        self.session = session
-
-    async def exec(self) -> None | NoReturn:
-        """Проверка доступности базы данных.
 
         Raises:
             HealthcheckServiceUnavailableException: Если БД недоступна.
         """
-        is_available = await check_database_connection(self.session)
+        is_available = await check_database_connection(session)
 
         if not is_available:
             raise HealthcheckServiceUnavailableException("healthcheck.errors.database_unavailable")

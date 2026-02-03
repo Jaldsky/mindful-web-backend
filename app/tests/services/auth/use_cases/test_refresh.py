@@ -71,8 +71,11 @@ class TestRefreshTokensService(TestCase):
                 access, refresh = create_tokens(user.id)
 
                 async with manager.get_session() as session:
-                    service = RefreshTokensService(session=session, refresh_token=refresh)
-                    new_access, new_refresh = await service.exec()
+                    service = RefreshTokensService()
+                    new_access, new_refresh = await service.exec(
+                        session=session,
+                        refresh_token=refresh,
+                    )
 
                 self.assertIsInstance(new_access, str)
                 self.assertIsInstance(new_refresh, str)
@@ -114,9 +117,12 @@ class TestRefreshTokensService(TestCase):
                 access, _refresh = create_tokens(user.id)
 
                 async with manager.get_session() as session:
-                    service = RefreshTokensService(session=session, refresh_token=access)
+                    service = RefreshTokensService()
                     with self.assertRaises(TokenInvalidException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            refresh_token=access,
+                        )
 
             self._run_async(_test())
         finally:
@@ -136,9 +142,12 @@ class TestRefreshTokensService(TestCase):
                 _access, refresh = create_tokens(user_id)
 
                 async with manager.get_session() as session:
-                    service = RefreshTokensService(session=session, refresh_token=refresh)
+                    service = RefreshTokensService()
                     with self.assertRaises(UserNotFoundException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            refresh_token=refresh,
+                        )
 
             self._run_async(_test())
         finally:
@@ -152,9 +161,12 @@ class TestRefreshTokensService(TestCase):
                 await conn.run_sync(Base.metadata.create_all)
 
             async with manager.get_session() as session:
-                service = RefreshTokensService(session=session, refresh_token="not-a-jwt")
+                service = RefreshTokensService()
                 with self.assertRaises(TokenInvalidException):
-                    await service.exec()
+                    await service.exec(
+                        session=session,
+                        refresh_token="not-a-jwt",
+                    )
 
         self._run_async(_test())
 
@@ -167,9 +179,12 @@ class TestRefreshTokensService(TestCase):
 
             expired_refresh = self._make_expired_refresh_token(uuid4())
             async with manager.get_session() as session:
-                service = RefreshTokensService(session=session, refresh_token=expired_refresh)
+                service = RefreshTokensService()
                 with self.assertRaises(TokenExpiredException):
-                    await service.exec()
+                    await service.exec(
+                        session=session,
+                        refresh_token=expired_refresh,
+                    )
 
         self._run_async(_test())
 
@@ -189,9 +204,12 @@ class TestRefreshTokensService(TestCase):
             refresh_without_sub = jwt.encode(payload, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
 
             async with manager.get_session() as session:
-                service = RefreshTokensService(session=session, refresh_token=refresh_without_sub)
+                service = RefreshTokensService()
                 with self.assertRaises(TokenInvalidException):
-                    await service.exec()
+                    await service.exec(
+                        session=session,
+                        refresh_token=refresh_without_sub,
+                    )
 
         self._run_async(_test())
 
@@ -223,8 +241,11 @@ class TestRefreshTokensService(TestCase):
 
                 async with manager.get_session() as session:
                     payload = RefreshRequestSchema(refresh_token=refresh_with_spaces)
-                    service = RefreshTokensService(session=session, refresh_token=payload.refresh_token)
-                    new_access, new_refresh = await service.exec()
+                    service = RefreshTokensService()
+                    new_access, new_refresh = await service.exec(
+                        session=session,
+                        refresh_token=payload.refresh_token,
+                    )
 
                 self.assertIsInstance(new_access, str)
                 self.assertIsInstance(new_refresh, str)
