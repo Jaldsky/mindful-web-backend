@@ -1,5 +1,4 @@
 import logging
-from dataclasses import dataclass
 from typing import NoReturn
 
 from datetime import datetime, timedelta, timezone
@@ -23,15 +22,6 @@ from ....services.email import EmailService
 from ....config import VERIFICATION_CODE_EXPIRE_MINUTES
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass(slots=True, frozen=True)
-class RegisterUser:
-    """Данные для регистрации пользователя."""
-
-    username: Username
-    email: Email
-    password: Password
 
 
 class RegisterService:

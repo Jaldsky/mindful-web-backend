@@ -13,7 +13,6 @@ from ..types import Email
 from ..types import VerificationCode
 from .types import AccessToken, Password, PasswordHash, RefreshToken, TokenPayload
 from .exceptions import (
-    AuthMessages,
     EmailAlreadyVerifiedException,
     TokenExpiredException,
     TokenInvalidException,
@@ -92,14 +91,12 @@ def to_utc_datetime(dt: datetime) -> datetime:
 async def get_unverified_user_by_email(
     session: AsyncSession,
     email: Email,
-    messages: type[AuthMessages] = AuthMessages,
 ) -> User:
     """Функция получения пользователя по email для операций с неподтверждённым email.
 
     Args:
         session: Сессия базы данных.
         email: Email пользователя.
-        messages: Класс сообщений сервиса.
 
     Returns:
         Пользователь с неподтверждённым email.

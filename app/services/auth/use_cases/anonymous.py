@@ -3,7 +3,7 @@ from typing import NoReturn
 from uuid import UUID, uuid4
 
 from ..common import create_anon_token
-from ..exceptions import AuthMessages, AuthServiceException
+from ..exceptions import AuthServiceException
 from ..types import AccessToken
 
 logger = logging.getLogger(__name__)
@@ -11,8 +11,6 @@ logger = logging.getLogger(__name__)
 
 class AnonymousServiceBase:
     """Базовый класс сервиса создания анонимной сессии."""
-
-    messages: type[AuthMessages] = AuthMessages
 
 
 class AnonymousService(AnonymousServiceBase):

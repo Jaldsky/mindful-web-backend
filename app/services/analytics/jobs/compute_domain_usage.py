@@ -16,7 +16,7 @@ from ....schemas.analytics.usage.response_ok_schema import (
     PaginationMeta,
 )
 from ..types import Date, Page, PageSize, DomainUsageRow
-from ..exceptions import AnalyticsUsageMessages, AnalyticsServiceException
+from ..exceptions import AnalyticsServiceException
 from ..queries import execute_domain_usage_query
 
 logger = logging.getLogger(__name__)
@@ -35,8 +35,6 @@ class ComputeDomainUsageData:
 
 class ComputeDomainUsageServiceBase:
     """Базовый класс сервиса вычисления статистики доменов."""
-
-    messages: type[AnalyticsUsageMessages] = AnalyticsUsageMessages
 
     session: Session | AsyncSession
     _data: ComputeDomainUsageData

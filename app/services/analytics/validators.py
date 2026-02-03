@@ -1,9 +1,8 @@
 from datetime import date, datetime
-from typing import ClassVar, NoReturn
+from typing import NoReturn
 
 from .constants import MIN_PAGE
 from .exceptions import (
-    AnalyticsUsageMessages,
     InvalidDateFormatException,
     InvalidPageException,
     InvalidTimeRangeException,
@@ -14,8 +13,6 @@ from ...config import DATE_FORMATS
 
 class AnalyticsServiceValidators:
     """Валидаторы для analytics-сервиса."""
-
-    messages: ClassVar[type[AnalyticsUsageMessages]] = AnalyticsUsageMessages
 
     @classmethod
     def validate_date(cls, date_: Date | DateStr) -> Date | NoReturn:

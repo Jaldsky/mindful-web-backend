@@ -6,7 +6,6 @@ from .constants import (
     VERIFICATION_CODE_TEMPLATE,
     VERIFICATION_EMAIL_SUBJECT,
 )
-from .exceptions import EmailServiceMessages
 from .types import FromName
 from .builder import EmailMessageBuilder
 from .renderer import TemplateRenderer, TemplateRendererSettings
@@ -20,8 +19,6 @@ logger = logging.getLogger(__name__)
 
 class EmailService:
     """Сервис отправки email."""
-
-    messages: type[EmailServiceMessages] = EmailServiceMessages
 
     def __init__(
         self,
