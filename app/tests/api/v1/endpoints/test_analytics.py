@@ -1,6 +1,6 @@
 import logging
 from unittest import TestCase
-from unittest.mock import patch, Mock, AsyncMock
+from unittest.mock import Mock, AsyncMock
 from uuid import uuid4
 from fastapi.testclient import TestClient
 from starlette.status import (
@@ -13,7 +13,11 @@ from starlette.status import (
 )
 
 from app.main import app
-from app.api.dependencies import ActorContext, get_actor_id_from_token
+from app.api.dependencies import (
+    ActorContext,
+    get_actor_id_from_token,
+    get_analytics_usage_service,
+)
 from app.schemas import ErrorCode
 from app.schemas.analytics.analytics_error_code import AnalyticsErrorCode
 from app.schemas.analytics import (
@@ -37,6 +41,9 @@ class TestAnalyticsUsageEndpoint(TestCase):
     def setUp(self):
         """Настройка тестового клиента."""
         logging.disable(logging.CRITICAL)
+
+        self.mock_analytics_service = Mock()
+        app.dependency_overrides[get_analytics_usage_service] = lambda: self.mock_analytics_service
 
         self.client = TestClient(app)
         self.usage_url = "/api/v1/analytics/usage"
@@ -75,65 +82,59 @@ class TestAnalyticsUsageEndpoint(TestCase):
                 {"domain": "youtube.com", "category": "entertainment", "total_seconds": 600},
             ],
         }
+        self.mock_analytics_service.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
 
-        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
-            mock_service.return_value.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
+        response = self.client.get(
+            self.usage_url,
+            params=self.valid_params,
+            headers=self.auth_headers,
+        )
 
-            response = self.client.get(
-                self.usage_url,
-                params=self.valid_params,
-                headers=self.auth_headers,
-            )
-
-            self.assertEqual(response.status_code, HTTP_200_OK)
-            data = response.json()
-            schema = AnalyticsUsageResponseOkSchema(**data)
-            self.assertEqual(schema.code, "OK")
-            self.assertEqual(schema.message, "Usage analytics computed")
-            self.assertEqual(len(schema.data), 2)
+        self.assertEqual(response.status_code, HTTP_200_OK)
+        data = response.json()
+        schema = AnalyticsUsageResponseOkSchema(**data)
+        self.assertEqual(schema.code, "OK")
+        self.assertEqual(schema.message, "Usage analytics computed")
+        self.assertEqual(len(schema.data), 2)
 
     def test_usage_timeout_exception(self):
         """Таймаут выполнения задачи возвращает статус 202 ACCEPTED."""
         task_id = "test-task-id-123"
-        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
-            mock_service.return_value.exec = AsyncMock(
-                side_effect=OrchestratorTimeoutException(
-                    task_id=task_id,
-                    message=OrchestratorServiceMessages.TASK_TIMEOUT.format(task_id=task_id),
-                )
+        self.mock_analytics_service.exec = AsyncMock(
+            side_effect=OrchestratorTimeoutException(
+                task_id=task_id,
+                message=OrchestratorServiceMessages.TASK_TIMEOUT.format(task_id=task_id),
             )
+        )
 
-            response = self.client.get(
-                self.usage_url,
-                params=self.valid_params,
-                headers=self.auth_headers,
-            )
+        response = self.client.get(
+            self.usage_url,
+            params=self.valid_params,
+            headers=self.auth_headers,
+        )
 
-            self.assertEqual(response.status_code, HTTP_202_ACCEPTED)
-            data = response.json()
-            schema = AnalyticsUsageResponseAcceptedSchema(**data)
-            self.assertEqual(schema.code, "ACCEPTED")
-            self.assertEqual(schema.task_id, task_id)
+        self.assertEqual(response.status_code, HTTP_202_ACCEPTED)
+        data = response.json()
+        schema = AnalyticsUsageResponseAcceptedSchema(**data)
+        self.assertEqual(schema.code, "ACCEPTED")
+        self.assertEqual(schema.task_id, task_id)
 
     def test_usage_broker_unavailable_exception(self):
         """Недоступность брокера возвращает статус 503 SERVICE_UNAVAILABLE."""
-        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
-            mock_service.return_value.exec = AsyncMock(
-                side_effect=OrchestratorBrokerUnavailableException(
-                    message=OrchestratorServiceMessages.BROKER_UNAVAILABLE
-                )
-            )
+        self.mock_analytics_service.exec = AsyncMock(
+            side_effect=OrchestratorBrokerUnavailableException(message=OrchestratorServiceMessages.BROKER_UNAVAILABLE)
+        )
 
-            response = self.client.get(
-                self.usage_url,
-                params=self.valid_params,
-                headers=self.auth_headers,
-            )
+        response = self.client.get(
+            self.usage_url,
+            params=self.valid_params,
+            headers=self.auth_headers,
+        )
 
-            self.assertEqual(response.status_code, HTTP_503_SERVICE_UNAVAILABLE)
-            data = response.json()
-            schema = ServiceUnavailableSchema(**data)
-            self.assertEqual(schema.code, ErrorCode.SERVICE_UNAVAILABLE)
+        self.assertEqual(response.status_code, HTTP_503_SERVICE_UNAVAILABLE)
+        data = response.json()
+        schema = ServiceUnavailableSchema(**data)
+        self.assertEqual(schema.code, ErrorCode.SERVICE_UNAVAILABLE)
 
     def test_usage_method_not_allowed_different_methods(self):
         """Различные HTTP методы (POST, PUT, DELETE, PATCH) возвращают 405."""
@@ -223,20 +224,18 @@ class TestAnalyticsUsageEndpoint(TestCase):
             actor_id=self.user_id,
             actor_type="anon",
         )
+        self.mock_analytics_service.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
 
-        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
-            mock_service.return_value.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
+        response = self.client.get(
+            self.usage_url,
+            params=self.valid_params,
+            headers=self.auth_headers,
+        )
 
-            response = self.client.get(
-                self.usage_url,
-                params=self.valid_params,
-                headers=self.auth_headers,
-            )
-
-            self.assertEqual(response.status_code, HTTP_200_OK)
-            mock_service.assert_called_once()
-            call_kwargs = mock_service.call_args.kwargs
-            self.assertEqual(call_kwargs.get("user_id"), self.user_id)
+        self.assertEqual(response.status_code, HTTP_200_OK)
+        self.mock_analytics_service.exec.assert_called_once()
+        call_kwargs = self.mock_analytics_service.exec.call_args.kwargs
+        self.assertEqual(call_kwargs.get("user_id"), self.user_id)
 
     def test_usage_pagination_links(self):
         """Проверка корректного построения ссылок пагинации."""
@@ -255,23 +254,19 @@ class TestAnalyticsUsageEndpoint(TestCase):
             },
             "data": [],
         }
+        self.mock_analytics_service.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
 
-        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
-            mock_service.return_value.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
+        response = self.client.get(
+            self.usage_url,
+            params=self.valid_params,
+            headers=self.auth_headers,
+        )
 
-            response = self.client.get(
-                self.usage_url,
-                params=self.valid_params,
-                headers=self.auth_headers,
-            )
-
-            self.assertEqual(response.status_code, HTTP_200_OK)
-            data = response.json()
-            schema = AnalyticsUsageResponseOkSchema(**data)
-            # Проверяем, что ссылки пагинации были построены
-            # На первой странице должна быть ссылка на следующую
-            self.assertIsNotNone(schema.pagination.next)
-            self.assertIsNone(schema.pagination.prev)
+        self.assertEqual(response.status_code, HTTP_200_OK)
+        data = response.json()
+        schema = AnalyticsUsageResponseOkSchema(**data)
+        self.assertIsNotNone(schema.pagination.next)
+        self.assertIsNone(schema.pagination.prev)
 
     def test_usage_response_content_type(self):
         """Успешный ответ возвращает JSON с правильным Content-Type."""
@@ -290,18 +285,16 @@ class TestAnalyticsUsageEndpoint(TestCase):
             },
             "data": [],
         }
+        self.mock_analytics_service.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
 
-        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
-            mock_service.return_value.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
+        response = self.client.get(
+            self.usage_url,
+            params=self.valid_params,
+            headers=self.auth_headers,
+        )
 
-            response = self.client.get(
-                self.usage_url,
-                params=self.valid_params,
-                headers=self.auth_headers,
-            )
-
-            self.assertEqual(response.status_code, HTTP_200_OK)
-            self.assertEqual(response.headers["content-type"], "application/json")
+        self.assertEqual(response.status_code, HTTP_200_OK)
+        self.assertEqual(response.headers["content-type"], "application/json")
 
     def test_usage_multiple_requests(self):
         """Множественные запросы работают корректно."""
@@ -320,18 +313,16 @@ class TestAnalyticsUsageEndpoint(TestCase):
             },
             "data": [],
         }
+        self.mock_analytics_service.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
 
-        with patch("app.api.v1.endpoints.analytics.AnalyticsUsageService") as mock_service:
-            mock_service.return_value.exec = AsyncMock(return_value=AnalyticsUsageResponseOkSchema(**mock_data))
+        for _ in range(5):
+            response = self.client.get(
+                self.usage_url,
+                params=self.valid_params,
+                headers=self.auth_headers,
+            )
+            self.assertEqual(response.status_code, HTTP_200_OK)
 
-            for _ in range(5):
-                response = self.client.get(
-                    self.usage_url,
-                    params=self.valid_params,
-                    headers=self.auth_headers,
-                )
-                self.assertEqual(response.status_code, HTTP_200_OK)
-
-                data = response.json()
-                schema = AnalyticsUsageResponseOkSchema(**data)
-                self.assertEqual(schema.code, "OK")
+            data = response.json()
+            schema = AnalyticsUsageResponseOkSchema(**data)
+            self.assertEqual(schema.code, "OK")

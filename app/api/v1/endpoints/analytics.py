@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends, Request
 from starlette import status
 
-from ...dependencies import validate_usage_request_params, get_actor_id_from_token, ActorContext
+from ...dependencies import (
+    validate_usage_request_params,
+    get_actor_id_from_token,
+    get_analytics_usage_service,
+    ActorContext,
+)
 from ....core.pagination import PaginationUrlBuilder
 from ....schemas.analytics import (
     AnalyticsUsageRequestSchema,
@@ -12,7 +17,6 @@ from ....schemas.analytics import (
     AnalyticsUsageMethodNotAllowedSchema,
 )
 from ....schemas.general import ServiceUnavailableSchema
-from ....services.analytics import AnalyticsUsageService
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -55,27 +59,29 @@ async def get_usage(
     request: Request,
     actor: ActorContext = Depends(get_actor_id_from_token),
     request_params: AnalyticsUsageRequestSchema = Depends(validate_usage_request_params),
+    analytics_usage_service=Depends(get_analytics_usage_service),
 ) -> AnalyticsUsageResponseOkSchema:
-    """Эндпоинт для получения статистики использования доменов.
+    """Возвращает агрегированную статистику активности по доменам за интервал.
 
     Args:
-        request: Объект запроса FastAPI.
+        request: HTTP-запрос.
         actor: Контекст пользователя или анонимной сессии из JWT.
-        request_params: Валидированные параметры запроса.
+        request_params: Валидированные параметры from, to, page.
+        analytics_usage_service: Сервис аналитики.
 
     Returns:
-        AnalyticsUsageResponseOkSchema: Результаты аналитики или исключение для обработки в хендлерах.
+        Данные по доменам и пагинация AnalyticsUsageResponseOkSchema.
 
     Raises:
-        OrchestratorTimeoutException: При таймауте выполнения задачи (обрабатывается в хендлере как 202).
-        OrchestratorBrokerUnavailableException: При недоступности брокера (обрабатывается в хендлере как 503).
+        OrchestratorTimeoutException: Таймаут задачи (хендлер возвращает 202).
+        OrchestratorBrokerUnavailableException: Брокер недоступен (хендлер возвращает 503).
     """
-    response = await AnalyticsUsageService(
+    response = await analytics_usage_service.exec(
         user_id=actor.actor_id,
         from_date=request_params.from_date,
         to_date=request_params.to_date,
         page=request_params.page,
-    ).exec()
+    )
     response.pagination = PaginationUrlBuilder.build_links(request, response.pagination)
 
     return response
