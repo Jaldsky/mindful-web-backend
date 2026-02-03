@@ -4,12 +4,11 @@ from fastapi import APIRouter, Body, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from ...dependencies import (
-    get_current_user_id,
-    get_db_session,
+from ...dependencies import get_current_user_id, get_db_session
+from ...state_services import (
     get_profile_service,
-    get_update_username_service,
     get_update_email_service,
+    get_update_username_service,
 )
 from ....schemas.user import (
     ProfileResponseSchema,

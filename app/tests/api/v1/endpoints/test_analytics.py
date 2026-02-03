@@ -13,11 +13,8 @@ from starlette.status import (
 )
 
 from app.main import app
-from app.api.dependencies import (
-    ActorContext,
-    get_actor_id_from_token,
-    get_analytics_usage_service,
-)
+from app.api.dependencies import ActorContext, get_actor_id_from_token
+from app.api.state_services import get_analytics_usage_service
 from app.schemas import ErrorCode
 from app.schemas.analytics.analytics_error_code import AnalyticsErrorCode
 from app.schemas.analytics import (

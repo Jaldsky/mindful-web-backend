@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from starlette.status import HTTP_200_OK, HTTP_405_METHOD_NOT_ALLOWED
 
 from app.main import app
-from app.api.dependencies import get_session_service
+from app.api.state_services import get_session_service
 from app.schemas import ErrorCode
 from app.schemas.auth import SessionResponseSchema, SessionMethodNotAllowedSchema
 from app.services.auth import SessionService
