@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, Request
 from starlette import status
 
 from ...dependencies import (
-    validate_usage_request_params,
     get_actor_id_from_token,
-    get_analytics_usage_service,
+    validate_usage_request_params,
     ActorContext,
 )
+from ...state_services import get_analytics_usage_service
 from ....core.pagination import PaginationUrlBuilder
 from ....schemas.analytics import (
     AnalyticsUsageRequestSchema,

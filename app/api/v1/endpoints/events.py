@@ -3,7 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from ....core.localizer import localize_key
-from ...dependencies import get_actor_id_from_token, get_db_session, get_save_events_service, ActorContext
+from ...dependencies import get_actor_id_from_token, get_db_session, ActorContext
+from ...state_services import get_save_events_service
 from ....schemas.events import (
     SaveEventsMethodNotAllowedSchema,
     SaveEventsRequestSchema,

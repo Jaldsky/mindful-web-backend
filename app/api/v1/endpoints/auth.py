@@ -4,15 +4,15 @@ from fastapi import APIRouter, Body, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from ...dependencies import (
-    get_db_session,
+from ...dependencies import get_db_session
+from ...state_services import (
     get_anonymous_service,
-    get_register_service,
     get_login_service,
-    get_refresh_tokens_service,
+    get_register_service,
     get_resend_verification_code_service,
-    get_verify_email_service,
     get_session_service,
+    get_verify_email_service,
+    get_refresh_tokens_service,
 )
 from ....schemas.auth import (
     # Anonymous

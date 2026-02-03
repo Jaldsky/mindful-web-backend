@@ -10,7 +10,7 @@ from starlette.status import (
 )
 
 from app.main import app
-from app.api.dependencies import get_anonymous_service
+from app.api.state_services import get_anonymous_service
 from app.schemas import ErrorCode
 from app.schemas.auth import AnonymousResponseSchema, AnonymousMethodNotAllowedSchema
 

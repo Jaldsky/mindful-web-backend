@@ -8,7 +8,8 @@ from starlette.status import (
 )
 
 from ....core.localizer import localize_key
-from ...dependencies import get_db_session, get_database_healthcheck_service
+from ...dependencies import get_db_session
+from ...state_services import get_database_healthcheck_service
 from ....schemas.general import (
     InternalServerErrorSchema,
     ServiceUnavailableSchema,
