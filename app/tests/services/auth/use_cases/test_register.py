@@ -41,11 +41,8 @@ class TestRegisterServiceMethods(TestCase):
         self.session.add = Mock(side_effect=mock_add)
         self.session.flush = AsyncMock()
 
-        service = RegisterService(
-            session=self.session, username="testuser", email="test@example.com", password="password123"
-        )
-
-        user = self._run_async(service._create_user())
+        service = RegisterService()
+        user = self._run_async(service._create_user(self.session, "testuser", "test@example.com", "password123"))
 
         self.assertEqual(user.username, "testuser")
         self.assertEqual(user.email, "test@example.com")
@@ -64,10 +61,8 @@ class TestRegisterServiceMethods(TestCase):
 
         self.session.add = Mock(side_effect=mock_add)
 
-        service = RegisterService(
-            session=self.session, username="testuser", email="test@example.com", password="password123"
-        )
-        code = self._run_async(service._create_verification_code(user_id))
+        service = RegisterService()
+        code = self._run_async(service._create_verification_code(self.session, user_id))
 
         self.assertIsInstance(code, str)
         self.assertEqual(len(code), 6)
@@ -81,11 +76,8 @@ class TestRegisterServiceMethods(TestCase):
         mock_result.scalars.return_value.all.return_value = []
         self.session.execute = AsyncMock(return_value=mock_result)
 
-        service = RegisterService(
-            session=self.session, username="testuser", email="test@example.com", password="password123"
-        )
-
-        self._run_async(service._check_uniqueness())
+        service = RegisterService()
+        self._run_async(service._check_uniqueness(self.session, "testuser", "test@example.com"))
         self.session.execute.assert_called_once()
 
     def test_check_uniqueness_username_exists(self):
@@ -98,12 +90,9 @@ class TestRegisterServiceMethods(TestCase):
         mock_result.scalars.return_value.all.return_value = [existing_user]
         self.session.execute = AsyncMock(return_value=mock_result)
 
-        service = RegisterService(
-            session=self.session, username="testuser", email="test@example.com", password="password123"
-        )
-
+        service = RegisterService()
         with self.assertRaises(UsernameAlreadyExistsException):
-            self._run_async(service._check_uniqueness())
+            self._run_async(service._check_uniqueness(self.session, "testuser", "test@example.com"))
 
     def test_check_uniqueness_email_exists(self):
         """Тест проверки уникальности при существующем email."""
@@ -115,20 +104,15 @@ class TestRegisterServiceMethods(TestCase):
         mock_result.scalars.return_value.all.return_value = [existing_user]
         self.session.execute = AsyncMock(return_value=mock_result)
 
-        service = RegisterService(
-            session=self.session, username="testuser", email="test@example.com", password="password123"
-        )
-
+        service = RegisterService()
         with self.assertRaises(EmailAlreadyExistsException):
-            self._run_async(service._check_uniqueness())
+            self._run_async(service._check_uniqueness(self.session, "testuser", "test@example.com"))
 
     def test_send_verification_email_failure(self):
         """Тест ошибки отправки email."""
         from app.services.email import EmailService
 
-        service = RegisterService(
-            session=self.session, username="testuser", email="test@example.com", password="password123"
-        )
+        service = RegisterService()
         with unittest.mock.patch.object(EmailService, "send_verification_code", new_callable=AsyncMock) as mock_send:
             mock_send.side_effect = Exception("SMTP error")
             with self.assertRaises(EmailSendFailedException):
@@ -138,9 +122,7 @@ class TestRegisterServiceMethods(TestCase):
         """Тест успешной отправки email."""
         from app.services.email import EmailService
 
-        service = RegisterService(
-            session=self.session, username="testuser", email="test@example.com", password="password123"
-        )
+        service = RegisterService()
         with unittest.mock.patch.object(EmailService, "send_verification_code", new_callable=AsyncMock) as mock_send:
             self._run_async(service._send_verification_email("test@example.com", "123456"))
             mock_send.assert_awaited_once_with(to_email="test@example.com", code="123456")
@@ -156,30 +138,30 @@ class TestRegisterServiceExecUnit(TestCase):
         return asyncio.run(coro)
 
     def test_exec_calls_flush_before_create_verification_code(self):
-        service = RegisterService(
-            session=self.session, username="testuser", email="test@example.com", password="password123"
-        )
-
+        service = RegisterService()
         service._check_uniqueness = AsyncMock()
         user = Mock()
         user.id = uuid4()
         service._create_user = AsyncMock(return_value=user)
-
-        parent = Mock()
-        parent.flush = AsyncMock()
-        parent.create_code = AsyncMock(return_value="123456")
-        service.session.flush = parent.flush
-        service._create_verification_code = parent.create_code
+        call_order = []
+        self.session.flush = AsyncMock(side_effect=lambda: call_order.append("flush"))
+        service._create_verification_code = AsyncMock(
+            side_effect=lambda session, user_id: call_order.append("code") or "123456"
+        )
         service._send_verification_email = AsyncMock()
-        service.session.commit = AsyncMock()
-        service.session.rollback = AsyncMock()
+        self.session.commit = AsyncMock()
+        self.session.rollback = AsyncMock()
 
-        self._run_async(service.exec())
+        self._run_async(
+            service.exec(
+                session=self.session,
+                username="testuser",
+                email="test@example.com",
+                password="password123",
+            )
+        )
 
-        calls = parent.mock_calls
-        flush_idx = calls.index(unittest.mock.call.flush())
-        code_idx = calls.index(unittest.mock.call.create_code(user.id))
-        self.assertLess(flush_idx, code_idx)
+        self.assertEqual(call_order, ["flush", "code"])
 
 
 class TestRegisterServiceExec(TestCase):
@@ -219,10 +201,13 @@ class TestRegisterServiceExec(TestCase):
                     await conn.run_sync(Base.metadata.create_all)
 
                 async with manager.get_session() as session:
-                    service = RegisterService(
-                        session=session, username="testuser", email="test@example.com", password="password123"
+                    service = RegisterService()
+                    user = await service.exec(
+                        session=session,
+                        username="testuser",
+                        email="test@example.com",
+                        password="password123",
                     )
-                    user = await service.exec()
                     self.assertIsNotNone(user.id)
 
                 async with manager.get_session() as session:
@@ -261,17 +246,23 @@ class TestRegisterServiceExec(TestCase):
                     await conn.run_sync(Base.metadata.create_all)
 
                 async with manager.get_session() as session:
-                    service1 = RegisterService(
-                        session=session, username="testuser", email="test1@example.com", password="password123"
+                    service1 = RegisterService()
+                    await service1.exec(
+                        session=session,
+                        username="testuser",
+                        email="test1@example.com",
+                        password="password123",
                     )
-                    await service1.exec()
 
                 async with manager.get_session() as session:
-                    service2 = RegisterService(
-                        session=session, username="testuser", email="test2@example.com", password="password123"
-                    )
+                    service2 = RegisterService()
                     with self.assertRaises(UsernameAlreadyExistsException):
-                        await service2.exec()
+                        await service2.exec(
+                            session=session,
+                            username="testuser",
+                            email="test2@example.com",
+                            password="password123",
+                        )
 
             with unittest.mock.patch.object(EmailService, "send_verification_code", new_callable=AsyncMock):
                 self._run_async(_test_session())
@@ -292,17 +283,23 @@ class TestRegisterServiceExec(TestCase):
                     await conn.run_sync(Base.metadata.create_all)
 
                 async with manager.get_session() as session:
-                    service1 = RegisterService(
-                        session=session, username="testuser1", email="test@example.com", password="password123"
+                    service1 = RegisterService()
+                    await service1.exec(
+                        session=session,
+                        username="testuser1",
+                        email="test@example.com",
+                        password="password123",
                     )
-                    await service1.exec()
 
                 async with manager.get_session() as session:
-                    service2 = RegisterService(
-                        session=session, username="testuser2", email="test@example.com", password="password123"
-                    )
+                    service2 = RegisterService()
                     with self.assertRaises(EmailAlreadyExistsException):
-                        await service2.exec()
+                        await service2.exec(
+                            session=session,
+                            username="testuser2",
+                            email="test@example.com",
+                            password="password123",
+                        )
 
             with unittest.mock.patch.object(EmailService, "send_verification_code", new_callable=AsyncMock):
                 self._run_async(_test_session())
@@ -370,11 +367,14 @@ class TestRegisterServiceExec(TestCase):
                     mock_send.side_effect = Exception("SMTP error")
 
                     async with manager.get_session() as session:
-                        service = RegisterService(
-                            session=session, username="testuser", email="test@example.com", password="password123"
-                        )
+                        service = RegisterService()
                         with self.assertRaises(EmailSendFailedException):
-                            await service.exec()
+                            await service.exec(
+                                session=session,
+                                username="testuser",
+                                email="test@example.com",
+                                password="password123",
+                            )
 
                         result = await session.execute(text("SELECT COUNT(*) FROM users"))
                         self.assertEqual(result.scalar(), 0)

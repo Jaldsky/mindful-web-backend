@@ -1,6 +1,7 @@
 import logging
 from unittest import TestCase
-from uuid import UUID
+from unittest.mock import AsyncMock, Mock
+from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 from starlette.status import (
@@ -9,6 +10,7 @@ from starlette.status import (
 )
 
 from app.main import app
+from app.api.dependencies import get_anonymous_service
 from app.schemas import ErrorCode
 from app.schemas.auth import AnonymousResponseSchema, AnonymousMethodNotAllowedSchema
 
@@ -20,8 +22,15 @@ class TestAuthAnonymousEndpoint(TestCase):
         """Настройка тестового клиента."""
         logging.disable(logging.CRITICAL)
 
+        self.mock_anonymous_service = Mock()
+        self.mock_anonymous_service.exec = AsyncMock(return_value=(uuid4(), "fake-anon-token"))
+        app.dependency_overrides[get_anonymous_service] = lambda: self.mock_anonymous_service
+
         self.client = TestClient(app)
         self.anonymous_url = "/api/v1/auth/anonymous"
+
+    def tearDown(self):
+        app.dependency_overrides.clear()
 
     def test_anonymous_success_response_schema(self):
         """Успешное создание анонимной сессии возвращает 201 и корректную схему ответа."""

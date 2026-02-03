@@ -22,18 +22,16 @@ class TestDatabaseHealthcheckService(TestCase):
 
     def test_database_healthcheck_service_initialization(self):
         """Тест инициализации DatabaseHealthcheckService."""
-        service = DatabaseHealthcheckService(session=self.session)
+        service = DatabaseHealthcheckService()
         self.assertIsNotNone(service)
-        self.assertIsNotNone(service.session)
 
     @patch("app.services.healthcheck.use_cases.database_healthcheck.check_database_connection")
     def test_database_healthcheck_exec_success(self, mock_check):
         """Тест успешного выполнения database healthcheck."""
-        # Настраиваем мок для возврата True
         mock_check.return_value = True
 
-        service = DatabaseHealthcheckService(session=self.session)
-        result = self._run_async(service.exec())
+        service = DatabaseHealthcheckService()
+        result = self._run_async(service.exec(session=self.session))
 
         self.assertIsNone(result)
         mock_check.assert_called_once_with(self.session)
@@ -41,13 +39,12 @@ class TestDatabaseHealthcheckService(TestCase):
     @patch("app.services.healthcheck.use_cases.database_healthcheck.check_database_connection")
     def test_database_healthcheck_exec_database_unavailable(self, mock_check):
         """Тест database healthcheck при недоступной БД."""
-        # Настраиваем мок для возврата False
         mock_check.return_value = False
 
-        service = DatabaseHealthcheckService(session=self.session)
+        service = DatabaseHealthcheckService()
 
         with self.assertRaises(HealthcheckServiceUnavailableException):
-            self._run_async(service.exec())
+            self._run_async(service.exec(session=self.session))
 
         mock_check.assert_called_once_with(self.session)
 

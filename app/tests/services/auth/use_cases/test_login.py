@@ -59,8 +59,12 @@ class TestLoginService(TestCase):
 
                 async with manager.get_session() as session:
                     payload = LoginRequestSchema(username="  TestUser  ", password=password)
-                    service = LoginService(session=session, username=payload.username, password=payload.password)
-                    user_out, access, refresh = await service.exec()
+                    service = LoginService()
+                    user_out, access, refresh = await service.exec(
+                        session=session,
+                        username=payload.username,
+                        password=payload.password,
+                    )
 
                 self.assertEqual(user_out.username, "testuser")
 
@@ -83,9 +87,13 @@ class TestLoginService(TestCase):
                 await conn.run_sync(Base.metadata.create_all)
 
             async with manager.get_session() as session:
-                service = LoginService(session=session, username="missing", password="password123")
+                service = LoginService()
                 with self.assertRaises(InvalidCredentialsException):
-                    await service.exec()
+                    await service.exec(
+                        session=session,
+                        username="missing",
+                        password="password123",
+                    )
 
         self._run_async(_test())
 
@@ -113,9 +121,13 @@ class TestLoginService(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = LoginService(session=session, username="testuser", password="password123")
+                    service = LoginService()
                     with self.assertRaises(InvalidCredentialsException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            username="testuser",
+                            password="password123",
+                        )
 
             self._run_async(_test())
         finally:
@@ -146,9 +158,13 @@ class TestLoginService(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = LoginService(session=session, username="testuser", password="wrongpass")
+                    service = LoginService()
                     with self.assertRaises(InvalidCredentialsException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            username="testuser",
+                            password="wrongpass",
+                        )
 
             self._run_async(_test())
         finally:
@@ -180,9 +196,13 @@ class TestLoginService(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    service = LoginService(session=session, username="testuser", password=password)
+                    service = LoginService()
                     with self.assertRaises(EmailNotVerifiedException):
-                        await service.exec()
+                        await service.exec(
+                            session=session,
+                            username="testuser",
+                            password=password,
+                        )
 
             self._run_async(_test())
         finally:

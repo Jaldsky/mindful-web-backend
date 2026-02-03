@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, NoReturn
+from typing import NoReturn
 
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..common import generate_verification_code, hash_password
 from ..queries import fetch_users_by_username_or_email
 from ..exceptions import (
-    AuthMessages,
     AuthServiceException,
     EmailAlreadyExistsException,
     EmailSendFailedException,
@@ -35,67 +34,14 @@ class RegisterUser:
     password: Password
 
 
-class RegisterServiceBase:
-    """Базовый класс для сервиса регистрации."""
-
-    messages: type[AuthMessages] = AuthMessages
-    session: AsyncSession
-    _data: RegisterUser
-
-    def __init__(self, session: AsyncSession, **kwargs: Any) -> None:
-        """Магический метод инициализации базового класса регистрации.
-
-        Args:
-            session: Сессия базы данных.
-            **kwargs: Аргументы для RegisterUser.
-        """
-        self.session = session
-        self._data = RegisterUser(**kwargs)
-
-    @property
-    def username(self) -> Username:
-        """Свойство получения username из данных регистрации.
-
-        Returns:
-            Username пользователя.
-        """
-        return self._data.username
-
-    @property
-    def email(self) -> Email:
-        """Свойство получения email из данных регистрации.
-
-        Returns:
-            Email адрес пользователя.
-        """
-        return self._data.email
-
-    @property
-    def password(self) -> Password:
-        """Свойство получения password из данных регистрации.
-
-        Returns:
-            Пароль пользователя.
-        """
-        return self._data.password
-
-
-class RegisterService(RegisterServiceBase):
+class RegisterService:
     """Сервис регистрации пользователей."""
 
-    def __init__(self, session: AsyncSession, **kwargs: Any) -> None:
-        """Магический метод инициализации.
-
-        Args:
-            session: Сессия базы данных.
-            **kwargs: Аргументы для RegisterUser.
-        """
-        super().__init__(session=session, **kwargs)
-
-    async def _create_verification_code(self, user_id: UserId) -> VerificationCode:
+    async def _create_verification_code(self, session: AsyncSession, user_id: UserId) -> VerificationCode:
         """Приватный метод создания кода подтверждения для пользователя.
 
         Args:
+            session: Сессия базы данных.
             user_id: ID пользователя.
 
         Returns:
@@ -104,25 +50,36 @@ class RegisterService(RegisterServiceBase):
         code: VerificationCode = generate_verification_code()
         now = datetime.now(timezone.utc)
         expires_at: datetime = now + timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
-        self.session.add(VerificationCodeModel(user_id=user_id, code=code, expires_at=expires_at, created_at=now))
+        session.add(VerificationCodeModel(user_id=user_id, code=code, expires_at=expires_at, created_at=now))
         return code
 
-    async def _check_uniqueness(self) -> None | NoReturn:
+    async def _check_uniqueness(self, session: AsyncSession, username: Username, email: Email) -> None | NoReturn:
         """Приватный метод проверки уникальности username и email.
+
+        Args:
+            session: Сессия базы данных.
+            username: Имя пользователя.
+            email: Email адрес.
 
         Raises:
             UsernameAlreadyExistsException: Если username уже существует.
             EmailAlreadyExistsException: Если email уже существует.
         """
-        existing_users = await fetch_users_by_username_or_email(self.session, self.username, self.email)
+        existing_users = await fetch_users_by_username_or_email(session, username, email)
 
         for user in existing_users:
-            if user.username == self.username:
+            if user.username == username:
                 raise UsernameAlreadyExistsException("auth.errors.username_exists")
-            if user.email == self.email:
+            if user.email == email:
                 raise EmailAlreadyExistsException("auth.errors.email_exists")
 
-    async def _create_user(self) -> User:
+    async def _create_user(
+        self,
+        session: AsyncSession,
+        username: Username,
+        email: Email,
+        password: Password,
+    ) -> User:
         """Приватный метод создания пользователя.
 
         Процесс включает:
@@ -130,20 +87,26 @@ class RegisterService(RegisterServiceBase):
         2. Создание объекта User
         3. Добавление пользователя в сессию
 
+        Args:
+            session: Сессия базы данных.
+            username: Имя пользователя.
+            email: Email адрес.
+            password: Пароль пользователя.
+
         Returns:
             Созданный объект User.
         """
-        password: PasswordHash = hash_password(self.password)
+        password_hash: PasswordHash = hash_password(password)
         now = datetime.now(timezone.utc)
         user: User = User(
-            username=self.username,
-            email=self.email,
-            password=password,
+            username=username,
+            email=email,
+            password=password_hash,
             is_verified=False,
             created_at=now,
             updated_at=now,
         )
-        self.session.add(user)
+        session.add(user)
         return user
 
     async def _send_verification_email(self, email: Email, code: VerificationCode) -> None | NoReturn:
@@ -161,7 +124,13 @@ class RegisterService(RegisterServiceBase):
         except Exception:
             raise EmailSendFailedException("auth.errors.email_send_failed")
 
-    async def exec(self) -> User | NoReturn:
+    async def exec(
+        self,
+        session: AsyncSession,
+        username: Username,
+        email: Email,
+        password: Password,
+    ) -> User | NoReturn:
         """Метод регистрации пользователя.
 
         Процесс регистрации включает:
@@ -171,6 +140,12 @@ class RegisterService(RegisterServiceBase):
         4. Создание кода подтверждения
         5. Отправку кода подтверждения на email
         6. Коммит транзакции
+
+        Args:
+            session: Сессия базы данных.
+            username: Имя пользователя.
+            email: Email адрес.
+            password: Пароль пользователя.
 
         Returns:
             Созданный объект User.
@@ -185,14 +160,14 @@ class RegisterService(RegisterServiceBase):
             AuthServiceException: При неожиданной ошибке.
         """
         try:
-            await self._check_uniqueness()
-            user = await self._create_user()
-            await self.session.flush()
-            code = await self._create_verification_code(user.id)
-            await self._send_verification_email(self.email, code)
+            await self._check_uniqueness(session, username, email)
+            user = await self._create_user(session, username, email, password)
+            await session.flush()
+            code = await self._create_verification_code(session, user.id)
+            await self._send_verification_email(email, code)
 
-            await self.session.commit()
-            logger.info(f"User registered: {self.username} ({self.email})")
+            await session.commit()
+            logger.info(f"User registered: {username} ({email})")
             return user
 
         except (
@@ -203,8 +178,8 @@ class RegisterService(RegisterServiceBase):
             EmailAlreadyExistsException,
             EmailSendFailedException,
         ):
-            await self.session.rollback()
+            await session.rollback()
             raise
         except Exception:
-            await self.session.rollback()
+            await session.rollback()
             raise AuthServiceException("auth.errors.auth_service_error")

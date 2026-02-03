@@ -8,7 +8,7 @@ from starlette.status import (
 )
 
 from ....core.localizer import localize_key
-from ...dependencies import get_db_session
+from ...dependencies import get_db_session, get_database_healthcheck_service
 from ....schemas.general import (
     InternalServerErrorSchema,
     ServiceUnavailableSchema,
@@ -50,6 +50,14 @@ router = APIRouter(prefix="/healthcheck", tags=["healthcheck"])
     description="Проверка работоспособности сервиса",
 )
 async def check_service_health(request: Request) -> HealthcheckResponseSchema:
+    """Проверка доступности сервиса.
+
+    Args:
+        request: HTTP-запрос.
+
+    Returns:
+        HealthcheckResponseSchema: code "OK" и локализованное message.
+    """
     message = localize_key(request, "healthcheck.messages.service_available", "Service is available")
     return HealthcheckResponseSchema(code="OK", message=message)
 
@@ -80,8 +88,22 @@ async def check_service_health(request: Request) -> HealthcheckResponseSchema:
 async def check_database_health(
     request: Request,
     db: AsyncSession = Depends(get_db_session),
+    database_healthcheck_service: DatabaseHealthcheckService = Depends(get_database_healthcheck_service),
 ) -> DatabaseHealthcheckResponseSchema:
-    await DatabaseHealthcheckService(session=db).exec()
+    """Проверка подключения к базе данных и её работоспособности.
+
+    Args:
+        request: HTTP-запрос.
+        db: Сессия БД.
+        database_healthcheck_service: Сервис проверки БД.
+
+    Returns:
+        DatabaseHealthcheckResponseSchema: code "OK" и локализованное message при успехе.
+
+    Raises:
+        Исключения сервиса обрабатываются хендлерами (503 при недоступности БД).
+    """
+    await database_healthcheck_service.exec(session=db)
 
     message = localize_key(request, "healthcheck.messages.database_available", "Database is available")
     return DatabaseHealthcheckResponseSchema(code="OK", message=message)

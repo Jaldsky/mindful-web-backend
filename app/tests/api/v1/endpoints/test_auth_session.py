@@ -8,8 +8,10 @@ from fastapi.testclient import TestClient
 from starlette.status import HTTP_200_OK, HTTP_405_METHOD_NOT_ALLOWED
 
 from app.main import app
+from app.api.dependencies import get_session_service
 from app.schemas import ErrorCode
 from app.schemas.auth import SessionResponseSchema, SessionMethodNotAllowedSchema
+from app.services.auth import SessionService
 from app.services.auth.common import create_anon_token
 from app.services.auth.constants import AUTH_ACCESS_COOKIE_NAME, AUTH_ANON_COOKIE_NAME
 
@@ -21,8 +23,12 @@ class TestAuthSessionEndpoint(TestCase):
         """Настройка тестового клиента."""
         logging.disable(logging.CRITICAL)
 
+        app.dependency_overrides[get_session_service] = lambda: SessionService()
         self.client = TestClient(app)
         self.session_url = "/api/v1/auth/session"
+
+    def tearDown(self):
+        app.dependency_overrides.clear()
 
     def test_session_none_when_no_cookies(self):
         """Если cookies нет, возвращает статус none."""
