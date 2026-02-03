@@ -1,13 +1,11 @@
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, NoReturn
+from typing import NoReturn
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...auth.common import generate_verification_code, to_utc_datetime
 from ...auth.exceptions import (
-    AuthMessages,
     AuthServiceException,
     EmailAlreadyExistsException,
     EmailSendFailedException,
@@ -25,55 +23,23 @@ from ....services.email import EmailService
 from .profile import ProfileData
 
 
-@dataclass(slots=True, frozen=True)
-class UpdateEmail:
-    """Данные для обновления email пользователя."""
+class UpdateEmailService:
+    """Сервис обновления email текущего пользователя."""
 
-    user_id: UUID
-    email: Email
+    def __init__(self, email_service: EmailService) -> None:
+        """Инициализация сервиса.
 
+        Args:
+            email_service: Сервис отправки email (из app.state).
+        """
+        self._email_service = email_service
 
-class UpdateEmailServiceBase:
-    """Базовый класс для сервиса обновления email пользователя."""
-
-    messages: type[AuthMessages] = AuthMessages
-    session: AsyncSession
-    _data: UpdateEmail
-
-    def __init__(self, session: AsyncSession, **kwargs: Any) -> None:
-        """Магический метод инициализации базового класса.
+    async def _load_user(self, session: AsyncSession, user_id: UUID) -> User | NoReturn:
+        """Приватный метод загрузки пользователя по user_id.
 
         Args:
             session: Сессия базы данных.
-            **kwargs: Аргументы для UpdateEmail.
-        """
-        self.session = session
-        self._data = UpdateEmail(**kwargs)
-
-    @property
-    def user_id(self) -> UUID:
-        """Свойство получения user_id из данных запроса.
-
-        Returns:
-            UUID: Идентификатор пользователя.
-        """
-        return self._data.user_id
-
-    @property
-    def email(self) -> Email:
-        """Свойство получения email из данных запроса.
-
-        Returns:
-            Email: Email пользователя.
-        """
-        return self._data.email
-
-
-class UpdateEmailService(UpdateEmailServiceBase):
-    """Сервис обновления email текущего пользователя."""
-
-    async def _load_user(self) -> User:
-        """Приватный метод загрузки пользователя по user_id.
+            user_id: Идентификатор пользователя.
 
         Returns:
             User: Пользователь из БД.
@@ -81,62 +47,69 @@ class UpdateEmailService(UpdateEmailServiceBase):
         Raises:
             UserNotFoundException: Если пользователь не найден в системе.
         """
-        user = await fetch_user_by_id(self.session, self.user_id)
+        user = await fetch_user_by_id(session, user_id)
         if not user:
             raise UserNotFoundException("user.errors.user_not_found")
         return user
 
-    async def _ensure_email_available(self, user_id: UserId) -> None | NoReturn:
+    async def _ensure_email_available(self, session: AsyncSession, email: Email, user_id: UserId) -> None | NoReturn:
         """Приватный метод проверки уникальности email.
 
         Args:
+            session: Сессия базы данных.
+            email: Новый email.
             user_id: ID текущего пользователя.
 
         Raises:
             EmailAlreadyExistsException: Если email уже занят другим пользователем.
         """
-        existing = await fetch_user_by_email_or_pending(self.session, self.email)
+        existing = await fetch_user_by_email_or_pending(session, email)
         if existing and existing.id != user_id:
             raise EmailAlreadyExistsException("user.errors.email_exists")
 
-    def _is_email_update_required(self, user: User) -> bool:
+    def _is_email_update_required(self, user: User, email: Email) -> bool:
         """Приватный метод проверки необходимости обновления email.
 
         Args:
             user: Объект пользователя из БД.
+            email: Новый email.
 
         Returns:
             bool: True, если email нужно обновить или переподтвердить.
         """
-        if user.email == self.email and user.is_verified:
+        if user.email == email and user.is_verified:
             return False
         return True
 
-    def _apply_email_update(self, user: User) -> User:
+    def _apply_email_update(self, user: User, email: Email) -> User:
         """Приватный метод обновления email пользователя.
 
         Args:
             user: Объект пользователя из БД.
+            email: Новый email.
 
         Returns:
             User: Обновлённый объект пользователя.
         """
         now = datetime.now(timezone.utc)
-        user.pending_email = self.email
+        user.pending_email = email
         user.updated_at = now
         return user
 
-    async def _ensure_update_not_rate_limited(self, user_id: UserId, now: datetime) -> None | NoReturn:
+    async def _ensure_update_not_rate_limited(
+        self, session: AsyncSession, user_id: UserId, now: datetime
+    ) -> None | NoReturn:
         """Приватный метод проверки cooldown между отправками при смене email.
 
         Args:
+            session: Сессия базы данных.
             user_id: ID пользователя.
             now: Текущее время (UTC).
 
         Raises:
             TooManyAttemptsException: Если отправка слишком частая.
         """
-        active_code_row = await fetch_active_verification_code_row(self.session, user_id, now)
+        active_code_row = await fetch_active_verification_code_row(session, user_id, now)
         if not active_code_row:
             return
         base_ts = active_code_row.last_sent_at or active_code_row.created_at
@@ -148,10 +121,11 @@ class UpdateEmailService(UpdateEmailServiceBase):
         if now_utc < cooldown_until:
             raise TooManyAttemptsException("user.errors.too_many_attempts")
 
-    async def _create_verification_code(self, user_id: UserId) -> VerificationCode:
+    async def _create_verification_code(self, session: AsyncSession, user_id: UserId) -> VerificationCode:
         """Приватный метод создания кода подтверждения для пользователя.
 
         Args:
+            session: Сессия базы данных.
             user_id: ID пользователя.
 
         Returns:
@@ -160,7 +134,7 @@ class UpdateEmailService(UpdateEmailServiceBase):
         code: VerificationCode = generate_verification_code()
         now = datetime.now(timezone.utc)
         expires_at: datetime = now + timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
-        self.session.add(
+        session.add(
             VerificationCodeModel(
                 user_id=user_id,
                 code=code,
@@ -182,11 +156,16 @@ class UpdateEmailService(UpdateEmailServiceBase):
             EmailSendFailedException: Если не удалось отправить email.
         """
         try:
-            await EmailService().send_verification_code(to_email=email, code=code)
+            await self._email_service.send_verification_code(to_email=email, code=code)
         except Exception:
             raise EmailSendFailedException("user.errors.email_send_failed")
 
-    async def exec(self) -> ProfileData | NoReturn:
+    async def exec(
+        self,
+        session: AsyncSession,
+        user_id: UUID,
+        email: Email,
+    ) -> ProfileData | NoReturn:
         """Метод обновления email пользователя.
 
         Процесс включает:
@@ -197,6 +176,11 @@ class UpdateEmailService(UpdateEmailServiceBase):
         5. Создание кода подтверждения
         6. Отправку письма с кодом
         7. Коммит транзакции
+
+        Args:
+            session: Сессия базы данных.
+            user_id: Идентификатор пользователя.
+            email: Новый email.
 
         Returns:
             ProfileData: Обновлённые данные профиля пользователя.
@@ -209,19 +193,20 @@ class UpdateEmailService(UpdateEmailServiceBase):
             AuthServiceException: При неожиданной ошибке.
         """
         try:
-            user = await self._load_user()
-            await self._ensure_email_available(user.id)
-            if not self._is_email_update_required(user):
+            user = await self._load_user(session, user_id)
+            await self._ensure_email_available(session, email, user.id)
+            if not self._is_email_update_required(user, email):
                 return ProfileData(
                     username=user.username,
                     email=user.email,
                 )
-            await self._ensure_update_not_rate_limited(user.id, datetime.now(timezone.utc))
-            user = self._apply_email_update(user)
-            code = await self._create_verification_code(user.id)
-            await self._send_verification_email(self.email, code)
+            now = datetime.now(timezone.utc)
+            await self._ensure_update_not_rate_limited(session, user.id, now)
+            user = self._apply_email_update(user, email)
+            code = await self._create_verification_code(session, user.id)
+            await self._send_verification_email(email, code)
 
-            await self.session.commit()
+            await session.commit()
 
             return ProfileData(
                 username=user.username,
@@ -233,8 +218,8 @@ class UpdateEmailService(UpdateEmailServiceBase):
             EmailSendFailedException,
             TooManyAttemptsException,
         ):
-            await self.session.rollback()
+            await session.rollback()
             raise
         except Exception:
-            await self.session.rollback()
+            await session.rollback()
             raise AuthServiceException("user.errors.auth_service_error")

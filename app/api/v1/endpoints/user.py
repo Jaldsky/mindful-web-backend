@@ -4,7 +4,13 @@ from fastapi import APIRouter, Body, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from ...dependencies import get_current_user_id, get_db_session
+from ...dependencies import (
+    get_current_user_id,
+    get_db_session,
+    get_profile_service,
+    get_update_username_service,
+    get_update_email_service,
+)
 from ....schemas.user import (
     ProfileResponseSchema,
     ProfileMethodNotAllowedSchema,
@@ -26,7 +32,6 @@ from ....schemas.user import (
     UpdateEmailInternalServerErrorSchema,
 )
 from ....schemas.general import ServiceUnavailableSchema
-from ....services.user import ProfileService, UpdateUsernameService, UpdateEmailService
 
 router = APIRouter(prefix="/user", tags=["user"])
 
@@ -63,15 +68,17 @@ router = APIRouter(prefix="/user", tags=["user"])
 async def get_profile(
     user_id: UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session),
+    profile_service=Depends(get_profile_service),
 ) -> ProfileResponseSchema:
     """Эндпоинт получения профиля текущего пользователя.
 
     Args:
         user_id: Идентификатор пользователя из access Bearer JWT.
         db: Сессия базы данных.
+        profile_service: Сервис профиля.
 
     Returns:
-        UserProfileResponseSchema: Данные профиля пользователя.
+        ProfileResponseSchema.
 
     Raises:
         TokenMissingException: Если заголовок Authorization отсутствует (401).
@@ -79,7 +86,7 @@ async def get_profile(
         TokenExpiredException: Если токен истёк (401).
         UserNotFoundException: Если пользователь не найден в системе (401).
     """
-    profile = await ProfileService(session=db, user_id=user_id).exec()
+    profile = await profile_service.exec(session=db, user_id=user_id)
     return ProfileResponseSchema(
         data={
             "username": profile.username,
@@ -133,6 +140,7 @@ async def update_profile_username(
     payload: UpdateUsernameRequestSchema = Body(..., description="Новый логин пользователя"),
     user_id: UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session),
+    update_username_service=Depends(get_update_username_service),
 ) -> ProfileResponseSchema:
     """Эндпоинт обновления логина текущего пользователя.
 
@@ -140,9 +148,10 @@ async def update_profile_username(
         payload: Схема с новым логином пользователя.
         user_id: Идентификатор пользователя из access Bearer JWT.
         db: Сессия базы данных.
+        update_username_service: Сервис обновления логина.
 
     Returns:
-        ProfileResponseSchema: Обновлённые данные профиля пользователя.
+        ProfileResponseSchema.
 
     Raises:
         TokenMissingException: Если заголовок Authorization отсутствует (401).
@@ -152,7 +161,11 @@ async def update_profile_username(
         UsernameAlreadyExistsException: Если логин уже занят (409).
         InvalidUsernameFormatException: Если логин не проходит бизнес-валидацию (422).
     """
-    profile = await UpdateUsernameService(session=db, user_id=user_id, username=payload.username).exec()
+    profile = await update_username_service.exec(
+        session=db,
+        user_id=user_id,
+        username=payload.username,
+    )
     return ProfileResponseSchema(
         data={
             "username": profile.username,
@@ -206,16 +219,20 @@ async def update_profile_email(
     payload: UpdateEmailRequestSchema = Body(..., description="Новый email пользователя"),
     user_id: UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session),
+    update_email_service=Depends(get_update_email_service),
 ) -> ProfileResponseSchema:
     """Эндпоинт обновления email текущего пользователя.
+
+    Создаёт pending_email и отправляет код подтверждения на новый адрес.
 
     Args:
         payload: Схема с новым email пользователя.
         user_id: Идентификатор пользователя из access Bearer JWT.
         db: Сессия базы данных.
+        update_email_service: Сервис обновления email.
 
     Returns:
-        ProfileResponseSchema: Обновлённые данные профиля пользователя.
+        ProfileResponseSchema.
 
     Raises:
         TokenMissingException: Если заголовок Authorization отсутствует (401).
@@ -226,7 +243,11 @@ async def update_profile_email(
         InvalidEmailFormatException: Если email не проходит бизнес-валидацию (422).
         EmailSendFailedException: Если отправка кода подтверждения не удалась (500).
     """
-    profile = await UpdateEmailService(session=db, user_id=user_id, email=payload.email).exec()
+    profile = await update_email_service.exec(
+        session=db,
+        user_id=user_id,
+        email=payload.email,
+    )
     return ProfileResponseSchema(
         data={
             "username": profile.username,

@@ -17,7 +17,13 @@ from app.services.auth.exceptions import (
     TooManyAttemptsException,
     UserNotFoundException,
 )
+from app.services.email import EmailService
 from app.services.user.use_cases.update_email import UpdateEmailService
+
+
+def _update_email_service():
+    """Сервис с реальным EmailService (в тестах патчится send_verification_code)."""
+    return UpdateEmailService(email_service=EmailService())
 
 
 class TestUpdateEmailService(TestCase):
@@ -53,8 +59,6 @@ class TestUpdateEmailService(TestCase):
         app_config.VERIFICATION_CODE_REQUEST_COOLDOWN_SECONDS = original_verification_cooldown
 
     def test_exec_updates_email_and_sends_code(self):
-        from app.services.email import EmailService
-
         originals = self._patch_server_defaults_for_sqlite()
         try:
 
@@ -78,9 +82,11 @@ class TestUpdateEmailService(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    profile = await UpdateEmailService(
-                        session=session, user_id=user.id, email="new@example.com"
-                    ).exec()
+                    profile = await _update_email_service().exec(
+                        session=session,
+                        user_id=user.id,
+                        email="new@example.com",
+                    )
 
                 self.assertEqual(profile.email, "old@example.com")
 
@@ -101,8 +107,6 @@ class TestUpdateEmailService(TestCase):
             self._restore_server_defaults(*originals)
 
     def test_exec_same_verified_email_noop(self):
-        from app.services.email import EmailService
-
         originals = self._patch_server_defaults_for_sqlite()
         try:
 
@@ -126,9 +130,11 @@ class TestUpdateEmailService(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    profile = await UpdateEmailService(
-                        session=session, user_id=user.id, email="same@example.com"
-                    ).exec()
+                    profile = await _update_email_service().exec(
+                        session=session,
+                        user_id=user.id,
+                        email="same@example.com",
+                    )
                     self.assertEqual(profile.email, "same@example.com")
 
                 async with manager.get_session() as session:
@@ -148,8 +154,6 @@ class TestUpdateEmailService(TestCase):
             self._restore_server_defaults(*originals)
 
     def test_exec_email_already_exists(self):
-        from app.services.email import EmailService
-
         originals = self._patch_server_defaults_for_sqlite()
         try:
 
@@ -183,7 +187,11 @@ class TestUpdateEmailService(TestCase):
 
                 async with manager.get_session() as session:
                     with self.assertRaises(EmailAlreadyExistsException):
-                        await UpdateEmailService(session=session, user_id=user1.id, email="second@example.com").exec()
+                        await _update_email_service().exec(
+                            session=session,
+                            user_id=user1.id,
+                            email="second@example.com",
+                        )
 
             with unittest.mock.patch.object(EmailService, "send_verification_code", new_callable=AsyncMock):
                 self._run_async(_test())
@@ -191,8 +199,6 @@ class TestUpdateEmailService(TestCase):
             self._restore_server_defaults(*originals)
 
     def test_exec_email_send_failed(self):
-        from app.services.email import EmailService
-
         originals = self._patch_server_defaults_for_sqlite()
         try:
 
@@ -217,7 +223,11 @@ class TestUpdateEmailService(TestCase):
 
                 async with manager.get_session() as session:
                     with self.assertRaises(EmailSendFailedException):
-                        await UpdateEmailService(session=session, user_id=user.id, email="new@example.com").exec()
+                        await _update_email_service().exec(
+                            session=session,
+                            user_id=user.id,
+                            email="new@example.com",
+                        )
 
                 async with manager.get_session() as session:
                     refreshed = await session.get(User, user.id)
@@ -234,8 +244,6 @@ class TestUpdateEmailService(TestCase):
             self._restore_server_defaults(*originals)
 
     def test_exec_overwrites_pending_email_with_latest(self):
-        from app.services.email import EmailService
-
         originals = self._patch_server_defaults_for_sqlite()
         try:
 
@@ -259,10 +267,18 @@ class TestUpdateEmailService(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    await UpdateEmailService(session=session, user_id=user.id, email="first@example.com").exec()
+                    await _update_email_service().exec(
+                        session=session,
+                        user_id=user.id,
+                        email="first@example.com",
+                    )
 
                 async with manager.get_session() as session:
-                    await UpdateEmailService(session=session, user_id=user.id, email="second@example.com").exec()
+                    await _update_email_service().exec(
+                        session=session,
+                        user_id=user.id,
+                        email="second@example.com",
+                    )
 
                 async with manager.get_session() as session:
                     refreshed = await session.get(User, user.id)
@@ -277,8 +293,6 @@ class TestUpdateEmailService(TestCase):
             self._restore_server_defaults(*originals)
 
     def test_exec_rate_limited_for_rapid_requests(self):
-        from app.services.email import EmailService
-
         originals = self._patch_server_defaults_for_sqlite()
         try:
             app_config.VERIFICATION_CODE_REQUEST_COOLDOWN_SECONDS = 60
@@ -303,11 +317,19 @@ class TestUpdateEmailService(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    await UpdateEmailService(session=session, user_id=user.id, email="first@example.com").exec()
+                    await _update_email_service().exec(
+                        session=session,
+                        user_id=user.id,
+                        email="first@example.com",
+                    )
 
                 async with manager.get_session() as session:
                     with self.assertRaises(TooManyAttemptsException):
-                        await UpdateEmailService(session=session, user_id=user.id, email="second@example.com").exec()
+                        await _update_email_service().exec(
+                            session=session,
+                            user_id=user.id,
+                            email="second@example.com",
+                        )
 
             with unittest.mock.patch.object(EmailService, "send_verification_code", new_callable=AsyncMock):
                 self._run_async(_test())
@@ -326,7 +348,11 @@ class TestUpdateEmailService(TestCase):
 
                 async with manager.get_session() as session:
                     with self.assertRaises(UserNotFoundException):
-                        await UpdateEmailService(session=session, user_id=uuid4(), email="new@example.com").exec()
+                        await _update_email_service().exec(
+                            session=session,
+                            user_id=uuid4(),
+                            email="new@example.com",
+                        )
 
             self._run_async(_test())
         finally:
