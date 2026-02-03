@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, Body, Request
+from fastapi import APIRouter, Body, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from ....core.localizer import localize_key
-from ...dependencies import get_actor_id_from_token, get_db_session, ActorContext
+from ...dependencies import get_actor_id_from_token, get_db_session, get_save_events_service, ActorContext
 from ....schemas.events import (
     SaveEventsMethodNotAllowedSchema,
     SaveEventsRequestSchema,
@@ -12,7 +12,6 @@ from ....schemas.events import (
     SaveEventsInternalServerErrorSchema,
 )
 from ....schemas.general import ServiceUnavailableSchema, BadRequestSchema
-from ....services.events import SaveEventsService
 
 router = APIRouter(prefix="/events", tags=["events"])
 
@@ -59,28 +58,30 @@ async def save_events(
     payload: SaveEventsRequestSchema = Body(..., description="Данные событий"),
     actor: ActorContext = Depends(get_actor_id_from_token),
     db: AsyncSession = Depends(get_db_session),
+    save_events_service=Depends(get_save_events_service),
 ):
-    """Ручка для приема событий от браузерного расширения.
+    """Принимает события от расширения браузера и сохраняет их в БД.
 
     Args:
         request: HTTP-запрос.
         payload: Схема с данными событий.
-        actor: Контекст пользователя или анонимной сессии из JWT.
+        actor: Контекст пользователя или анонимной сессии из JWT (access/anon).
         db: Сессия базы данных.
+        save_events_service: Сервис сохранения событий (из app.state).
 
     Returns:
-        SaveEventsResponseSchema: Схема успешного ответа.
+        SaveEventsResponseSchema.
 
     Raises:
-        EventsValidationException: При ошибках бизнес-валидации (422).
-        EventsServerException: При серверных ошибках (500).
+        AnonEventsLimitExceededException: Превышен лимит событий для анонима (422).
+        DataIntegrityViolationException, TransactionFailedException: Ошибки БД (500).
     """
-    await SaveEventsService(
+    await save_events_service.exec(
         session=db,
         data=payload.data,
         user_id=actor.actor_id,
         actor_type=actor.actor_type,
-    ).exec()
+    )
 
     message = localize_key(request, "events.messages.events_saved", "Events successfully saved")
     return SaveEventsResponseSchema(code="CREATED", message=message)
