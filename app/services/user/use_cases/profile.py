@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import NoReturn
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,13 +10,6 @@ from ...types import Email, Username
 
 
 @dataclass(slots=True, frozen=True)
-class UserProfile:
-    """Входные данные для получения профиля пользователя."""
-
-    user_id: UUID
-
-
-@dataclass(slots=True, frozen=True)
 class ProfileData:
     """Данные профиля пользователя."""
 
@@ -24,41 +17,19 @@ class ProfileData:
     email: Email | None
 
 
-class ProfileServiceBase:
-    """Базовый класс сервиса user profile."""
-
-    session: AsyncSession
-    _data: UserProfile
-
-    def __init__(self, session: AsyncSession, **kwargs: Any) -> None:
-        """Магический метод инициализации базового класса получения профиля.
-
-        Args:
-            session: Сессия базы данных.
-            **kwargs: Аргументы для UserProfile.
-        """
-        self.session = session
-        self._data = UserProfile(**kwargs)
-
-    @property
-    def user_id(self) -> UUID:
-        """Свойство получения user_id из данных профиля.
-
-        Returns:
-            ID пользователя.
-        """
-        return self._data.user_id
-
-
-class ProfileService(ProfileServiceBase):
+class ProfileService:
     """Сервис получения профиля текущего пользователя."""
 
-    async def exec(self) -> ProfileData:
+    async def exec(self, session: AsyncSession, user_id: UUID) -> ProfileData | NoReturn:
         """Метод получения профиля пользователя.
 
         Процесс включает:
         1. Получение пользователя из БД по user_id
         2. Возврат доменных данных
+
+        Args:
+            session: Сессия базы данных.
+            user_id: Идентификатор пользователя.
 
         Returns:
             ProfileData: Данные профиля пользователя.
@@ -66,7 +37,7 @@ class ProfileService(ProfileServiceBase):
         Raises:
             UserNotFoundException: Если пользователь не найден в системе (401).
         """
-        user = await fetch_user_by_id(self.session, self.user_id)
+        user = await fetch_user_by_id(session, user_id)
         if not user:
             raise UserNotFoundException("user.errors.user_not_found")
 

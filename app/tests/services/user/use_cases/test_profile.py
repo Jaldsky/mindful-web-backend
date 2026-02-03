@@ -54,7 +54,7 @@ class TestProfileService(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    profile = await ProfileService(session=session, user_id=user.id).exec()
+                    profile = await ProfileService().exec(session=session, user_id=user.id)
 
                 self.assertIsInstance(profile, ProfileData)
                 self.assertEqual(profile.username, "testuser")
@@ -76,7 +76,7 @@ class TestProfileService(TestCase):
 
                 async with manager.get_session() as session:
                     with self.assertRaises(UserNotFoundException):
-                        await ProfileService(session=session, user_id=uuid4()).exec()
+                        await ProfileService().exec(session=session, user_id=uuid4())
 
             self._run_async(_test())
         finally:

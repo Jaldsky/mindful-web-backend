@@ -54,9 +54,11 @@ class TestUpdateUsernameService(TestCase):
                     await session.commit()
 
                 async with manager.get_session() as session:
-                    profile = await UpdateUsernameService(
-                        session=session, user_id=user.id, username="new_username"
-                    ).exec()
+                    profile = await UpdateUsernameService().exec(
+                        session=session,
+                        user_id=user.id,
+                        username="new_username",
+                    )
 
                 self.assertEqual(profile.username, "new_username")
 
@@ -102,7 +104,11 @@ class TestUpdateUsernameService(TestCase):
 
                 async with manager.get_session() as session:
                     with self.assertRaises(UsernameAlreadyExistsException):
-                        await UpdateUsernameService(session=session, user_id=user1.id, username="user_two").exec()
+                        await UpdateUsernameService().exec(
+                            session=session,
+                            user_id=user1.id,
+                            username="user_two",
+                        )
 
             self._run_async(_test())
         finally:
@@ -120,7 +126,11 @@ class TestUpdateUsernameService(TestCase):
 
                 async with manager.get_session() as session:
                     with self.assertRaises(UserNotFoundException):
-                        await UpdateUsernameService(session=session, user_id=uuid4(), username="new_username").exec()
+                        await UpdateUsernameService().exec(
+                            session=session,
+                            user_id=uuid4(),
+                            username="new_username",
+                        )
 
             self._run_async(_test())
         finally:
