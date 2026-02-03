@@ -38,11 +38,16 @@ class TestSaveEventsService(TestCase):
     @patch("app.services.events.use_cases.save_events.bulk_insert_attention_events", new_callable=AsyncMock)
     @patch("app.services.events.use_cases.save_events.insert_user_if_not_exists", new_callable=AsyncMock)
     def test_exec_success(self, mock_insert_user, mock_bulk_insert):
-        service = SaveEventsService(session=self.session, data=self.data, user_id=self.user_id)
+        service = SaveEventsService()
+        self._run_async(
+            service.exec(
+                session=self.session,
+                data=self.data,
+                user_id=self.user_id,
+                actor_type="access",
+            )
+        )
 
-        self._run_async(service.exec())
-
-        self.session.begin.assert_called_once()
         mock_insert_user.assert_awaited_once_with(self.session, self.user_id)
 
         self.assertTrue(mock_bulk_insert.await_count == 1)
@@ -57,17 +62,18 @@ class TestSaveEventsService(TestCase):
     @patch("app.services.events.use_cases.save_events.insert_user_if_not_exists", new_callable=AsyncMock)
     def test_exec_anon_limit_exceeded(self, mock_insert_user, mock_bulk_insert, mock_count):
         mock_count.return_value = 99
-        service = SaveEventsService(
-            session=self.session,
-            data=self.data,
-            user_id=self.user_id,
-            actor_type="anon",
-        )
+        service = SaveEventsService()
 
         with self.assertRaises(AnonEventsLimitExceededException):
-            self._run_async(service.exec())
+            self._run_async(
+                service.exec(
+                    session=self.session,
+                    data=self.data,
+                    user_id=self.user_id,
+                    actor_type="anon",
+                )
+            )
 
-        self.session.begin.assert_called_once()
         mock_count.assert_awaited_once_with(self.session, self.user_id)
         mock_insert_user.assert_not_awaited()
         mock_bulk_insert.assert_not_awaited()
@@ -77,16 +83,17 @@ class TestSaveEventsService(TestCase):
     @patch("app.services.events.use_cases.save_events.insert_user_if_not_exists", new_callable=AsyncMock)
     def test_exec_anon_limit_allows_insert(self, mock_insert_user, mock_bulk_insert, mock_count):
         mock_count.return_value = 98
-        service = SaveEventsService(
-            session=self.session,
-            data=self.data,
-            user_id=self.user_id,
-            actor_type="anon",
+        service = SaveEventsService()
+
+        self._run_async(
+            service.exec(
+                session=self.session,
+                data=self.data,
+                user_id=self.user_id,
+                actor_type="anon",
+            )
         )
 
-        self._run_async(service.exec())
-
-        self.session.begin.assert_called_once()
         mock_count.assert_awaited_once_with(self.session, self.user_id)
         mock_insert_user.assert_awaited_once_with(self.session, self.user_id)
         self.assertTrue(mock_bulk_insert.await_count == 1)
@@ -96,27 +103,48 @@ class TestSaveEventsService(TestCase):
     def test_exec_integrity_error_maps_exception(self, mock_insert_user, mock_bulk_insert):
         mock_bulk_insert.side_effect = IntegrityError("INSERT", params={}, orig=Exception("fk"))
 
-        service = SaveEventsService(session=self.session, data=self.data, user_id=self.user_id)
+        service = SaveEventsService()
 
         with self.assertRaises(DataIntegrityViolationException):
-            self._run_async(service.exec())
+            self._run_async(
+                service.exec(
+                    session=self.session,
+                    data=self.data,
+                    user_id=self.user_id,
+                    actor_type="access",
+                )
+            )
 
     @patch("app.services.events.use_cases.save_events.bulk_insert_attention_events", new_callable=AsyncMock)
     @patch("app.services.events.use_cases.save_events.insert_user_if_not_exists", new_callable=AsyncMock)
     def test_exec_sqlalchemy_error_maps_exception(self, mock_insert_user, mock_bulk_insert):
         mock_bulk_insert.side_effect = SQLAlchemyError("db down")
 
-        service = SaveEventsService(session=self.session, data=self.data, user_id=self.user_id)
+        service = SaveEventsService()
 
         with self.assertRaises(TransactionFailedException):
-            self._run_async(service.exec())
+            self._run_async(
+                service.exec(
+                    session=self.session,
+                    data=self.data,
+                    user_id=self.user_id,
+                    actor_type="access",
+                )
+            )
 
     @patch("app.services.events.use_cases.save_events.bulk_insert_attention_events", new_callable=AsyncMock)
     @patch("app.services.events.use_cases.save_events.insert_user_if_not_exists", new_callable=AsyncMock)
     def test_exec_unexpected_error_maps_exception(self, mock_insert_user, mock_bulk_insert):
         mock_bulk_insert.side_effect = ValueError("boom")
 
-        service = SaveEventsService(session=self.session, data=self.data, user_id=self.user_id)
+        service = SaveEventsService()
 
         with self.assertRaises(UnexpectedEventsException):
-            self._run_async(service.exec())
+            self._run_async(
+                service.exec(
+                    session=self.session,
+                    data=self.data,
+                    user_id=self.user_id,
+                    actor_type="access",
+                )
+            )
