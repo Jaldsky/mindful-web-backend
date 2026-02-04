@@ -204,21 +204,21 @@ class SMTPTransport:
             logger.info(f"Email sent via SMTP: from {sender} to {recipient}")
         except aiosmtplib.SMTPConnectError:
             raise EmailSendFailedException(
-                message_key="email.errors.smtp_connection_error",
-                message="Failed to connect to SMTP server",
+                key="email.errors.smtp_connection_error",
+                fallback="Failed to connect to SMTP server",
             )
         except aiosmtplib.SMTPAuthenticationError:
             raise EmailSendFailedException(
-                message_key="email.errors.smtp_authentication_error",
-                message="SMTP authentication failed",
+                key="email.errors.smtp_authentication_error",
+                fallback="SMTP authentication failed",
             )
         except aiosmtplib.SMTPException:
             raise EmailSendFailedException(
-                message_key="email.errors.smtp_send_error",
-                message="Failed to send email message",
+                key="email.errors.smtp_send_error",
+                fallback="Failed to send email message",
             )
         except Exception:
             raise EmailSendFailedException(
-                message_key="email.errors.smtp_unexpected_error",
-                message="Unexpected error while sending email",
+                key="email.errors.smtp_unexpected_error",
+                fallback="Unexpected error while sending email",
             )

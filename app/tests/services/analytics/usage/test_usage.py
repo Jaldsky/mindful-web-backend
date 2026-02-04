@@ -84,7 +84,7 @@ class TestUsageService(TestCase):
                 ).exec()
             )
 
-        self.assertEqual("analytics.errors.database_query_error", cm.exception.message)
+        self.assertEqual("analytics.errors.database_query_error", cm.exception.key)
 
     @patch("app.services.analytics.jobs.compute_domain_usage.logger")
     @patch("app.services.analytics.common.load_compute_domain_usage_sql")
@@ -107,7 +107,7 @@ class TestUsageService(TestCase):
                 ).exec()
             )
 
-        self.assertEqual("analytics.errors.unexpected_error", cm.exception.message)
+        self.assertEqual("analytics.errors.unexpected_error", cm.exception.key)
 
     @patch("app.services.analytics.jobs.compute_domain_usage.logger")
     def test_normalize_pagination(self, _):

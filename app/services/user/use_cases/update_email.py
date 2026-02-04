@@ -49,7 +49,10 @@ class UpdateEmailService:
         """
         user = await fetch_user_by_id(session, user_id)
         if not user:
-            raise UserNotFoundException("user.errors.user_not_found")
+            raise UserNotFoundException(
+                key="user.errors.user_not_found",
+                fallback="User not found",
+            )
         return user
 
     async def _ensure_email_available(self, session: AsyncSession, email: Email, user_id: UserId) -> None | NoReturn:
@@ -65,7 +68,10 @@ class UpdateEmailService:
         """
         existing = await fetch_user_by_email_or_pending(session, email)
         if existing and existing.id != user_id:
-            raise EmailAlreadyExistsException("user.errors.email_exists")
+            raise EmailAlreadyExistsException(
+                key="user.errors.email_exists",
+                fallback="Email already in use",
+            )
 
     def _is_email_update_required(self, user: User, email: Email) -> bool:
         """Приватный метод проверки необходимости обновления email.
@@ -119,7 +125,10 @@ class UpdateEmailService:
         now_utc = to_utc_datetime(now)
         cooldown_until = base_ts_utc + timedelta(seconds=app_config.VERIFICATION_CODE_REQUEST_COOLDOWN_SECONDS)
         if now_utc < cooldown_until:
-            raise TooManyAttemptsException("user.errors.too_many_attempts")
+            raise TooManyAttemptsException(
+                key="user.errors.too_many_attempts",
+                fallback="Too many attempts. Please try again later",
+            )
 
     async def _create_verification_code(self, session: AsyncSession, user_id: UserId) -> VerificationCode:
         """Приватный метод создания кода подтверждения для пользователя.
@@ -158,7 +167,10 @@ class UpdateEmailService:
         try:
             await self._email_service.send_verification_code(to_email=email, code=code)
         except Exception:
-            raise EmailSendFailedException("user.errors.email_send_failed")
+            raise EmailSendFailedException(
+                key="user.errors.email_send_failed",
+                fallback="Failed to send verification email",
+            )
 
     async def exec(
         self,
@@ -222,4 +234,7 @@ class UpdateEmailService:
             raise
         except Exception:
             await session.rollback()
-            raise AuthServiceException("user.errors.auth_service_error")
+            raise AuthServiceException(
+                key="user.errors.auth_service_error",
+                fallback="Authentication service error",
+            )

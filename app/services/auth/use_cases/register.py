@@ -59,9 +59,15 @@ class RegisterService:
 
         for user in existing_users:
             if user.username == username:
-                raise UsernameAlreadyExistsException("auth.errors.username_exists")
+                raise UsernameAlreadyExistsException(
+                    key="auth.errors.username_exists",
+                    fallback="User with this username already exists",
+                )
             if user.email == email:
-                raise EmailAlreadyExistsException("auth.errors.email_exists")
+                raise EmailAlreadyExistsException(
+                    key="auth.errors.email_exists",
+                    fallback="User with this email already exists",
+                )
 
     async def _create_user(
         self,
@@ -112,7 +118,10 @@ class RegisterService:
         try:
             await EmailService().send_verification_code(to_email=email, code=code)
         except Exception:
-            raise EmailSendFailedException("auth.errors.email_send_failed")
+            raise EmailSendFailedException(
+                key="auth.errors.email_send_failed",
+                fallback="Failed to send verification email",
+            )
 
     async def exec(
         self,
@@ -172,4 +181,7 @@ class RegisterService:
             raise
         except Exception:
             await session.rollback()
-            raise AuthServiceException("auth.errors.auth_service_error")
+            raise AuthServiceException(
+                key="auth.errors.auth_service_error",
+                fallback="Authentication service error",
+            )

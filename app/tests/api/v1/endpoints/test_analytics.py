@@ -118,7 +118,7 @@ class TestAnalyticsUsageEndpoint(TestCase):
         """Недоступность брокера возвращает статус 503 SERVICE_UNAVAILABLE."""
         self.mock_analytics_service.exec = AsyncMock(
             side_effect=OrchestratorBrokerUnavailableException(
-                message_key="scheduler.errors.broker_unavailable",
+                key="scheduler.errors.broker_unavailable",
             )
         )
 

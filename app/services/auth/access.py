@@ -24,12 +24,12 @@ def extract_user_id_from_access_token(token: AccessToken) -> UUID:
     payload = decode_token(token)
 
     if payload.get("type") != "access":
-        raise TokenInvalidException("auth.errors.token_invalid")
+        raise TokenInvalidException(key="auth.errors.token_invalid", fallback="Token is invalid")
 
     try:
         return UUID(str(payload.get("sub")))
     except (TypeError, ValueError):
-        raise TokenInvalidException("auth.errors.token_invalid")
+        raise TokenInvalidException(key="auth.errors.token_invalid", fallback="Token is invalid")
 
 
 async def authenticate_access_token(session: AsyncSession, token: AccessToken) -> User:
@@ -57,6 +57,9 @@ async def authenticate_access_token(session: AsyncSession, token: AccessToken) -
 
     user = await fetch_user_by_id(session, user_id)
     if not user:
-        raise UserNotFoundException("auth.errors.user_not_found")
+        raise UserNotFoundException(
+            key="auth.errors.user_not_found",
+            fallback="User not found",
+        )
 
     return user

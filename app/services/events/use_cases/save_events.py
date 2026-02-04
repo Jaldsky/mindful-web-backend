@@ -41,7 +41,8 @@ class SaveEventsService:
             await insert_user_if_not_exists(session, user_id)
         except Exception:
             raise UserCreationFailedException(
-                "events.messages.get_or_create_user_error",
+                key="events.messages.get_or_create_user_error",
+                fallback=f"Unable to create/find user {user_id}!",
                 translation_params={"user_id": str(user_id)},
             )
 
@@ -72,7 +73,10 @@ class SaveEventsService:
                 for event in data
             ]
         except Exception:
-            raise EventsInsertFailedException("events.messages.add_events_error")
+            raise EventsInsertFailedException(
+                key="events.messages.add_events_error",
+                fallback="Failed to insert event into the events table!",
+            )
 
         await bulk_insert_attention_events(session, values)
 
@@ -100,7 +104,10 @@ class SaveEventsService:
         existing_count = await count_attention_events_by_user_id(session, user_id)
         total_count = existing_count + len(data)
         if total_count > 100:
-            raise AnonEventsLimitExceededException("events.errors.anon_events_limit_exceeded")
+            raise AnonEventsLimitExceededException(
+                key="events.errors.anon_events_limit_exceeded",
+                fallback="Anonymous events limit exceeded",
+            )
 
     async def exec(
         self,
@@ -148,10 +155,19 @@ class SaveEventsService:
             raise
         except IntegrityError:
             await session.rollback()
-            raise DataIntegrityViolationException("events.messages.data_integrity_error")
+            raise DataIntegrityViolationException(
+                key="events.messages.data_integrity_error",
+                fallback="Data integrity issue when saving events!",
+            )
         except SQLAlchemyError:
             await session.rollback()
-            raise TransactionFailedException("events.messages.data_save_error")
+            raise TransactionFailedException(
+                key="events.messages.data_save_error",
+                fallback="Database error while saving events!",
+            )
         except Exception:
             await session.rollback()
-            raise UnexpectedEventsException("events.messages.unexpected_error")
+            raise UnexpectedEventsException(
+                key="events.messages.unexpected_error",
+                fallback="An unexpected error occurred while processing events!",
+            )

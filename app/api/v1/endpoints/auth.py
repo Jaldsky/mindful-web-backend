@@ -471,7 +471,7 @@ async def refresh(
     if not refresh_token:
         refresh_token = request.cookies.get(AUTH_REFRESH_COOKIE_NAME)
     if not refresh_token:
-        raise TokenMissingException("auth.errors.token_missing")
+        raise TokenMissingException(key="auth.errors.token_missing", fallback="Token is missing")
 
     access_token, refresh_token = await refresh_tokens_service.exec(
         session=db,

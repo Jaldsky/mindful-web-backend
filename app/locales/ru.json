@@ -144,7 +144,9 @@
       "smtp_timeout_invalid": "SMTP таймаут должен быть положительным целым числом",
       "templates_dir_cannot_be_empty": "Путь до директории шаблонов не может быть пустым",
       "templates_dir_not_exists": "Директория шаблонов не существует",
-      "templates_dir_not_directory": "Путь до директории шаблонов не является директорией"
+      "templates_dir_not_directory": "Путь до директории шаблонов не является директорией",
+      "template_not_found": "Шаблон email не найден",
+      "render_failed": "Не удалось отрендерить шаблон email"
     }
   }
 }

@@ -73,5 +73,6 @@ class Orchestrator(OrchestratorBase):
             )
         except OperationalError:
             raise OrchestratorBrokerUnavailableException(
-                message_key="scheduler.errors.broker_unavailable",
+                key="scheduler.errors.broker_unavailable",
+                fallback="Celery broker is not available!",
             )

@@ -230,6 +230,12 @@ class ComputeDomainUsageService(ComputeDomainUsageServiceBase):
                 data=data,
             )
         except SQLAlchemyError:
-            raise ServiceDatabaseErrorException("analytics.errors.database_query_error")
+            raise ServiceDatabaseErrorException(
+                key="analytics.errors.database_query_error",
+                fallback="Failed to query database for usage analytics",
+            )
         except Exception:
-            raise AnalyticsServiceException("analytics.errors.unexpected_error")
+            raise AnalyticsServiceException(
+                key="analytics.errors.unexpected_error",
+                fallback="An unexpected error occurred while processing analytics",
+            )

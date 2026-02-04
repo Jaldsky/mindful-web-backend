@@ -61,7 +61,7 @@ class TestSessionService(TestCase):
             service = SessionService()
             with patch(
                 "app.services.auth.use_cases.session.authenticate_access_token",
-                new=AsyncMock(side_effect=TokenInvalidException(message_key="auth.errors.token_invalid")),
+                new=AsyncMock(side_effect=TokenInvalidException(key="auth.errors.token_invalid")),
             ):
                 state = await service.exec(
                     session=session,
@@ -81,7 +81,7 @@ class TestSessionService(TestCase):
             service = SessionService()
             with patch(
                 "app.services.auth.use_cases.session.authenticate_access_token",
-                new=AsyncMock(side_effect=TokenInvalidException(message_key="auth.errors.token_invalid")),
+                new=AsyncMock(side_effect=TokenInvalidException(key="auth.errors.token_invalid")),
             ):
                 state = await service.exec(
                     session=session,

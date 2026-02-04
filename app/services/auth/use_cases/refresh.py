@@ -33,13 +33,13 @@ class RefreshTokensService:
             TokenInvalidException: Если payload не токена обновления или sub невалидный.
         """
         if payload.get("type") != "refresh":
-            raise TokenInvalidException("auth.errors.token_invalid")
+            raise TokenInvalidException(key="auth.errors.token_invalid", fallback="Token is invalid")
 
         sub = payload.get("sub")
         try:
             return UUID(str(sub))
         except (TypeError, ValueError):
-            raise TokenInvalidException("auth.errors.token_invalid")
+            raise TokenInvalidException(key="auth.errors.token_invalid", fallback="Token is invalid")
 
     async def _ensure_user_exists(self, session: AsyncSession, user_id: UUID) -> None | NoReturn:
         """Приватный метод проверки существования пользователя.
@@ -53,7 +53,10 @@ class RefreshTokensService:
         """
         user = await fetch_user_by_id(session, user_id)
         if not user:
-            raise UserNotFoundException("auth.errors.user_not_found")
+            raise UserNotFoundException(
+                key="auth.errors.user_not_found",
+                fallback="User not found",
+            )
 
     async def exec(
         self,
@@ -94,4 +97,7 @@ class RefreshTokensService:
         except (TokenInvalidException, TokenExpiredException, UserNotFoundException):
             raise
         except Exception:
-            raise AuthServiceException("auth.errors.auth_service_error")
+            raise AuthServiceException(
+                key="auth.errors.auth_service_error",
+                fallback="Authentication service error",
+            )

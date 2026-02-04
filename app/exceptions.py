@@ -12,18 +12,18 @@ class AppException(Exception):
 
     def __init__(
         self,
-        message_key: str | None = None,
+        key: str | None = None,
         error_code: str | None = None,
         status_code: int | None = None,
         details: Any = None,
         translation_params: dict[str, Any] | None = None,
-        message: str | None = None,
+        fallback: str | None = None,
     ):
-        self.message_key = message_key
-        effective_message = message if message is not None else (message_key or "Unknown error")
+        self.key = key
+        effective_fallback = fallback if fallback is not None else (key or "Unknown error")
 
-        super().__init__(effective_message)
-        self.message = effective_message
+        super().__init__(effective_fallback)
+        self.fallback = effective_fallback
         self.translation_params = translation_params or {}
         if error_code:
             self.error_code = error_code
@@ -48,7 +48,7 @@ class AppException(Exception):
 
         return {
             "code": self.error_code,
-            "message": self.message,
+            "message": self.fallback,
             "details": details_data,
         }
 
