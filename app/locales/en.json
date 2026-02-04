@@ -49,6 +49,16 @@
       "password_length_invalid": "Password length is invalid",
       "password_must_contain_letter": "Password must contain at least one letter",
       "password_must_contain_digit": "Password must contain at least one digit"
+    },
+    "messages": {
+      "anonymous_created": "Anonymous session created",
+      "session_retrieved": "Session status retrieved",
+      "login_successful": "Login successful",
+      "register_created": "Verification code sent to email",
+      "logout_successful": "Logout successful",
+      "token_refreshed": "Token refreshed successfully",
+      "email_verified": "Email verified successfully",
+      "resend_code_sent": "Verification code sent successfully"
     }
   },
   "user": {
@@ -69,6 +79,16 @@
       "invalid_time_range": "End time must be after start time",
       "invalid_page_type": "Page must be a valid integer",
       "invalid_page": "Page must be greater than or equal to 1"
+    },
+    "messages": {
+      "usage_computed": "Usage analytics computed",
+      "task_accepted": "Task accepted",
+      "task_timeout": "Task accepted. Analytics is being computed (task {task_id})."
+    }
+  },
+  "scheduler": {
+    "errors": {
+      "broker_unavailable": "Celery broker is not available!"
     }
   },
   "healthcheck": {
