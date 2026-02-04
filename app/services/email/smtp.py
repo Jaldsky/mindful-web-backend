@@ -17,7 +17,7 @@ from ...config import (
 )
 from ..types import Email
 from .constants import SMTP_TIMEOUT
-from .exceptions import EmailServiceMessages, EmailSendFailedException
+from .exceptions import EmailSendFailedException
 from .normalizers import EmailServiceNormalizers
 from .types import (
     FromName,
@@ -101,8 +101,6 @@ class EmailServiceSettings:
 
 class SMTPTransport:
     """Класс отправки писем через SMTP."""
-
-    messages: ClassVar[type[EmailServiceMessages]] = EmailServiceMessages
 
     def __init__(self, settings: EmailServiceSettings) -> None:
         """Магический метод инициализации транспорта SMTP.
@@ -205,10 +203,22 @@ class SMTPTransport:
 
             logger.info(f"Email sent via SMTP: from {sender} to {recipient}")
         except aiosmtplib.SMTPConnectError:
-            raise EmailSendFailedException(self.messages.SMTP_CONNECTION_ERROR)
+            raise EmailSendFailedException(
+                message_key="email.errors.smtp_connection_error",
+                message="Failed to connect to SMTP server",
+            )
         except aiosmtplib.SMTPAuthenticationError:
-            raise EmailSendFailedException(self.messages.SMTP_AUTHENTICATION_ERROR)
+            raise EmailSendFailedException(
+                message_key="email.errors.smtp_authentication_error",
+                message="SMTP authentication failed",
+            )
         except aiosmtplib.SMTPException:
-            raise EmailSendFailedException(self.messages.SMTP_SEND_ERROR)
+            raise EmailSendFailedException(
+                message_key="email.errors.smtp_send_error",
+                message="Failed to send email message",
+            )
         except Exception:
-            raise EmailSendFailedException(self.messages.SMTP_UNEXPECTED_ERROR)
+            raise EmailSendFailedException(
+                message_key="email.errors.smtp_unexpected_error",
+                message="Unexpected error while sending email",
+            )

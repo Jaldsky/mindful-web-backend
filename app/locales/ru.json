@@ -124,5 +124,27 @@
       "unexpected_error": "Произошла непредвиденная ошибка при обработке событий!",
       "anon_events_limit_exceeded": "Превышен лимит событий для анонимного пользователя"
     }
+  },
+  "email": {
+    "errors": {
+      "smtp_connection_error": "Не удалось подключиться к SMTP серверу",
+      "smtp_authentication_error": "Ошибка аутентификации SMTP",
+      "smtp_send_error": "Не удалось отправить email-сообщение",
+      "smtp_unexpected_error": "Неожиданная ошибка при отправке email",
+      "email_cannot_be_empty": "Email не может быть пустым",
+      "invalid_email_format": "Некорректный формат email",
+      "verification_code_cannot_be_empty": "Код подтверждения не может быть пустым",
+      "verification_code_must_be_digits": "Код подтверждения должен содержать только цифры",
+      "verification_code_must_be_6_digits": "Код подтверждения должен содержать 6 цифр",
+      "smtp_host_cannot_be_empty": "SMTP хост не может быть пустым",
+      "smtp_port_invalid": "SMTP порт должен быть в диапазоне от 1 до 65535",
+      "smtp_user_cannot_be_empty": "SMTP пользователь не может быть пустым, если указан",
+      "smtp_password_cannot_be_empty": "SMTP пароль не может быть пустым, если указан",
+      "smtp_from_name_cannot_be_empty": "Имя отправителя не может быть пустым, если указано",
+      "smtp_timeout_invalid": "SMTP таймаут должен быть положительным целым числом",
+      "templates_dir_cannot_be_empty": "Путь до директории шаблонов не может быть пустым",
+      "templates_dir_not_exists": "Директория шаблонов не существует",
+      "templates_dir_not_directory": "Путь до директории шаблонов не является директорией"
+    }
   }
 }

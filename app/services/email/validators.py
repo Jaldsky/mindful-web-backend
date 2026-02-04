@@ -4,12 +4,7 @@ from email_validator import EmailNotValidError
 
 from .smtp import EmailServiceSettings
 from .constants import VERIFICATION_CODE_LENGTH
-from .exceptions import (
-    EmailServiceMessages,
-    InvalidEmailFormatException,
-    InvalidSMTPConfigException,
-    InvalidVerificationCodeException,
-)
+from .exceptions import InvalidEmailFormatException, InvalidSMTPConfigException, InvalidVerificationCodeException
 from .types import FromName, SMTPHost, SMTPPassword, SMTPPort, SMTPTimeout, SMTPUser
 from ..types import Email, VerificationCode
 from ..validators import validate_email_format
@@ -20,8 +15,6 @@ if TYPE_CHECKING:
 
 class EmailServiceValidators:
     """Валидаторы для email-сервиса."""
-
-    messages: ClassVar[type[EmailServiceMessages]] = EmailServiceMessages
 
     @classmethod
     def validate_email(cls, email: Email) -> None | NoReturn:
@@ -34,11 +27,17 @@ class EmailServiceValidators:
             InvalidEmailFormatException: Если email имеет неверный формат или пустой.
         """
         if not email:
-            raise InvalidEmailFormatException(cls.messages.EMAIL_CANNOT_BE_EMPTY)
+            raise InvalidEmailFormatException(
+                message_key="email.errors.email_cannot_be_empty",
+                message="Email cannot be empty",
+            )
         try:
             validate_email_format(email)
         except EmailNotValidError:
-            raise InvalidEmailFormatException(cls.messages.INVALID_EMAIL_FORMAT)
+            raise InvalidEmailFormatException(
+                message_key="email.errors.invalid_email_format",
+                message="Invalid email format",
+            )
 
     @classmethod
     def validate_verification_code(cls, code: VerificationCode) -> None | NoReturn:
@@ -51,17 +50,24 @@ class EmailServiceValidators:
             InvalidVerificationCodeException: Если code имеет неверный формат или пустой.
         """
         if not code:
-            raise InvalidVerificationCodeException(cls.messages.VERIFICATION_CODE_CANNOT_BE_EMPTY)
+            raise InvalidVerificationCodeException(
+                message_key="email.errors.verification_code_cannot_be_empty",
+                message="Verification code cannot be empty",
+            )
         if not code.isdigit():
-            raise InvalidVerificationCodeException(cls.messages.VERIFICATION_CODE_MUST_BE_DIGITS)
+            raise InvalidVerificationCodeException(
+                message_key="email.errors.verification_code_must_be_digits",
+                message="Verification code must contain only digits",
+            )
         if len(code) != VERIFICATION_CODE_LENGTH:
-            raise InvalidVerificationCodeException(cls.messages.VERIFICATION_CODE_MUST_BE_6_DIGITS)
+            raise InvalidVerificationCodeException(
+                message_key="email.errors.verification_code_must_be_6_digits",
+                message="Verification code must be 6 digits long",
+            )
 
 
 class EmailServiceSettingsValidator:
     """Валидатор настроек email-сервиса."""
-
-    messages: ClassVar[type[EmailServiceMessages]] = EmailServiceMessages
 
     @classmethod
     def validate(cls, settings: EmailServiceSettings) -> None | NoReturn:
@@ -93,7 +99,10 @@ class EmailServiceSettingsValidator:
             InvalidSMTPConfigException: Если host пустой или невалидный.
         """
         if not host or not str(host).strip():
-            raise InvalidSMTPConfigException(cls.messages.SMTP_HOST_CANNOT_BE_EMPTY)
+            raise InvalidSMTPConfigException(
+                message_key="email.errors.smtp_host_cannot_be_empty",
+                message="SMTP host cannot be empty",
+            )
 
     @classmethod
     def _validate_port(cls, port: SMTPPort) -> None | NoReturn:
@@ -106,7 +115,10 @@ class EmailServiceSettingsValidator:
             InvalidSMTPConfigException: Если port невалидный.
         """
         if not isinstance(port, int) or port < 1 or port > 65535:
-            raise InvalidSMTPConfigException(cls.messages.SMTP_PORT_INVALID)
+            raise InvalidSMTPConfigException(
+                message_key="email.errors.smtp_port_invalid",
+                message="SMTP port must be between 1 and 65535",
+            )
 
     @classmethod
     def _validate_user(cls, user: SMTPUser | None) -> None | NoReturn:
@@ -119,7 +131,10 @@ class EmailServiceSettingsValidator:
             InvalidSMTPConfigException: Если user указан, но пустой.
         """
         if user is not None and not str(user).strip():
-            raise InvalidSMTPConfigException(cls.messages.SMTP_USER_CANNOT_BE_EMPTY)
+            raise InvalidSMTPConfigException(
+                message_key="email.errors.smtp_user_cannot_be_empty",
+                message="SMTP user cannot be empty if provided",
+            )
 
     @classmethod
     def _validate_password(cls, password: SMTPPassword | None) -> None | NoReturn:
@@ -132,7 +147,10 @@ class EmailServiceSettingsValidator:
             InvalidSMTPConfigException: Если password указан, но пустой.
         """
         if password is not None and not str(password).strip():
-            raise InvalidSMTPConfigException(cls.messages.SMTP_PASSWORD_CANNOT_BE_EMPTY)
+            raise InvalidSMTPConfigException(
+                message_key="email.errors.smtp_password_cannot_be_empty",
+                message="SMTP password cannot be empty if provided",
+            )
 
     @classmethod
     def _validate_from_email(cls, from_email: Email) -> None | NoReturn:
@@ -157,7 +175,10 @@ class EmailServiceSettingsValidator:
             InvalidSMTPConfigException: Если from_name указан, но пустой.
         """
         if from_name is not None and not str(from_name).strip():
-            raise InvalidSMTPConfigException(cls.messages.SMTP_FROM_NAME_CANNOT_BE_EMPTY)
+            raise InvalidSMTPConfigException(
+                message_key="email.errors.smtp_from_name_cannot_be_empty",
+                message="Default from name cannot be empty if provided",
+            )
 
     @classmethod
     def _validate_timeout(cls, timeout: SMTPTimeout) -> None | NoReturn:
@@ -170,13 +191,14 @@ class EmailServiceSettingsValidator:
             InvalidSMTPConfigException: Если timeout невалидный.
         """
         if not isinstance(timeout, int) or timeout <= 0:
-            raise InvalidSMTPConfigException(cls.messages.SMTP_TIMEOUT_INVALID)
+            raise InvalidSMTPConfigException(
+                message_key="email.errors.smtp_timeout_invalid",
+                message="SMTP timeout must be a positive integer",
+            )
 
 
 class TemplateRendererSettingsValidator:
     """Валидатор настроек рендерера шаблонов."""
-
-    messages: ClassVar[type[EmailServiceMessages]] = EmailServiceMessages
 
     @classmethod
     def validate(cls, settings: "TemplateRendererSettings") -> None | NoReturn:
@@ -201,8 +223,17 @@ class TemplateRendererSettingsValidator:
             InvalidSMTPConfigException: Если templates_dir пустой, не существует или не является директорией.
         """
         if not templates_dir:
-            raise InvalidSMTPConfigException(cls.messages.TEMPLATES_DIR_CANNOT_BE_EMPTY)
+            raise InvalidSMTPConfigException(
+                message_key="email.errors.templates_dir_cannot_be_empty",
+                message="Templates directory path cannot be empty",
+            )
         if not templates_dir.exists():
-            raise InvalidSMTPConfigException(cls.messages.TEMPLATES_DIR_NOT_EXISTS)
+            raise InvalidSMTPConfigException(
+                message_key="email.errors.templates_dir_not_exists",
+                message="Templates directory does not exist",
+            )
         if not templates_dir.is_dir():
-            raise InvalidSMTPConfigException(cls.messages.TEMPLATES_DIR_NOT_DIRECTORY)
+            raise InvalidSMTPConfigException(
+                message_key="email.errors.templates_dir_not_directory",
+                message="Templates directory path is not a directory",
+            )
