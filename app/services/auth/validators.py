@@ -34,11 +34,20 @@ class AuthServiceValidators:
             InvalidUsernameFormatException: Если username не соответствует требованиям.
         """
         if len(username) < MIN_USERNAME_LENGTH or len(username) > MAX_USERNAME_LENGTH:
-            raise InvalidUsernameFormatException("auth.errors.username_length_invalid")
+            raise InvalidUsernameFormatException(
+                key="auth.errors.username_length_invalid",
+                fallback="Username length is invalid",
+            )
         if not all(ch.islower() or ch.isdigit() or ch == "_" for ch in username):
-            raise InvalidUsernameFormatException("auth.errors.username_invalid_chars")
+            raise InvalidUsernameFormatException(
+                key="auth.errors.username_invalid_chars",
+                fallback="Username must contain only lowercase letters, numbers, and underscores",
+            )
         if username.startswith("_") or username.endswith("_"):
-            raise InvalidUsernameFormatException("auth.errors.username_cannot_start_or_end_with_underscore")
+            raise InvalidUsernameFormatException(
+                key="auth.errors.username_cannot_start_or_end_with_underscore",
+                fallback="Username cannot start or end with underscore",
+            )
 
     @classmethod
     def validate_email(cls, email: Email) -> None | NoReturn:
@@ -51,11 +60,17 @@ class AuthServiceValidators:
             InvalidEmailFormatException: Если email имеет неверный формат или пустой.
         """
         if not email or not email.strip():
-            raise InvalidEmailFormatException("auth.errors.email_cannot_be_empty")
+            raise InvalidEmailFormatException(
+                key="auth.errors.email_cannot_be_empty",
+                fallback="Email cannot be empty",
+            )
         try:
             validate_email_format(email)
         except EmailNotValidError:
-            raise InvalidEmailFormatException("auth.errors.invalid_email_format")
+            raise InvalidEmailFormatException(
+                key="auth.errors.invalid_email_format",
+                fallback="Invalid email format",
+            )
 
     @classmethod
     def validate_password(cls, password: Password) -> None | NoReturn:
@@ -68,11 +83,20 @@ class AuthServiceValidators:
             InvalidPasswordFormatException: Если password не соответствует требованиям.
         """
         if len(password) < MIN_PASSWORD_LENGTH or len(password) > MAX_PASSWORD_LENGTH:
-            raise InvalidPasswordFormatException("auth.errors.password_length_invalid")
+            raise InvalidPasswordFormatException(
+                key="auth.errors.password_length_invalid",
+                fallback="Password length is invalid",
+            )
         if not any(ch.isalpha() for ch in password):
-            raise InvalidPasswordFormatException("auth.errors.password_must_contain_letter")
+            raise InvalidPasswordFormatException(
+                key="auth.errors.password_must_contain_letter",
+                fallback="Password must contain at least one letter",
+            )
         if not any(ch.isdigit() for ch in password):
-            raise InvalidPasswordFormatException("auth.errors.password_must_contain_digit")
+            raise InvalidPasswordFormatException(
+                key="auth.errors.password_must_contain_digit",
+                fallback="Password must contain at least one digit",
+            )
 
     @classmethod
     def validate_verification_code(cls, code: VerificationCode) -> None | NoReturn:
@@ -85,7 +109,10 @@ class AuthServiceValidators:
             InvalidVerificationCodeFormatException: Если code не валидный.
         """
         if len(code) != 6 or not code.isdigit():
-            raise InvalidVerificationCodeFormatException("auth.errors.verification_code_format_invalid")
+            raise InvalidVerificationCodeFormatException(
+                key="auth.errors.verification_code_format_invalid",
+                fallback="Verification code must be exactly 6 digits",
+            )
 
     @classmethod
     def validate_jwt_token(cls, token: RefreshToken | AccessToken) -> None | NoReturn:
@@ -98,4 +125,4 @@ class AuthServiceValidators:
             TokenInvalidException: Если токен пустой.
         """
         if not token:
-            raise TokenInvalidException("auth.errors.token_invalid")
+            raise TokenInvalidException(key="auth.errors.token_invalid", fallback="Token is invalid")

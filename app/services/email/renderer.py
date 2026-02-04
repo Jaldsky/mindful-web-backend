@@ -75,6 +75,13 @@ class TemplateRenderer:
                 self._cache[template_name] = template
             return template.render(**dict(context))
         except TemplateNotFound:
-            raise EmailSendFailedException(f"Email template '{template_name}' not found")
+            raise EmailSendFailedException(
+                key="email.errors.template_not_found",
+                fallback=f"Email template '{template_name}' not found",
+                translation_params={"template_name": template_name},
+            )
         except Exception:
-            raise EmailSendFailedException("Failed to render email template")
+            raise EmailSendFailedException(
+                key="email.errors.render_failed",
+                fallback="Failed to render email template",
+            )

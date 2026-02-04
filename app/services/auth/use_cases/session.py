@@ -52,7 +52,10 @@ class SessionService:
         except (TokenInvalidException, TokenExpiredException, UserNotFoundException):
             return None
         except Exception:
-            raise AuthServiceException("auth.errors.auth_service_error")
+            raise AuthServiceException(
+                key="auth.errors.auth_service_error",
+                fallback="Authentication service error",
+            )
 
     async def _get_anonymous_state(
         self,
@@ -82,7 +85,10 @@ class SessionService:
         except (TokenInvalidException, TokenExpiredException, ValueError, TypeError):
             return None
         except Exception:
-            raise AuthServiceException("auth.errors.auth_service_error")
+            raise AuthServiceException(
+                key="auth.errors.auth_service_error",
+                fallback="Authentication service error",
+            )
 
     async def exec(
         self,

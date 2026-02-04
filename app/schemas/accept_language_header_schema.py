@@ -27,6 +27,7 @@ class AcceptLanguageHeaderSchema(BaseModel):
             return v
         supported_str = ", ".join(SUPPORTED_LOCALES)
         raise UnsupportedLocaleException(
-            message_key="general.unsupported_locale",
+            key="general.unsupported_locale",
+            fallback=f"Unsupported locale. Supported: {supported_str}",
             translation_params={"supported": supported_str},
         )

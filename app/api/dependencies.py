@@ -138,7 +138,7 @@ async def get_current_user(
     """
     token = _extract_access_token(credentials, request)
     if token is None:
-        raise TokenMissingException("auth.errors.token_missing")
+        raise TokenMissingException(key="auth.errors.token_missing", fallback="Token is missing")
 
     return await authenticate_access_token(db, token)
 
@@ -163,7 +163,7 @@ async def get_current_user_id(
     """
     token = _extract_access_token(credentials, request)
     if token is None:
-        raise TokenMissingException("auth.errors.token_missing")
+        raise TokenMissingException(key="auth.errors.token_missing", fallback="Token is missing")
 
     return extract_user_id_from_access_token(token)
 
@@ -203,7 +203,7 @@ async def get_actor_id_from_token(
     """
     token = _extract_actor_token(credentials, request)
     if token is None:
-        raise TokenMissingException("auth.errors.token_missing")
+        raise TokenMissingException(key="auth.errors.token_missing", fallback="Token is missing")
 
     payload = decode_token(token)
     token_type = payload.get("type")
@@ -216,6 +216,6 @@ async def get_actor_id_from_token(
         try:
             return ActorContext(actor_id=UUID(str(payload.get("sub"))), actor_type="anon")
         except (TypeError, ValueError):
-            raise TokenInvalidException("auth.errors.token_invalid")
+            raise TokenInvalidException(key="auth.errors.token_invalid", fallback="Token is invalid")
 
-    raise TokenInvalidException("auth.errors.token_invalid")
+    raise TokenInvalidException(key="auth.errors.token_invalid", fallback="Token is invalid")

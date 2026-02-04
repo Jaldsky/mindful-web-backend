@@ -603,7 +603,7 @@ class TestResendVerificationCodeServiceExec(TestCase):
                                     email="test@example.com",
                                 )
 
-                    self.assertEqual(ctx.exception.message, "auth.errors.resend_code_db_stage_error")
+                    self.assertEqual(ctx.exception.key, "auth.errors.resend_code_db_stage_error")
 
             self._run_async(_test_session())
         finally:
@@ -648,7 +648,7 @@ class TestResendVerificationCodeServiceExec(TestCase):
                                     email="test@example.com",
                                 )
 
-                    self.assertEqual(ctx.exception.message, "auth.errors.resend_code_email_stage_error")
+                    self.assertEqual(ctx.exception.key, "auth.errors.resend_code_email_stage_error")
 
             self._run_async(_test_session())
         finally:

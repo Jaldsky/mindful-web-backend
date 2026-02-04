@@ -144,7 +144,9 @@
       "smtp_timeout_invalid": "SMTP timeout must be a positive integer",
       "templates_dir_cannot_be_empty": "Templates directory path cannot be empty",
       "templates_dir_not_exists": "Templates directory does not exist",
-      "templates_dir_not_directory": "Templates directory path is not a directory"
+      "templates_dir_not_directory": "Templates directory path is not a directory",
+      "template_not_found": "Email template not found",
+      "render_failed": "Failed to render email template"
     }
   }
 }

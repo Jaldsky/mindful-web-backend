@@ -107,9 +107,15 @@ async def get_unverified_user_by_email(
     """
     user = await fetch_user_by_email(session, email)
     if not user:
-        raise UserNotFoundException("auth.errors.user_not_found")
+        raise UserNotFoundException(
+            key="auth.errors.user_not_found",
+            fallback="User not found",
+        )
     if user.is_verified:
-        raise EmailAlreadyVerifiedException("auth.errors.email_already_verified")
+        raise EmailAlreadyVerifiedException(
+            key="auth.errors.email_already_verified",
+            fallback="Email is already verified",
+        )
     return user
 
 
@@ -161,9 +167,15 @@ def decode_token(token: AccessToken | RefreshToken) -> TokenPayload:
         payload: TokenPayload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         return payload
     except ExpiredSignatureError:
-        raise TokenExpiredException("auth.errors.token_expired")
+        raise TokenExpiredException(
+            key="auth.errors.token_expired",
+            fallback="Token has expired",
+        )
     except JWTError:
-        raise TokenInvalidException("auth.errors.token_invalid")
+        raise TokenInvalidException(
+            key="auth.errors.token_invalid",
+            fallback="Token is invalid",
+        )
 
 
 def create_anon_token(anon_id: UUID) -> AccessToken:

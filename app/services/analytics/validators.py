@@ -30,7 +30,10 @@ class AnalyticsServiceValidators:
         if isinstance(date_, date):
             return date_
         if not isinstance(date_, str):
-            raise InvalidDateFormatException("analytics.errors.invalid_date_format")
+            raise InvalidDateFormatException(
+                key="analytics.errors.invalid_date_format",
+                fallback="Invalid date format",
+            )
 
         for fmt in DATE_FORMATS:
             try:
@@ -38,7 +41,10 @@ class AnalyticsServiceValidators:
             except ValueError:
                 continue
 
-        raise InvalidDateFormatException("analytics.errors.invalid_date_format")
+        raise InvalidDateFormatException(
+            key="analytics.errors.invalid_date_format",
+            fallback="Invalid date format",
+        )
 
     @classmethod
     def validate_time_range(cls, from_date: Date, to_date: Date) -> None | NoReturn:
@@ -52,7 +58,10 @@ class AnalyticsServiceValidators:
             InvalidTimeRangeException: Диапазон не корректен.
         """
         if to_date < from_date:
-            raise InvalidTimeRangeException("analytics.errors.invalid_time_range")
+            raise InvalidTimeRangeException(
+                key="analytics.errors.invalid_time_range",
+                fallback="End date must be after start date",
+            )
 
     @classmethod
     def validate_page(cls, page: Page) -> None | NoReturn:
@@ -66,7 +75,13 @@ class AnalyticsServiceValidators:
         """
 
         if not isinstance(page, int):
-            raise InvalidPageException("analytics.errors.invalid_page_type")
+            raise InvalidPageException(
+                key="analytics.errors.invalid_page_type",
+                fallback="Page must be a valid integer",
+            )
 
         if page < MIN_PAGE:
-            raise InvalidPageException("analytics.errors.invalid_page")
+            raise InvalidPageException(
+                key="analytics.errors.invalid_page",
+                fallback="Page must be greater than or equal to 1",
+            )

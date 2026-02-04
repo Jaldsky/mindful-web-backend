@@ -28,15 +28,15 @@ class EmailServiceValidators:
         """
         if not email:
             raise InvalidEmailFormatException(
-                message_key="email.errors.email_cannot_be_empty",
-                message="Email cannot be empty",
+                key="email.errors.email_cannot_be_empty",
+                fallback="Email cannot be empty",
             )
         try:
             validate_email_format(email)
         except EmailNotValidError:
             raise InvalidEmailFormatException(
-                message_key="email.errors.invalid_email_format",
-                message="Invalid email format",
+                key="email.errors.invalid_email_format",
+                fallback="Invalid email format",
             )
 
     @classmethod
@@ -51,18 +51,18 @@ class EmailServiceValidators:
         """
         if not code:
             raise InvalidVerificationCodeException(
-                message_key="email.errors.verification_code_cannot_be_empty",
-                message="Verification code cannot be empty",
+                key="email.errors.verification_code_cannot_be_empty",
+                fallback="Verification code cannot be empty",
             )
         if not code.isdigit():
             raise InvalidVerificationCodeException(
-                message_key="email.errors.verification_code_must_be_digits",
-                message="Verification code must contain only digits",
+                key="email.errors.verification_code_must_be_digits",
+                fallback="Verification code must contain only digits",
             )
         if len(code) != VERIFICATION_CODE_LENGTH:
             raise InvalidVerificationCodeException(
-                message_key="email.errors.verification_code_must_be_6_digits",
-                message="Verification code must be 6 digits long",
+                key="email.errors.verification_code_must_be_6_digits",
+                fallback="Verification code must be 6 digits long",
             )
 
 
@@ -100,8 +100,8 @@ class EmailServiceSettingsValidator:
         """
         if not host or not str(host).strip():
             raise InvalidSMTPConfigException(
-                message_key="email.errors.smtp_host_cannot_be_empty",
-                message="SMTP host cannot be empty",
+                key="email.errors.smtp_host_cannot_be_empty",
+                fallback="SMTP host cannot be empty",
             )
 
     @classmethod
@@ -116,8 +116,8 @@ class EmailServiceSettingsValidator:
         """
         if not isinstance(port, int) or port < 1 or port > 65535:
             raise InvalidSMTPConfigException(
-                message_key="email.errors.smtp_port_invalid",
-                message="SMTP port must be between 1 and 65535",
+                key="email.errors.smtp_port_invalid",
+                fallback="SMTP port must be between 1 and 65535",
             )
 
     @classmethod
@@ -132,8 +132,8 @@ class EmailServiceSettingsValidator:
         """
         if user is not None and not str(user).strip():
             raise InvalidSMTPConfigException(
-                message_key="email.errors.smtp_user_cannot_be_empty",
-                message="SMTP user cannot be empty if provided",
+                key="email.errors.smtp_user_cannot_be_empty",
+                fallback="SMTP user cannot be empty if provided",
             )
 
     @classmethod
@@ -148,8 +148,8 @@ class EmailServiceSettingsValidator:
         """
         if password is not None and not str(password).strip():
             raise InvalidSMTPConfigException(
-                message_key="email.errors.smtp_password_cannot_be_empty",
-                message="SMTP password cannot be empty if provided",
+                key="email.errors.smtp_password_cannot_be_empty",
+                fallback="SMTP password cannot be empty if provided",
             )
 
     @classmethod
@@ -176,8 +176,8 @@ class EmailServiceSettingsValidator:
         """
         if from_name is not None and not str(from_name).strip():
             raise InvalidSMTPConfigException(
-                message_key="email.errors.smtp_from_name_cannot_be_empty",
-                message="Default from name cannot be empty if provided",
+                key="email.errors.smtp_from_name_cannot_be_empty",
+                fallback="Default from name cannot be empty if provided",
             )
 
     @classmethod
@@ -192,8 +192,8 @@ class EmailServiceSettingsValidator:
         """
         if not isinstance(timeout, int) or timeout <= 0:
             raise InvalidSMTPConfigException(
-                message_key="email.errors.smtp_timeout_invalid",
-                message="SMTP timeout must be a positive integer",
+                key="email.errors.smtp_timeout_invalid",
+                fallback="SMTP timeout must be a positive integer",
             )
 
 
@@ -224,16 +224,16 @@ class TemplateRendererSettingsValidator:
         """
         if not templates_dir:
             raise InvalidSMTPConfigException(
-                message_key="email.errors.templates_dir_cannot_be_empty",
-                message="Templates directory path cannot be empty",
+                key="email.errors.templates_dir_cannot_be_empty",
+                fallback="Templates directory path cannot be empty",
             )
         if not templates_dir.exists():
             raise InvalidSMTPConfigException(
-                message_key="email.errors.templates_dir_not_exists",
-                message="Templates directory does not exist",
+                key="email.errors.templates_dir_not_exists",
+                fallback="Templates directory does not exist",
             )
         if not templates_dir.is_dir():
             raise InvalidSMTPConfigException(
-                message_key="email.errors.templates_dir_not_directory",
-                message="Templates directory path is not a directory",
+                key="email.errors.templates_dir_not_directory",
+                fallback="Templates directory path is not a directory",
             )

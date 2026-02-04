@@ -20,9 +20,9 @@ class OrchestratorTimeoutException(SchedulerServiceException):
         """
         self.task_id = task_id
         super().__init__(
-            message_key="analytics.messages.task_timeout",
+            key="analytics.messages.task_timeout",
             translation_params={"task_id": task_id},
-            message=f"Task execution timeout for task {task_id}!",
+            fallback=f"Task execution timeout for task {task_id}!",
         )
 
     def get_response_content(self) -> dict:
@@ -33,7 +33,7 @@ class OrchestratorTimeoutException(SchedulerServiceException):
         """
         return {
             "code": self.error_code,
-            "message": self.message,
+            "message": self.fallback,
             "task_id": self.task_id,
         }
 

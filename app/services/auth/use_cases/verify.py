@@ -45,18 +45,33 @@ class VerifyEmailService:
         """
         user, verification = await fetch_user_with_latest_verification_code_by_email(session, email)
         if not user:
-            raise UserNotFoundException("auth.errors.user_not_found")
+            raise UserNotFoundException(
+                key="auth.errors.user_not_found",
+                fallback="User not found",
+            )
         is_pending_email = user.pending_email is not None and user.pending_email == email
         if user.is_verified and not is_pending_email:
-            raise EmailAlreadyVerifiedException("auth.errors.email_already_verified")
+            raise EmailAlreadyVerifiedException(
+                key="auth.errors.email_already_verified",
+                fallback="Email is already verified",
+            )
         if not verification:
-            raise VerificationCodeInvalidException("auth.errors.code_invalid")
+            raise VerificationCodeInvalidException(
+                key="auth.errors.code_invalid",
+                fallback="Verification code is invalid",
+            )
 
         if verification.used_at is not None:
             attempts = int(getattr(verification, "attempts", 0) or 0)
             if attempts >= VERIFICATION_CODE_MAX_ATTEMPTS:
-                raise TooManyAttemptsException("auth.errors.too_many_attempts")
-            raise VerificationCodeInvalidException("auth.errors.code_invalid")
+                raise TooManyAttemptsException(
+                    key="auth.errors.too_many_attempts",
+                    fallback="Too many attempts. Please try again later",
+                )
+            raise VerificationCodeInvalidException(
+                key="auth.errors.code_invalid",
+                fallback="Verification code is invalid",
+            )
 
         return user, verification, is_pending_email
 
@@ -73,7 +88,10 @@ class VerifyEmailService:
         expires_at_utc = to_utc_datetime(verification.expires_at)
         now_utc = to_utc_datetime(now)
         if expires_at_utc < now_utc:
-            raise VerificationCodeExpiredException("auth.errors.code_expired")
+            raise VerificationCodeExpiredException(
+                key="auth.errors.code_expired",
+                fallback="Verification code has expired",
+            )
 
     async def _handle_attempt_limit(
         self,
@@ -97,7 +115,10 @@ class VerifyEmailService:
         if attempts >= VERIFICATION_CODE_MAX_ATTEMPTS:
             verification.used_at = now
             await session.commit()
-            raise TooManyAttemptsException("auth.errors.too_many_attempts")
+            raise TooManyAttemptsException(
+                key="auth.errors.too_many_attempts",
+                fallback="Too many attempts. Please try again later",
+            )
 
     async def _verify_code_match(
         self,
@@ -128,8 +149,14 @@ class VerifyEmailService:
         await session.commit()
 
         if reached_limit:
-            raise TooManyAttemptsException("auth.errors.too_many_attempts")
-        raise VerificationCodeInvalidException("auth.errors.code_invalid")
+            raise TooManyAttemptsException(
+                key="auth.errors.too_many_attempts",
+                fallback="Too many attempts. Please try again later",
+            )
+        raise VerificationCodeInvalidException(
+            key="auth.errors.code_invalid",
+            fallback="Verification code is invalid",
+        )
 
     async def exec(
         self,
@@ -189,4 +216,7 @@ class VerifyEmailService:
             raise
         except Exception:
             await session.rollback()
-            raise AuthServiceException("auth.errors.auth_service_error")
+            raise AuthServiceException(
+                key="auth.errors.auth_service_error",
+                fallback="Authentication service error",
+            )

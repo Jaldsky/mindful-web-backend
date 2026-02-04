@@ -63,7 +63,7 @@ class TestOrchestrator(TestCase):
 
         self.assertEqual(cm.exception.task_id, "task-123")
         self.assertEqual(
-            cm.exception.message,
+            cm.exception.fallback,
             "Task execution timeout for task task-123!",
         )
         mock_logger.warning.assert_called_once_with("Celery task timeout for task test_task")
@@ -78,7 +78,7 @@ class TestOrchestrator(TestCase):
 
         self.assertEqual(cm.exception.task_id, "unknown")
         self.assertEqual(
-            cm.exception.message,
+            cm.exception.fallback,
             "Task execution timeout for task unknown!",
         )
         mock_logger.warning.assert_called_once_with("Celery task timeout for task test_task")
@@ -91,7 +91,7 @@ class TestOrchestrator(TestCase):
         with self.assertRaises(OrchestratorBrokerUnavailableException) as cm:
             self.orchestrator.exec(self.mock_task)
 
-        self.assertEqual(cm.exception.message_key, "scheduler.errors.broker_unavailable")
+        self.assertEqual(cm.exception.key, "scheduler.errors.broker_unavailable")
 
     @patch("app.services.scheduler.orchestrator.logger")
     def test_exec_task_without_name(self, _):

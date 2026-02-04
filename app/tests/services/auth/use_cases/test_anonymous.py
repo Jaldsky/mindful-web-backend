@@ -31,7 +31,7 @@ class TestAnonymousService(TestCase):
                 with self.assertRaises(AuthServiceException) as ctx:
                     await service.exec()
 
-            self.assertEqual(ctx.exception.message, "auth.errors.anon_id_generation_failed")
+            self.assertEqual(ctx.exception.key, "auth.errors.anon_id_generation_failed")
 
         self._run_async(_test())
 
@@ -42,6 +42,6 @@ class TestAnonymousService(TestCase):
                 with self.assertRaises(AuthServiceException) as ctx:
                     await service.exec()
 
-            self.assertEqual(ctx.exception.message, "auth.errors.anon_token_create_failed")
+            self.assertEqual(ctx.exception.key, "auth.errors.anon_token_create_failed")
 
         self._run_async(_test())

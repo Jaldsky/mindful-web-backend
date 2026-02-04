@@ -24,4 +24,7 @@ class DatabaseHealthcheckService:
         is_available = await check_database_connection(session)
 
         if not is_available:
-            raise HealthcheckServiceUnavailableException("healthcheck.errors.database_unavailable")
+            raise HealthcheckServiceUnavailableException(
+                key="healthcheck.errors.database_unavailable",
+                fallback="Database is not available",
+            )

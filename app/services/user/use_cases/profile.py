@@ -39,7 +39,10 @@ class ProfileService:
         """
         user = await fetch_user_by_id(session, user_id)
         if not user:
-            raise UserNotFoundException("user.errors.user_not_found")
+            raise UserNotFoundException(
+                key="user.errors.user_not_found",
+                fallback="User not found",
+            )
 
         return ProfileData(
             username=user.username,

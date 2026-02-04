@@ -33,12 +33,18 @@ class AnonymousService(AnonymousServiceBase):
         try:
             anon_id = uuid4()
         except Exception:
-            raise AuthServiceException("auth.errors.anon_id_generation_failed")
+            raise AuthServiceException(
+                key="auth.errors.anon_id_generation_failed",
+                fallback="Failed to generate anonymous session id",
+            )
 
         try:
             anon_token: AccessToken = create_anon_token(anon_id)
         except Exception:
-            raise AuthServiceException("auth.errors.anon_token_create_failed")
+            raise AuthServiceException(
+                key="auth.errors.anon_token_create_failed",
+                fallback="Failed to create anonymous session token",
+            )
 
         logger.info(f"Anonymous session created: {anon_id}")
         return anon_id, anon_token

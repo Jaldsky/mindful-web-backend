@@ -74,15 +74,17 @@ async def app_exception_handler(request: Request, exc: Exception) -> JSONRespons
         )
 
     if exc.status_code >= 500:
-        logger.error(f"App error: {exc.message}", exc_info=True)
+        logger.error(f"App error: {exc.fallback}", exc_info=True)
     else:
-        logger.warning(f"App warning: {exc.message}")
+        logger.warning(f"App warning: {exc.fallback}")
 
     content = exc.get_response_content()
-    key = getattr(exc, "message_key", None)
-    if key:
+    i18n_key = getattr(exc, "key", None)
+    if i18n_key:
         params = getattr(exc, "translation_params", None) or {}
-        translated_message = localize_key(request, key, content["message"], **{k: str(v) for k, v in params.items()})
+        translated_message = localize_key(
+            request, i18n_key, content["message"], **{k: str(v) for k, v in params.items()}
+        )
         if isinstance(translated_message, str):
             content["message"] = translated_message
             for detail in content.get("details") or []:
