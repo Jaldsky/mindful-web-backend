@@ -9,13 +9,17 @@ class ProfileDataSchema(BaseModel):
 
 
 class ProfileResponseSchema(BaseModel):
-    """Схема ответа на получение профиля пользователя."""
+    """Схема успешного ответа user-сервиса (профиль / обновление профиля)."""
 
+    code: str = Field(default="OK", description="Код ответа")
+    message: str = Field(..., description="Сообщение")
     data: ProfileDataSchema = Field(..., description="Данные профиля пользователя")
 
     class Config:
         json_schema_extra = {
             "example": {
+                "code": "OK",
+                "message": "Profile loaded",
                 "data": {
                     "username": "testuser",
                     "email": "test@example.com",

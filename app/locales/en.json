@@ -69,6 +69,11 @@
       "too_many_attempts": "Too many attempts. Please try again later",
       "email_send_failed": "Failed to send verification email",
       "auth_service_error": "Authentication service error"
+    },
+    "messages": {
+      "profile_loaded": "Profile loaded",
+      "username_updated": "Username updated successfully",
+      "email_update_started": "Email confirmation code sent"
     }
   },
   "analytics": {

@@ -1,10 +1,10 @@
 from uuid import UUID
-
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
 from ...dependencies import get_current_user_id, get_db_session
+from ....core.localizer import localize_key
 from ...state_services import (
     get_profile_service,
     get_update_email_service,
@@ -65,6 +65,7 @@ router = APIRouter(prefix="/user", tags=["user"])
     description="Возвращает данные текущего пользователя.",
 )
 async def get_profile(
+    request: Request,
     user_id: UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session),
     profile_service=Depends(get_profile_service),
@@ -72,6 +73,7 @@ async def get_profile(
     """Эндпоинт получения профиля текущего пользователя.
 
     Args:
+        request: HTTP-запрос.
         user_id: Идентификатор пользователя из access Bearer JWT.
         db: Сессия базы данных.
         profile_service: Сервис профиля.
@@ -86,7 +88,9 @@ async def get_profile(
         UserNotFoundException: Если пользователь не найден в системе (401).
     """
     profile = await profile_service.exec(session=db, user_id=user_id)
+    message = localize_key(request, "user.messages.profile_loaded", "Profile loaded")
     return ProfileResponseSchema(
+        message=message,
         data={
             "username": profile.username,
             "email": profile.email,
@@ -136,6 +140,7 @@ async def get_profile(
     description="Обновляет username текущего пользователя.",
 )
 async def update_profile_username(
+    request: Request,
     payload: UpdateUsernameRequestSchema = Body(..., description="Новый логин пользователя"),
     user_id: UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session),
@@ -144,6 +149,7 @@ async def update_profile_username(
     """Эндпоинт обновления логина текущего пользователя.
 
     Args:
+        request: HTTP-запрос.
         payload: Схема с новым логином пользователя.
         user_id: Идентификатор пользователя из access Bearer JWT.
         db: Сессия базы данных.
@@ -165,7 +171,9 @@ async def update_profile_username(
         user_id=user_id,
         username=payload.username,
     )
+    message = localize_key(request, "user.messages.username_updated", "Username updated successfully")
     return ProfileResponseSchema(
+        message=message,
         data={
             "username": profile.username,
             "email": profile.email,
@@ -215,6 +223,7 @@ async def update_profile_username(
     description="Создаёт pending email и отправляет код подтверждения на новый адрес.",
 )
 async def update_profile_email(
+    request: Request,
     payload: UpdateEmailRequestSchema = Body(..., description="Новый email пользователя"),
     user_id: UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db_session),
@@ -225,6 +234,7 @@ async def update_profile_email(
     Создаёт pending_email и отправляет код подтверждения на новый адрес.
 
     Args:
+        request: HTTP-запрос.
         payload: Схема с новым email пользователя.
         user_id: Идентификатор пользователя из access Bearer JWT.
         db: Сессия базы данных.
@@ -247,7 +257,9 @@ async def update_profile_email(
         user_id=user_id,
         email=payload.email,
     )
+    message = localize_key(request, "user.messages.email_update_started", "Email confirmation code sent")
     return ProfileResponseSchema(
+        message=message,
         data={
             "username": profile.username,
             "email": profile.email,
