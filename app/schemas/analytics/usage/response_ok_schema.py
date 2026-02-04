@@ -26,7 +26,7 @@ class AnalyticsUsageResponseOkSchema(BaseModel):
     """Схема успешного ответа OK для analytics usage endpoint."""
 
     code: Literal["OK"] = Field("OK", description="Код статуса")
-    message: str = Field("Usage analytics computed", description="Сообщение статуса")
+    message: str = Field(..., description="Сообщение статуса")
 
     from_date: date = Field(..., description="Начало интервала")
     to_date: date = Field(..., description="Конец интервала")

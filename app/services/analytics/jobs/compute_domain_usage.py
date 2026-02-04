@@ -223,7 +223,7 @@ class ComputeDomainUsageService(ComputeDomainUsageServiceBase):
 
             return AnalyticsUsageResponseOkSchema(
                 code="OK",
-                message="Usage analytics computed",
+                message="analytics.messages.usage_computed",
                 from_date=self.start_date,
                 to_date=self.end_date,
                 pagination=pagination_meta,

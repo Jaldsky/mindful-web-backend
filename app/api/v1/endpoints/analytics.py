@@ -8,6 +8,7 @@ from ...dependencies import (
 )
 from ...state_services import get_analytics_usage_service
 from ....core.pagination import PaginationUrlBuilder
+from ....core.localizer import localize_key
 from ....schemas.analytics import (
     AnalyticsUsageRequestSchema,
     AnalyticsUsageResponseAcceptedSchema,
@@ -81,6 +82,11 @@ async def get_usage(
         from_date=request_params.from_date,
         to_date=request_params.to_date,
         page=request_params.page,
+    )
+    response.message = localize_key(
+        request,
+        "analytics.messages.usage_computed",
+        "Usage analytics computed",
     )
     response.pagination = PaginationUrlBuilder.build_links(request, response.pagination)
 

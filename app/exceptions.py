@@ -12,14 +12,18 @@ class AppException(Exception):
 
     def __init__(
         self,
-        message: str,
+        message_key: str | None = None,
         error_code: str | None = None,
         status_code: int | None = None,
         details: Any = None,
         translation_params: dict[str, Any] | None = None,
+        message: str | None = None,
     ):
-        super().__init__(message)
-        self.message = message
+        self.message_key = message_key
+        effective_message = message if message is not None else (message_key or "Unknown error")
+
+        super().__init__(effective_message)
+        self.message = effective_message
         self.translation_params = translation_params or {}
         if error_code:
             self.error_code = error_code

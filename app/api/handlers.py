@@ -79,7 +79,7 @@ async def app_exception_handler(request: Request, exc: Exception) -> JSONRespons
         logger.warning(f"App warning: {exc.message}")
 
     content = exc.get_response_content()
-    key = getattr(exc, "message", None)
+    key = getattr(exc, "message_key", None)
     if key:
         params = getattr(exc, "translation_params", None) or {}
         translated_message = localize_key(request, key, content["message"], **{k: str(v) for k, v in params.items()})

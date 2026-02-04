@@ -77,6 +77,7 @@ from ....services.auth.cookies import (
 from ....services.auth.exceptions import TokenMissingException
 from ....services.auth.constants import AUTH_ACCESS_COOKIE_NAME, AUTH_REFRESH_COOKIE_NAME, AUTH_ANON_COOKIE_NAME
 from ....services.auth.common import decode_token
+from ....core.localizer import localize_key
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -128,7 +129,9 @@ async def create_anonymous(
             if payload.get("type") == "anon":
                 anon_id = UUID(str(payload.get("sub")))
                 set_anon_cookie(response, anon_token)
+                message = localize_key(request, "auth.messages.anonymous_created", "Anonymous session created")
                 return AnonymousResponseSchema(
+                    message=message,
                     anon_id=str(anon_id),
                 )
         except Exception:
@@ -136,7 +139,12 @@ async def create_anonymous(
 
     anon_id, anon_token = await anonymous_service.exec()
     set_anon_cookie(response, anon_token)
-    return AnonymousResponseSchema(anon_id=str(anon_id))
+
+    message = localize_key(request, "auth.messages.anonymous_created", "Anonymous session created")
+    return AnonymousResponseSchema(
+        message=message,
+        anon_id=str(anon_id),
+    )
 
 
 @router.get(
@@ -188,7 +196,9 @@ async def get_session(
         anon_token=anon_token,
     )
 
+    message = localize_key(request, "auth.messages.session_retrieved", "Session status retrieved")
     return SessionResponseSchema(
+        message=message,
         status=session_state.status,
         user_id=str(session_state.user_id) if session_state.user_id else None,
         anon_id=str(session_state.anon_id) if session_state.anon_id else None,
@@ -233,6 +243,7 @@ async def get_session(
     description="Создаёт пользователя и отправляет код подтверждения на email.",
 )
 async def register(
+    request: Request,
     payload: RegisterRequestSchema = Body(..., description="Данные регистрации"),
     db: AsyncSession = Depends(get_db_session),
     register_service=Depends(get_register_service),
@@ -259,7 +270,10 @@ async def register(
         email=payload.email,
         password=payload.password,
     )
+
+    message = localize_key(request, "auth.messages.register_created", "Verification code sent to email")
     return RegisterResponseSchema(
+        message=message,
         user_id=str(user.id),
         email=str(user.email),
     )
@@ -303,6 +317,7 @@ async def register(
     description="Переиспользует активный код или создаёт новый и отправляет на email.",
 )
 async def resend_code(
+    request: Request,
     payload: ResendCodeRequestSchema = Body(..., description="Email для отправки кода"),
     db: AsyncSession = Depends(get_db_session),
     resend_verification_code_service=Depends(get_resend_verification_code_service),
@@ -324,7 +339,9 @@ async def resend_code(
         EmailSendFailedException: Ошибка отправки письма (500).
     """
     await resend_verification_code_service.exec(session=db, email=payload.email)
-    return ResendCodeResponseSchema()
+
+    message = localize_key(request, "auth.messages.resend_code_sent", "Verification code sent successfully")
+    return ResendCodeResponseSchema(message=message)
 
 
 @router.post(
@@ -365,6 +382,7 @@ async def resend_code(
     description="Подтверждает email по коду из письма.",
 )
 async def verify(
+    request: Request,
     payload: VerifyRequestSchema = Body(..., description="Данные подтверждения email"),
     db: AsyncSession = Depends(get_db_session),
     verify_email_service=Depends(get_verify_email_service),
@@ -388,7 +406,9 @@ async def verify(
         email=payload.email,
         code=payload.code,
     )
-    return VerifyResponseSchema()
+
+    message = localize_key(request, "auth.messages.email_verified", "Email verified successfully")
+    return VerifyResponseSchema(message=message)
 
 
 @router.post(
@@ -460,7 +480,9 @@ async def refresh(
 
     set_auth_cookies(response, access_token, refresh_token)
 
+    message = localize_key(request, "auth.messages.token_refreshed", "Token refreshed successfully")
     return RefreshResponseSchema(
+        message=message,
         access_token=access_token,
         refresh_token=refresh_token,
     )
@@ -504,6 +526,7 @@ async def refresh(
     description="Проверяет учётные данные и возвращает пару access/refresh токенов.",
 )
 async def login(
+    request: Request,
     response: Response,
     payload: LoginRequestSchema = Body(..., description="Данные авторизации"),
     db: AsyncSession = Depends(get_db_session),
@@ -533,7 +556,9 @@ async def login(
     clear_anon_cookie(response)
     set_auth_cookies(response, access_token, refresh_token)
 
+    message = localize_key(request, "auth.messages.login_successful", "Login successful")
     return LoginResponseSchema(
+        message=message,
         access_token=access_token,
         refresh_token=refresh_token,
     )
@@ -564,7 +589,7 @@ async def login(
     summary="Выход пользователя из системы",
     description="Удаляет токен доступа и токен обновления из HTTP куки.",
 )
-async def logout(response: Response) -> LogoutResponseSchema:
+async def logout(request: Request, response: Response) -> LogoutResponseSchema:
     """Выход из системы: удаляет access, refresh и anon cookies.
 
     Args:
@@ -575,4 +600,6 @@ async def logout(response: Response) -> LogoutResponseSchema:
     """
     clear_auth_cookies(response)
     clear_anon_cookie(response)
-    return LogoutResponseSchema()
+
+    message = localize_key(request, "auth.messages.logout_successful", "Logout successful")
+    return LogoutResponseSchema(message=message)
