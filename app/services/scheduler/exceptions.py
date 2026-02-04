@@ -1,7 +1,5 @@
 from fastapi import status
 from app.exceptions import AppException
-from ...core.common import StringEnum
-from ...db.types import ExceptionMessage
 
 
 class SchedulerServiceException(AppException):
@@ -14,15 +12,18 @@ class OrchestratorTimeoutException(SchedulerServiceException):
     status_code = status.HTTP_202_ACCEPTED
     error_code = "ACCEPTED"
 
-    def __init__(self, task_id: str, message: str):
+    def __init__(self, task_id: str):
         """Инициализация исключения.
 
         Args:
             task_id: Идентификатор задачи.
-            message: Сообщение об ошибке из OrchestratorServiceMessages.
         """
         self.task_id = task_id
-        super().__init__(message=message)
+        super().__init__(
+            message_key="analytics.messages.task_timeout",
+            translation_params={"task_id": task_id},
+            message=f"Task execution timeout for task {task_id}!",
+        )
 
     def get_response_content(self) -> dict:
         """Метод формирования тела ответа.
@@ -42,18 +43,3 @@ class OrchestratorBrokerUnavailableException(SchedulerServiceException):
 
     status_code = status.HTTP_503_SERVICE_UNAVAILABLE
     error_code = "SERVICE_UNAVAILABLE"
-
-    def __init__(self, message: str):
-        """Инициализация исключения.
-
-        Args:
-            message: Сообщение об ошибке из OrchestratorServiceMessages.
-        """
-        super().__init__(message=message)
-
-
-class OrchestratorServiceMessages(StringEnum):
-    """Перечисление сообщений об ошибках."""
-
-    TASK_TIMEOUT: ExceptionMessage = "Task execution timeout for task {task_id}!"
-    BROKER_UNAVAILABLE: ExceptionMessage = "Celery broker is not available!"

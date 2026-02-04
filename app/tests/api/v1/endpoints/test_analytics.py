@@ -28,7 +28,6 @@ from app.schemas.general import ServiceUnavailableSchema
 from app.services.scheduler.exceptions import (
     OrchestratorTimeoutException,
     OrchestratorBrokerUnavailableException,
-    OrchestratorServiceMessages,
 )
 
 
@@ -100,7 +99,6 @@ class TestAnalyticsUsageEndpoint(TestCase):
         self.mock_analytics_service.exec = AsyncMock(
             side_effect=OrchestratorTimeoutException(
                 task_id=task_id,
-                message=OrchestratorServiceMessages.TASK_TIMEOUT.format(task_id=task_id),
             )
         )
 
@@ -119,7 +117,9 @@ class TestAnalyticsUsageEndpoint(TestCase):
     def test_usage_broker_unavailable_exception(self):
         """Недоступность брокера возвращает статус 503 SERVICE_UNAVAILABLE."""
         self.mock_analytics_service.exec = AsyncMock(
-            side_effect=OrchestratorBrokerUnavailableException(message=OrchestratorServiceMessages.BROKER_UNAVAILABLE)
+            side_effect=OrchestratorBrokerUnavailableException(
+                message_key="scheduler.errors.broker_unavailable",
+            )
         )
 
         response = self.client.get(
