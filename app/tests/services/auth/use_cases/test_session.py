@@ -7,7 +7,7 @@ from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.services.auth.common import create_anon_token
-from app.services.auth.exceptions import AuthMessages, TokenInvalidException
+from app.services.auth.exceptions import TokenInvalidException
 from app.services.auth.use_cases import SessionService
 
 
@@ -61,7 +61,7 @@ class TestSessionService(TestCase):
             service = SessionService()
             with patch(
                 "app.services.auth.use_cases.session.authenticate_access_token",
-                new=AsyncMock(side_effect=TokenInvalidException(AuthMessages.TOKEN_INVALID)),
+                new=AsyncMock(side_effect=TokenInvalidException(message_key="auth.errors.token_invalid")),
             ):
                 state = await service.exec(
                     session=session,
@@ -81,7 +81,7 @@ class TestSessionService(TestCase):
             service = SessionService()
             with patch(
                 "app.services.auth.use_cases.session.authenticate_access_token",
-                new=AsyncMock(side_effect=TokenInvalidException(AuthMessages.TOKEN_INVALID)),
+                new=AsyncMock(side_effect=TokenInvalidException(message_key="auth.errors.token_invalid")),
             ):
                 state = await service.exec(
                     session=session,

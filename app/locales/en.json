@@ -124,5 +124,27 @@
       "unexpected_error": "An unexpected error occurred while processing events!",
       "anon_events_limit_exceeded": "Anonymous events limit exceeded"
     }
+  },
+  "email": {
+    "errors": {
+      "smtp_connection_error": "Failed to connect to SMTP server",
+      "smtp_authentication_error": "SMTP authentication failed",
+      "smtp_send_error": "Failed to send email message",
+      "smtp_unexpected_error": "Unexpected error while sending email",
+      "email_cannot_be_empty": "Email cannot be empty",
+      "invalid_email_format": "Invalid email format",
+      "verification_code_cannot_be_empty": "Verification code cannot be empty",
+      "verification_code_must_be_digits": "Verification code must contain only digits",
+      "verification_code_must_be_6_digits": "Verification code must be 6 digits long",
+      "smtp_host_cannot_be_empty": "SMTP host cannot be empty",
+      "smtp_port_invalid": "SMTP port must be between 1 and 65535",
+      "smtp_user_cannot_be_empty": "SMTP user cannot be empty if provided",
+      "smtp_password_cannot_be_empty": "SMTP password cannot be empty if provided",
+      "smtp_from_name_cannot_be_empty": "Default from name cannot be empty if provided",
+      "smtp_timeout_invalid": "SMTP timeout must be a positive integer",
+      "templates_dir_cannot_be_empty": "Templates directory path cannot be empty",
+      "templates_dir_not_exists": "Templates directory does not exist",
+      "templates_dir_not_directory": "Templates directory path is not a directory"
+    }
   }
 }
