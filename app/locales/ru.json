@@ -49,6 +49,16 @@
       "password_length_invalid": "Некорректная длина пароля",
       "password_must_contain_letter": "Пароль должен содержать букву",
       "password_must_contain_digit": "Пароль должен содержать цифру"
+    },
+    "messages": {
+      "anonymous_created": "Анонимная сессия создана",
+      "session_retrieved": "Статус сессии получен",
+      "login_successful": "Вход выполнен успешно",
+      "register_created": "Код подтверждения отправлен на email",
+      "logout_successful": "Выход выполнен успешно",
+      "token_refreshed": "Токены успешно обновлены",
+      "email_verified": "Email успешно подтверждён",
+      "resend_code_sent": "Код подтверждения отправлен"
     }
   },
   "user": {
@@ -69,6 +79,16 @@
       "invalid_time_range": "Конечная дата должна быть позже начальной",
       "invalid_page_type": "Номер страницы должен быть целым числом",
       "invalid_page": "Номер страницы не меньше 1"
+    },
+    "messages": {
+      "usage_computed": "Аналитика использования вычислена",
+      "task_accepted": "Задача принята",
+      "task_timeout": "Задача принята. Аналитика вычисляется (задача {task_id})."
+    }
+  },
+  "scheduler": {
+    "errors": {
+      "broker_unavailable": "Брокер Celery недоступен!"
     }
   },
   "healthcheck": {
