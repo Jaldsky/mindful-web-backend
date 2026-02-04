@@ -119,35 +119,3 @@ class EmailSendFailedException(InternalServerErrorException):
     """Ошибка сервиса email (500)."""
 
     error_code = AuthErrorCode.EMAIL_SEND_FAILED
-
-
-class AuthMessages:
-    """Сообщения сервиса авторизации."""
-
-    USERNAME_EXISTS = "User with this username already exists"
-    EMAIL_EXISTS = "User with this email already exists"
-    EMAIL_SEND_FAILED = "Failed to send verification email"
-    AUTH_SERVICE_ERROR = "Authentication service error"
-    ANON_ID_GENERATION_FAILED = "Failed to generate anonymous session id"
-    ANON_TOKEN_CREATE_FAILED = "Failed to create anonymous session token"
-    RESEND_CODE_DB_STAGE_ERROR = "Resend code failed due to a database error"
-    RESEND_CODE_EMAIL_STAGE_ERROR = "Resend code failed while sending verification email"
-    USER_NOT_FOUND = "User not found"
-    EMAIL_ALREADY_VERIFIED = "Email is already verified"
-    TOO_MANY_ATTEMPTS = "Too many attempts. Please try again later"
-    CODE_INVALID = "Verification code is invalid"
-    CODE_EXPIRED = "Verification code has expired"
-    VERIFICATION_CODE_FORMAT_INVALID = "Verification code must be exactly 6 digits"
-    EMAIL_CANNOT_BE_EMPTY = "Email cannot be empty"
-    INVALID_EMAIL_FORMAT = "Invalid email format"
-    USERNAME_LENGTH_INVALID = "Username length is invalid"
-    USERNAME_INVALID_CHARS = "Username must contain only lowercase letters, numbers, and underscores"
-    USERNAME_CANNOT_START_OR_END_WITH_UNDERSCORE = "Username cannot start or end with underscore"
-    PASSWORD_LENGTH_INVALID = "Password length is invalid"
-    PASSWORD_MUST_CONTAIN_LETTER = "Password must contain at least one letter"
-    PASSWORD_MUST_CONTAIN_DIGIT = "Password must contain at least one digit"
-    INVALID_CREDENTIALS = "Invalid credentials"
-    EMAIL_NOT_VERIFIED = "Email is not verified"
-    TOKEN_INVALID = "Token is invalid"
-    TOKEN_EXPIRED = "Token has expired"
-    TOKEN_MISSING = "Token is missing"
