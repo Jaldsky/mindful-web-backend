@@ -69,6 +69,11 @@
       "too_many_attempts": "Слишком много попыток. Попробуйте позже",
       "email_send_failed": "Не удалось отправить письмо",
       "auth_service_error": "Ошибка сервиса авторизации"
+    },
+    "messages": {
+      "profile_loaded": "Профиль загружен",
+      "username_updated": "Логин успешно обновлён",
+      "email_update_started": "Код подтверждения отправлен на новый email"
     }
   },
   "analytics": {
