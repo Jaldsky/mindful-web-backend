@@ -6,7 +6,7 @@ class AnalyticsUsageResponseAcceptedSchema(BaseModel):
     """Схема успешного ответа ACCEPTED для analytics usage endpoint."""
 
     code: Literal["ACCEPTED"] = Field("ACCEPTED", description="Код статуса")
-    message: str = Field("Task accepted", description="Сообщение статуса")
+    message: str = Field(..., description="Сообщение статуса")
 
     task_id: str = Field(..., description="Идентификатор Celery задачи")
 
