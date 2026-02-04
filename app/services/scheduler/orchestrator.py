@@ -8,7 +8,6 @@ from kombu.exceptions import OperationalError
 from .exceptions import (
     OrchestratorTimeoutException,
     OrchestratorBrokerUnavailableException,
-    OrchestratorServiceMessages,
 )
 
 logger = logging.getLogger(__name__)
@@ -16,8 +15,6 @@ logger = logging.getLogger(__name__)
 
 class OrchestratorBase(ABC):
     """Базовый класс оркестратора для выполнения Celery задач."""
-
-    messages = OrchestratorServiceMessages
 
     def __init__(self, task_timeout: int = 3) -> None:
         """Инициализация оркестратора.
@@ -73,7 +70,8 @@ class Orchestrator(OrchestratorBase):
             task_id = celery_task.id if celery_task else "unknown"
             raise OrchestratorTimeoutException(
                 task_id=task_id,
-                message=self.messages.TASK_TIMEOUT.format(task_id=task_id),
             )
         except OperationalError:
-            raise OrchestratorBrokerUnavailableException(message=self.messages.BROKER_UNAVAILABLE)
+            raise OrchestratorBrokerUnavailableException(
+                message_key="scheduler.errors.broker_unavailable",
+            )

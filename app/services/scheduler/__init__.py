@@ -5,7 +5,6 @@ from .exceptions import (
     SchedulerServiceException,
     OrchestratorTimeoutException,
     OrchestratorBrokerUnavailableException,
-    OrchestratorServiceMessages,
 )
 
 __all__ = (
@@ -15,5 +14,4 @@ __all__ = (
     "SchedulerServiceException",
     "OrchestratorTimeoutException",
     "OrchestratorBrokerUnavailableException",
-    "OrchestratorServiceMessages",
 )
